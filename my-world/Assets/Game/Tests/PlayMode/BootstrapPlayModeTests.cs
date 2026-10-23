@@ -379,6 +379,27 @@ namespace MyAiWorld.Tests.PlayMode
         }
 
         [UnityTest]
+        public IEnumerator Bootstrap_WorldCellSelection_DoesNotOpenResourcePanel()
+        {
+            SceneManager.LoadScene("Bootstrap");
+            yield return null;
+            yield return null;
+            GameBootstrap bootstrap = Object.FindObjectOfType<GameBootstrap>();
+            bootstrap.Runner.Pause();
+            GridPos center = bootstrap.Session.World.Center;
+
+            bootstrap.Selection.SelectCell(center);
+            yield return null;
+            Assert.That(bootstrap.Hud.OpenGlobalPanel, Is.EqualTo(-1), "Selecting a world cell must not open a HUD panel.");
+
+            bootstrap.Hud.ToggleGlobalPanel(0);
+            bootstrap.Selection.SelectCell(bootstrap.Session.ReadModel.ResourceNodes[0].Cell);
+            yield return new WaitForSecondsRealtime(0.22f);
+            Assert.That(bootstrap.Hud.OpenGlobalPanel, Is.EqualTo(0), "An open resource panel should stay open.");
+            Assert.That(bootstrap.Hud.ResourceText, Does.Contain("选中资源"));
+        }
+
+        [UnityTest]
         public IEnumerator Bootstrap_AnimationsFreezeWhenPausedAndUiTransitionsStillAnimate()
         {
             SceneManager.LoadScene("Bootstrap");
@@ -551,7 +572,7 @@ namespace MyAiWorld.Tests.PlayMode
                 bootstrap.Selection.Select(evt.Actor); bootstrap.Hud.SetTimelineFilter(true);
                 Assert.That(bootstrap.Hud.EventText, Does.Contain("回报帮助 #" + cause));
                 Assert.That(session.LastStateHash, Is.EqualTo(hash));
-                Assert.That(session.Save(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "TestResults", "M4-ReciprocityReview.json"))), Is.True);
+                Assert.That(session.Save(Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "TestResults", "M4-ReciprocityReview.json"))), Is.True, session.SaveStatus);
                 string logText = File.ReadAllText(session.LogPath);
                 Assert.That(logText, Does.Contain("session_start"));
             }

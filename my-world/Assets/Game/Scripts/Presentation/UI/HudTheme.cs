@@ -6,12 +6,19 @@ namespace MyAiWorld.Presentation.UI
     public static class HudTheme
     {
         public static readonly Color Paper = new Color32(250, 247, 235, 255);
+        public static readonly Color PaperRaised = new Color32(253, 251, 244, 255);
         public static readonly Color Inset = new Color32(239, 236, 221, 255);
+        public static readonly Color InsetDeep = new Color32(226, 222, 205, 255);
         public static readonly Color Ink = new Color32(39, 65, 54, 255);
         public static readonly Color Muted = new Color32(111, 120, 103, 255);
+        public static readonly Color Faint = new Color32(151, 156, 139, 255);
         public static readonly Color Gold = new Color32(166, 119, 60, 255);
+        public static readonly Color GoldSoft = new Color32(198, 163, 104, 255);
         public static readonly Color Line = new Color32(215, 214, 193, 255);
+        public static readonly Color LineSoft = new Color32(230, 226, 210, 255);
         public static readonly Color Danger = new Color32(170, 67, 51, 255);
+        public static readonly Color Positive = new Color32(86, 134, 82, 255);
+        public static readonly Color Shadow = new Color32(38, 58, 43, 46);
         public static readonly Color[] Needs =
         {
             new Color32(183, 137, 57, 255), new Color32(68, 142, 160, 255),
@@ -54,14 +61,36 @@ namespace MyAiWorld.Presentation.UI
             image.type = Image.Type.Sliced;
             if (!shadow) { return; }
             var effect = image.gameObject.AddComponent<Shadow>();
-            effect.effectColor = new Color(0.12f, 0.19f, 0.13f, 0.2f);
+            effect.effectColor = Shadow;
             effect.effectDistance = new Vector2(0f, -3f);
         }
 
         public static void Select(Button button, bool selected)
         {
+            if (button == null) { return; }
             button.image.color = selected ? Ink : Inset;
-            button.GetComponentInChildren<Text>().color = selected ? Paper : Ink;
+            foreach (Text label in button.GetComponentsInChildren<Text>())
+            {
+                label.color = selected ? Paper : Ink;
+            }
+            foreach (Image image in button.GetComponentsInChildren<Image>())
+            {
+                if (image != button.image) { image.color = selected ? Paper : Ink; }
+            }
+        }
+
+        public static Image Icon(Transform parent, string name, string key, Vector2 position, Vector2 size, Color color)
+        {
+            var image = UiFactory.CreateIcon(parent, name, HudIcons.Get(key), position, size);
+            image.color = color;
+            return image;
+        }
+
+        public static Image Icon(Transform parent, string name, string key, Color color)
+        {
+            var image = UiFactory.CreateIcon(parent, name, HudIcons.Get(key), Vector2.zero, new Vector2(18, 18));
+            image.color = color;
+            return image;
         }
     }
 }

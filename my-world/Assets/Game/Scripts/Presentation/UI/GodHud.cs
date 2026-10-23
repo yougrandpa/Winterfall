@@ -21,6 +21,7 @@ namespace MyAiWorld.Presentation.UI
         private PanelTransition _inspectorPanel;
         private PanelTransition _savePanel;
         private PanelTransition _toastPanel;
+        private PanelTransition _helpPanel;
         private readonly PanelTransition[] _globalPanels = new PanelTransition[3];
         private readonly Button[] _navigation = new Button[4];
         private readonly Button[] _speedButtons = new Button[4];
@@ -34,10 +35,18 @@ namespace MyAiWorld.Presentation.UI
         private readonly Text[] _bagLabels = new Text[3];
         private readonly Dictionary<string, Text> _metrics = new Dictionary<string, Text>();
         private Text _clockText, _timeText, _runText, _pauseLabel;
-        private Text _identity, _identityMeta, _currentAction, _overview, _historyBody;
+        private Text _identity, _identityMeta, _currentAction, _historyBody;
         private Text _saveStatus, _toastText, _debugBody, _timelinePageLabel;
         private Button _pauseButton, _timelineAll, _timelineSelected, _timelineOlder, _timelineNewer;
-        private Image _portrait;
+        private Image _portrait, _pauseIcon, _runDot, _toastIcon;
+        private readonly Text[] _needValues = new Text[5];
+        private readonly Image[] _needIcons = new Image[5];
+        private readonly Dictionary<string, Text> _facts = new Dictionary<string, Text>();
+        private readonly Text[] _saveSlotStatuses = new Text[4];
+        private readonly Image[] _saveSlotDots = new Image[4];
+        private Text _rabbitValue, _boarValue, _birthValue, _deathValue, _huntValue, _tradeValue, _treasuryValue;
+        private Image _rabbitFill, _boarFill;
+        private GameObject _inspectionSection;
         private Button _followButton;
         private GodCameraController _cameraController;
         private NeedsHistoryGraph _historyGraph;
@@ -54,6 +63,7 @@ namespace MyAiWorld.Presentation.UI
         public int InspectorTab { get; private set; }
         public bool InspectorOpen => _inspectorPanel != null && _inspectorPanel.IsOpen;
         public bool SaveMenuOpen => _savePanel != null && _savePanel.IsOpen;
+        public bool HelpOpen => _helpPanel != null && _helpPanel.IsOpen;
         public bool ToastVisible => _toastPanel != null && _toastPanel.IsOpen;
         public bool DebugVisible => _debugVisible;
         public string InspectorText => _inspectorText;
@@ -120,7 +130,8 @@ namespace MyAiWorld.Presentation.UI
 
         public void CloseTopmostPanel()
         {
-            if (SaveMenuOpen) { ToggleSaveMenu(); }
+            if (HelpOpen) { ToggleHelp(); }
+            else if (SaveMenuOpen) { ToggleSaveMenu(); }
             else if (OpenGlobalPanel >= 0) { CloseGlobalPanels(); }
             else { CloseInspector(); }
         }
@@ -151,6 +162,12 @@ namespace MyAiWorld.Presentation.UI
             _savePanel.SetOpen(!SaveMenuOpen);
             RefreshSaveStatus();
             RefreshNavigation();
+        }
+
+        public void ToggleHelp()
+        {
+            _helpPanel.SetOpen(!HelpOpen);
+            if (HelpOpen) { _helpPanel.transform.SetAsLastSibling(); }
         }
 
         public void SelectInspectorTab(int index)
@@ -207,6 +224,8 @@ namespace MyAiWorld.Presentation.UI
             _lastSaveStatus = _session.SaveStatus;
             _toastText.text = _lastSaveStatus;
             _toastText.color = success ? HudTheme.Ink : HudTheme.Danger;
+            _toastIcon.sprite = HudIcons.Get(success ? "save" : "alert");
+            _toastIcon.color = success ? HudTheme.Positive : HudTheme.Danger;
             _toastUntil = success ? Time.unscaledTime + 4f : 0f;
             _toastPanel.SetOpen(true);
             _toastPanel.transform.SetAsLastSibling();
@@ -214,7 +233,7 @@ namespace MyAiWorld.Presentation.UI
 
         private void OnCellSelected(GridPos cell)
         {
-            if (OpenGlobalPanel != 0) { ToggleGlobalPanel(0); }
+            if (OpenGlobalPanel != 0) { return; }
             RefreshResources();
             Canvas.ForceUpdateCanvases(); _resourceScroll.verticalNormalizedPosition = 1f;
         }
@@ -263,6 +282,7 @@ namespace MyAiWorld.Presentation.UI
         private void RefreshSaveStatus()
         {
             _saveStatus.text = _session.SaveStatus;
+            _saveStatus.color = _session.SaveStatus.IndexOf("失败", StringComparison.Ordinal) >= 0 ? HudTheme.Danger : HudTheme.Ink;
             if (_lastSaveStatus != _session.SaveStatus)
             {
                 ShowSaveFeedback(_session.SaveStatus.IndexOf("失败", StringComparison.Ordinal) < 0);
@@ -273,7 +293,9 @@ namespace MyAiWorld.Presentation.UI
             {
                 bool exists = File.Exists(paths[i - 1]);
                 _saveButtons[i].interactable = exists;
-                _saveButtons[i].GetComponentInChildren<Text>().text = new[] { "读取手动存档", "读取自动存档", "读取手动备份", "读取自动备份" }[i - 1] + (exists ? "" : " · 暂无");
+                _saveSlotStatuses[i - 1].text = exists ? "可读取" : "空";
+                _saveSlotStatuses[i - 1].color = exists ? HudTheme.Positive : HudTheme.Faint;
+                _saveSlotDots[i - 1].color = exists ? HudTheme.Positive : HudTheme.Line;
             }
         }
 

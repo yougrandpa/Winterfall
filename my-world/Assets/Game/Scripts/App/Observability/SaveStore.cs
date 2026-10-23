@@ -86,7 +86,7 @@ namespace MyAiWorld.App.Observability
                     // Never replace a good backup with a corrupt primary.
                     bool valid = false;
                     try { Read(path, out _); valid = true; }
-                    catch (Exception e) when (e is IOException || e is JsonException || e is ArgumentException || e is InvalidOperationException) { }
+                    catch (Exception e) when (e is IOException || e is InvalidDataException || e is JsonException || e is ArgumentException || e is InvalidOperationException) { }
                     File.Replace(temp, path, valid ? path + ".bak" : null);
                 }
                 else { File.Move(temp, path); }

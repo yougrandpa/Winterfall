@@ -115,6 +115,12 @@ namespace MyAiWorld.EditorTools
                 return;
             }
 
+            if (command == "build")
+            {
+                ProjectVerification.BuildVerificationPlayer();
+                return;
+            }
+
             if (command == "stop")
             {
                 Finish();
@@ -397,6 +403,19 @@ namespace MyAiWorld.EditorTools
                     if (_stage == 0)
                     {
                         PrepareScene(bootstrap, false, -2);
+                        Next(0.4);
+                    }
+                    else
+                    {
+                        CaptureAndFinish(_plan.name);
+                    }
+
+                    break;
+                case "help":
+                    if (_stage == 0)
+                    {
+                        PrepareScene(bootstrap, false, -1);
+                        if (!bootstrap.Hud.HelpOpen) { bootstrap.Hud.ToggleHelp(); }
                         Next(0.4);
                     }
                     else
