@@ -34,10 +34,41 @@ namespace MyAiWorld.App.Query
         public long Coins { get; }
         public bool Empty { get; }
     }
+    public sealed class ShelterSnapshot
+    {
+        internal ShelterSnapshot(ShelterState shelter)
+        {
+            Id = shelter.Id;
+            Cell = shelter.Position;
+            Entrance = shelter.Entrance;
+            Capacity = shelter.Capacity;
+            Temperature = shelter.Temperature;
+            FuelTicks = shelter.FuelTicks;
+            HeatBudget = shelter.HeatBudget;
+            var items = new int[(int)ItemKind.Count];
+            for (int i = 0; i < items.Length; i++) { items[i] = shelter.Inventory.Count((ItemKind)i); }
+            Items = Array.AsReadOnly(items);
+            Wood = items[(int)ItemKind.Wood];
+        }
+
+        public int Id { get; }
+        public GridPos Cell { get; }
+        public GridPos Entrance { get; }
+        public int Capacity { get; }
+        public int Temperature { get; }
+        public int FuelTicks { get; }
+        public int HeatBudget { get; }
+        public int Wood { get; }
+        public IReadOnlyList<int> Items { get; }
+        public bool Burning => FuelTicks > 0 && HeatBudget > 0;
+    }
     public sealed class SurvivalReadModel
     {
         internal SurvivalReadModel(WorldState world)
         {
+            var shelters = new List<ShelterSnapshot>();
+            foreach (ShelterState shelter in world.Survival.Shelters) { shelters.Add(new ShelterSnapshot(shelter)); }
+            Shelters = shelters.AsReadOnly();
             var facilities = new List<FacilitySnapshot>(); foreach (var f in world.Survival.Facilities) { facilities.Add(new FacilitySnapshot(f)); } Facilities = facilities.AsReadOnly();
             var ground = new List<GroundStockSnapshot>(); foreach (var g in world.Survival.Ground) { if (!g.Empty) { ground.Add(new GroundStockSnapshot(g)); } } Ground = ground.AsReadOnly();
             var stock = new int[(int)ItemKind.Count]; for (int i = 0; i < stock.Length; i++) { stock[i] = world.Resources.Stockpile.Count((ItemKind)i); } Stock = Array.AsReadOnly(stock);
@@ -47,6 +78,7 @@ namespace MyAiWorld.App.Query
             { if (npc.Survival.Life == LifeState.Downed) { Downed++; } if (npc.Survival.Life == LifeState.Recovering) { Recovering++; } if (npc.Survival.Life == LifeState.Dead) { Dead++; } }
         }
         public IReadOnlyList<FacilitySnapshot> Facilities { get; }
+        public IReadOnlyList<ShelterSnapshot> Shelters { get; }
         public IReadOnlyList<GroundStockSnapshot> Ground { get; }
         public IReadOnlyList<int> Stock { get; }
         public int Living { get; }

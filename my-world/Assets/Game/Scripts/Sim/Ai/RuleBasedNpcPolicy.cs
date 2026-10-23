@@ -64,6 +64,27 @@ namespace MyAiWorld.Sim.Ai
         {
             NpcState npc = context.Npc;
             var trace = new NpcDecisionTrace();
+            ShelterState home = context.World.Survival.FindShelter(npc.Survival.ShelterId);
+            if (ThermalSystem.IsAtShelter(context.World, npc) && npc.Needs.Food >= 1500 && npc.Needs.Water >= 1800 &&
+                (home.FuelTicks == 0 && home.Inventory.Count(ItemKind.Wood) == 0 && npc.Inventory.Count(ItemKind.Wood) > 0 ||
+                 npc.Survival.CoatDurability == 0 && npc.Inventory.Count(ItemKind.WinterCoat) > 0))
+            {
+                trace.Goal = NpcGoalType.Produce.ToString();
+                trace.ChosenScore = 20000;
+                trace.ReasonCode = "restore_shelter_warmth";
+                return new NpcDecision(NpcGoalType.Produce, npc.Home, 2, npc.RngState, trace);
+            }
+            if (npc.Needs.Food >= 1500 && npc.Needs.Water >= 1800 &&
+                (ThermalSystem.ShouldSeekWarmth(context.World, npc) ||
+                 !context.World.Environment.IsDaytime && npc.Position.ManhattanDistance(npc.Home) > 5 &&
+                 context.World.Environment.Temperature < 0))
+            {
+                trace.Goal = NpcGoalType.WarmUp.ToString();
+                trace.ChosenScore = 20000;
+                trace.ReasonCode = npc.Survival.IsCold ? "seek_warmth" : "return_before_cold_night";
+                trace.Options.Add(new NpcDecisionOption(trace.Goal, trace.ChosenScore));
+                return new NpcDecision(NpcGoalType.WarmUp, npc.Home, 30, npc.RngState, trace);
+            }
             NpcGoalType[] goals =
             {
                 NpcGoalType.Drink, NpcGoalType.Eat, NpcGoalType.Sleep,
@@ -110,6 +131,7 @@ namespace MyAiWorld.Sim.Ai
                     ? (npc.Role == "Trader" ? 1900 : 1050) : 0,
                 100,
                 HasPrey(context) && npc.Needs.Energy > 4000 && npc.Needs.Health >= 3000 &&
+                    context.World.Environment.IsDaytime && !npc.Survival.IsCold &&
                     (context.World.Resources.Stockpile.Food < AgricultureSystem.FoodTarget(context.World)) ? 2100 : 0,
                 HasSurplus(context) ? (npc.Role == "Trader" ? 2200 : 1750) : 0
             };
@@ -146,7 +168,9 @@ namespace MyAiWorld.Sim.Ai
                 trace.Goal = "Treat"; trace.ReasonCode = "treat_waterborne_illness";
                 return new NpcDecision(NpcGoalType.Treat, npc.Position, 4, npc.RngState, trace);
             }
-            int productionScore = ProductionSystem.Needed(context.World, npc) ? (npc.Role == "Builder" || npc.Role == "Trader" ? 2700 : context.World.Resources.Stockpile.Water < context.World.LivingCount ? 2400 : 1600) : 0;
+            int productionScore = ProductionSystem.Needed(context.World, npc) ?
+                (ProductionSystem.NeedsArrows(npc) || ProductionSystem.CookingNeeded(context.World) || ThermalSystem.NeedsFuel(context.World) ? 2800 :
+                npc.Role == "Builder" || npc.Role == "Trader" ? 2700 : context.World.Resources.Stockpile.Water < context.World.LivingCount ? 2400 : 1600) : 0;
             trace.Options.Add(new NpcDecisionOption("Produce", productionScore));
             // Only discretionary work/leisure yields to social activity; survival scores win.
             if (best >= 3 && SocialSystem.Comfortable(npc))
@@ -238,14 +262,21 @@ namespace MyAiWorld.Sim.Ai
 
         private static bool HasPrey(NpcDecisionContext context)
         {
-            if (!context.Npc.HasHuntingTool)
+            foreach (CarcassState carcass in context.World.Ecology.Carcasses)
+            {
+                if (carcass.Region == -1 && carcass.ReservedBy.IsNone &&
+                    carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount > 0 &&
+                    context.Npc.Inventory.TotalCount < context.Npc.Inventory.Capacity &&
+                    HuntingSystem.Perceived(context.World, context.Npc, carcass.Position)) { return true; }
+            }
+            if (!context.Npc.HasHuntingTool || context.Npc.Survival.Durability(HuntingSystem.Weapon(context.Npc)) <= 0)
             {
                 return false;
             }
             for (int i = 0; i < context.World.Ecology.Animals.Count; i++)
             {
                 AnimalState animal = context.World.Ecology.Animals[i];
-                if (animal.ReservedBy.IsNone && context.World.Ecology.CanHunt(animal))
+                if (animal.ReservedBy.IsNone && HuntingSystem.Perceived(context.World, context.Npc, animal))
                 {
                     return true;
                 }

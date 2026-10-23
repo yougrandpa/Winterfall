@@ -32,12 +32,23 @@ namespace MyAiWorld.Sim.Systems
                     for (int i = 0; i < (int)ItemKind.Count; i++)
                     { ItemKind item = (ItemKind)i; int amount = npc.Inventory.Count(item); if (amount > 0) { npc.Inventory.TryRemove(item, amount); ground.Inventory.TryAdd(item, amount); } }
                     for (int i = 0; i < 4; i++) { ground.Tools[i] = state.Tools[i]; state.Tools[i] = 0; }
+                    if (state.CoatDurability > 0)
+                    {
+                        ground.Inventory.TryAdd(ItemKind.WinterCoat, 1);
+                        state.CoatDurability = 0;
+                    }
                     events.Add(new SimEvent(SimEventKind.NpcDied, world.Tick, npc.Id, npc.Name + " died; belongings remain at " + npc.Position + "."));
                 }
                 return false;
             }
             if (npc.Needs.Health <= 0)
             {
+                CombatDamageRecord? damage = world.Combat.GetLastDamage(npc.Id);
+                if (damage.HasValue && damage.Value.Tick == world.Tick && damage.Value.HealthDepleted)
+                {
+                    state.DeathCause = NpcDeathCause.Combat;
+                }
+                else if (state.DeathCause == NpcDeathCause.None) { state.DeathCause = NpcDeathCause.Unknown; }
                 Cancel(world, npc, "downed"); state.Life = LifeState.Downed; state.RescueDeadline = world.Tick + SurvivalRules.RescueWindow;
                 state.Rescuer = EntityId.None;
                 events.Add(new SimEvent(SimEventKind.NpcDowned, world.Tick, npc.Id, npc.Name + " needs rescue before " + state.RescueDeadline + ".")); return false;
@@ -45,6 +56,7 @@ namespace MyAiWorld.Sim.Systems
             if (state.DiseaseTicks > 0)
             {
                 state.DiseaseTicks--; npc.Needs.Health = Math.Max(0, npc.Needs.Health - 5); npc.Needs.Thirst = Math.Max(0, npc.Needs.Thirst - 4);
+                if (npc.Needs.Health == 0) { state.DeathCause = NpcDeathCause.Disease; }
             }
             if (state.Life == LifeState.Recovering)
             {
@@ -53,18 +65,33 @@ namespace MyAiWorld.Sim.Systems
                 {
                     if (npc.Needs.Food < 5000 && npc.Inventory.TryRemove(ItemKind.Food, 1)) { world.Materials.Consume(ItemKind.Food, 1); npc.Needs.Hunger = Math.Min(10000, npc.Needs.Hunger + 4500); }
                     if (npc.Needs.Water < 5000 && npc.Inventory.TryRemove(ItemKind.Water, 1)) { world.Materials.Consume(ItemKind.Water, 1); npc.Needs.Thirst = Math.Min(10000, npc.Needs.Thirst + 5500); }
-                    if (npc.Needs.Food >= 3000 && npc.Needs.Water >= 3000) { npc.Needs.Health = Math.Min(10000, npc.Needs.Health + 12); }
-                    if (npc.Needs.Health >= 4000) { state.Life = LifeState.Active; }
-                    else { npc.Action.SetTimed(NpcActionType.Sleep, "Recovering", npc.Home, world.Tick + 1); return false; }
+                    bool warm = ThermalSystem.IsSafe(world, npc) && state.BodyTemperature >= 3600;
+                    if (warm && npc.Needs.Food >= 3000 && npc.Needs.Water >= 3000)
+                    {
+                        npc.Needs.Health = Math.Min(10000, npc.Needs.Health + 12);
+                    }
+                    if (warm && npc.Needs.Health >= 4000)
+                    {
+                        state.Life = LifeState.Active;
+                    }
+                    else
+                    {
+                        npc.Action.SetTimed(NpcActionType.Sleep, "Recovering", npc.Home, world.Tick + 1);
+                        return false;
+                    }
                 }
             }
             return true;
         }
 
-        internal static bool Rescue(WorldState world, NpcState npc, PlanStep step, GridPathfinder pathfinder, List<SimEvent> events, out bool complete)
+        // All rescue movement belongs before Combat.Update's swept-position resolution.
+        internal static bool PrepareRescue(WorldState world, NpcState npc, PlanStep step, GridPathfinder pathfinder, out bool ready)
         {
-            complete = false;
-            if (!world.Entities.TryGetNpc(new EntityId(step.ResourceId), out NpcState target) || target.Survival.Rescuer != npc.Id || target.Survival.Life == LifeState.Dead) { return false; }
+            ready = false;
+            if (npc.Survival.Life != LifeState.Active || npc.Needs.Health <= 0 ||
+                !world.Entities.TryGetNpc(new EntityId(step.ResourceId), out NpcState target) ||
+                target.Survival.Rescuer != npc.Id || target.Survival.Life == LifeState.Dead ||
+                target.Survival.Life != LifeState.Downed && target.Needs.Health <= 0) { return false; }
             if (!npc.Plan.StepStarted)
             { npc.Plan.StepStarted = true; npc.Action.SetTimed(NpcActionType.Work, "Rescue", target.Position, world.Tick + SurvivalRules.RescueWindow); }
             if (world.Tick >= npc.Action.EndTick) { return false; }
@@ -74,21 +101,38 @@ namespace MyAiWorld.Sim.Systems
                 if (!approach.Found || approach.Path.Count == 0) { return false; }
                 npc.Position = approach.Path[0]; return true;
             }
+            if (target.Survival.Life == LifeState.Recovering && target.Position != target.Home)
+            {
+                var path = pathfinder.FindPath(world.Map, target.Position, target.Home);
+                if (!path.Found || path.Path.Count == 0) { return false; }
+                target.Position = path.Path[0]; npc.Position = target.Position;
+                ready = target.Position == target.Home; return true;
+            }
+            ready = true; return true;
+        }
+
+        // Revalidate after combat: a downed helper cannot treat/feed, and a recovering
+        // patient hit back to zero cannot be revived by completing an old transport.
+        internal static bool CommitRescue(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events, out bool complete)
+        {
+            complete = false;
+            if (npc.Survival.Life != LifeState.Active || npc.Needs.Health <= 0 ||
+                !npc.Plan.StepStarted || world.Tick >= npc.Action.EndTick ||
+                !world.Entities.TryGetNpc(new EntityId(step.ResourceId), out NpcState target) ||
+                target.Survival.Rescuer != npc.Id || target.Survival.Life == LifeState.Dead ||
+                npc.Position.ManhattanDistance(target.Position) > 1 ||
+                target.Survival.Life != LifeState.Downed && target.Needs.Health <= 0) { return false; }
             if (target.Survival.Life == LifeState.Downed)
             {
                 if (!npc.Inventory.TryRemove(ItemKind.Medicine, 1)) { return false; }
                 world.Materials.Consume(ItemKind.Medicine, 1); target.Survival.Life = LifeState.Recovering;
-                target.Needs.Health = 1500; target.Survival.DiseaseTicks = 0;
+                target.Needs.Health = 1500; target.Survival.DiseaseTicks = 0; target.Survival.DeathCause = NpcDeathCause.None;
                 // Transfer carried provisions; no free replenishment on treatment.
                 foreach (ItemKind item in new[] { ItemKind.Food, ItemKind.Water })
                 { if (target.Inventory.Count(item) == 0 && target.Inventory.TotalCount < target.Inventory.Capacity && npc.Inventory.TryRemove(item, 1)) { target.Inventory.TryAdd(item, 1); } }
             }
-            if (target.Position != target.Home)
-            {
-                var path = pathfinder.FindPath(world.Map, target.Position, target.Home);
-                if (!path.Found || path.Path.Count == 0) { return false; }
-                target.Position = path.Path[0]; npc.Position = target.Position; return true;
-            }
+            // Treatment never adds movement after combat. Prepare transports next minute.
+            if (target.Position != target.Home) { return true; }
             foreach (ItemKind item in new[] { ItemKind.Food, ItemKind.Water })
             {
                 if (target.Inventory.Count(item) > 0 || npc.Inventory.Count(item) == 0) { continue; }
@@ -104,5 +148,6 @@ namespace MyAiWorld.Sim.Systems
             target.Survival.Rescuer = EntityId.None; npc.Survival.Rescues++; complete = true;
             events.Add(new SimEvent(SimEventKind.NpcRescued, world.Tick, npc.Id, npc.Name + " rescued " + target.Name + ".")); return true;
         }
+
     }
 }

@@ -22,7 +22,14 @@ namespace MyAiWorld.Tests.EditMode
                 var npc = new NpcState(world.AllocateEntityId(), new NpcIdentity("Test" + i, "Builder", 25), new Personality(), new GridPos(16 + i, 16), (ulong)(42 + i));
                 world.Entities.AddNpc(npc); world.Market.IssuedCurrency += npc.Coins;
             }
+            world.Campaign.Initialize(world);
             world.Materials.Initialize(world); return world;
+        }
+        private static bool AdvanceRescue(WorldState world, NpcState npc, PlanStep step, GridPathfinder pathfinder, List<SimEvent> events, out bool complete)
+        {
+            complete = false;
+            return HealthSystem.PrepareRescue(world, npc, step, pathfinder, out bool ready) &&
+                (!ready || HealthSystem.CommitRescue(world, npc, step, events, out complete));
         }
         private static FacilityState Facility(WorldState world, FacilityKind kind, bool complete = true)
         {
@@ -140,14 +147,14 @@ namespace MyAiWorld.Tests.EditMode
             first.Position = victim.Position; first.Inventory.TryAdd(ItemKind.Medicine, 1); world.Materials.Initialize(world);
             var planner = new SurvivalPlanner(new GridPathfinder());
             Assert.That(planner.TryBuild(world, first, new NpcDecision(NpcGoalType.Rescue, victim.Position, 180, first.RngState, NpcDecisionTrace.Empty), out string failure), Is.True);
-            Assert.That(HealthSystem.Rescue(world, first, first.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out bool done), Is.True);
+            Assert.That(AdvanceRescue(world, first, first.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out bool done), Is.True);
             Assert.That(done, Is.False); Assert.That(victim.Survival.Life, Is.EqualTo(LifeState.Recovering));
             HealthSystem.Cancel(world, first, "critical_need_interrupt"); second.Position = new GridPos(5, 5);
             Assert.That(planner.TryBuild(world, second, new NpcDecision(NpcGoalType.Rescue, victim.Position, 180, second.RngState, NpcDecisionTrace.Empty), out failure), Is.True, failure);
             GridPos previous = second.Position;
-            HealthSystem.Rescue(world, second, second.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out done);
+            AdvanceRescue(world, second, second.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out done);
             Assert.That(previous.ManhattanDistance(second.Position), Is.EqualTo(1));
-            for (int i = 0; i < 40 && !done; i++) { world.Tick++; HealthSystem.Rescue(world, second, second.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out done); }
+            for (int i = 0; i < 40 && !done; i++) { world.Tick++; AdvanceRescue(world, second, second.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out done); }
             Assert.That(done, Is.True); Assert.That(victim.Position, Is.EqualTo(victim.Home)); Conserved(world);
         }
         [TestCase(false)]
@@ -161,7 +168,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(HealthSystem.NeedsRescue(victim), Is.True);
             var planner = new SurvivalPlanner(new GridPathfinder());
             Assert.That(planner.TryBuild(world, helper, new NpcDecision(NpcGoalType.Rescue, victim.Position, 180, helper.RngState, NpcDecisionTrace.Empty), out string failure), Is.True, failure);
-            HealthSystem.Rescue(world, helper, helper.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out bool done);
+            AdvanceRescue(world, helper, helper.Plan.CurrentStep, new GridPathfinder(), new List<SimEvent>(), out bool done);
             Assert.That(done, Is.True); HealthSystem.Update(world, victim, new List<SimEvent>());
             Assert.That(victim.Needs.Food, Is.GreaterThan(3000)); Assert.That(victim.Needs.Water, Is.GreaterThan(3000));
             Assert.That(victim.Position, Is.EqualTo(victim.Home)); Conserved(world);

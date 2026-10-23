@@ -224,6 +224,9 @@ namespace MyAiWorld.EditorTools
             BeginSoft("light_shaft_1", 352, 256, 96, 512); LightShaft(1);
             BeginSoft("light_shaft_2", 448, 256, 96, 512); LightShaft(2);
 
+            // Append only after every legacy slice: old atlas sizes and packing stay unchanged.
+            GenerateWinterAndCombatAtlases();
+
             foreach (AtlasTarget target in Targets) { Save(target); }
 
             var config = AssetDatabase.LoadAssetAtPath<PastoralArtConfig>(Root + "PastoralArt.asset");
@@ -247,6 +250,586 @@ namespace MyAiWorld.EditorTools
             EnsureAtmosphereProfile();
             _target = null;
             Debug.Log("Cold island art generated: " + config.sprites.Length + " sprites across " + Targets.Count + " atlases.");
+        }
+
+        private static void GenerateWinterAndCombatAtlases()
+        {
+            // Begin reserves a 64x64 cell even for centered 32px tiles.
+            // Winter: 145/256 cells. Combat: 1715/1792 cells (54 occupied rows).
+            var winter = new AtlasTarget("WinterEcologyAtlas.png", 1024, 1024, 16, FilterMode.Point);
+            var combat = new AtlasTarget("CombatAtlas.png", 2048, 3584, 32, FilterMode.Point);
+            Targets.Add(winter);
+            Targets.Add(combat);
+
+            Use(winter);
+            for (int species = 3; species < 7; species++)
+            for (int direction = 0; direction < 4; direction++)
+            for (int move = 0; move < 2; move++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("animal_" + species + "_" + direction + "_" + move + "_" + frame);
+                WinterAnimal(species, direction, move == 1, frame);
+            }
+            for (int species = 0; species < 7; species++)
+            {
+                Begin("carcass_" + species); Carcass(species);
+            }
+            Begin("snow_ground", 32, true); WinterTerrain(false); PadEdges();
+            Begin("frozen_water", 32, true); WinterTerrain(true); PadEdges();
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("fire_source_" + frame); Campfire(frame);
+            }
+            for (int item = 15; item <= 18; item++)
+            {
+                Begin("resource_" + item); WinterResource(item);
+            }
+
+            Use(combat);
+            for (int species = 0; species < 7; species++)
+            for (int direction = 0; direction < 4; direction++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("animal_attack_" + species + "_" + direction + "_" + frame);
+                AnimalAttack(species, direction, frame);
+            }
+            for (int role = 0; role < 5; role++)
+            for (int look = 0; look < 4; look++)
+            for (int direction = 0; direction < 4; direction++)
+            for (int stage = 0; stage < 5; stage++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("npc_attack_" + role + "_" + look + "_" + direction + "_" + stage + "_" + frame);
+                PersonCombat(role, look, direction, stage, frame);
+            }
+            Begin("projectile_arrow"); Arrow(20, 8, 45, 8);
+            Begin("projectile_hit"); ProjectileImpact(true);
+            Begin("projectile_miss"); ProjectileImpact(false);
+        }
+
+        private static void WinterTerrain(bool frozen)
+        {
+            Color32 baseColor = frozen ? C(126, 155, 164) : C(194, 207, 208);
+            Color32 shade = frozen ? C(98, 128, 142) : C(174, 191, 197);
+            Color32 light = frozen ? C(168, 192, 198) : C(222, 230, 227);
+            R(0, 0, 32, 32, baseColor);
+            for (int i = 0; i < 12; i++)
+            {
+                int x = (i * 13 + 3) % 28 + 1;
+                int y = (i * 7 + 5) % 28 + 1;
+                R(x, y, 2 + i % 3, 1, i % 3 == 0 ? light : shade);
+            }
+            if (frozen)
+            {
+                L(3, 24, 11, 19, shade); L(11, 19, 16, 20, shade);
+                L(16, 20, 23, 12, shade); L(16, 20, 17, 27, shade);
+                L(5, 25, 11, 21, light); R(21, 7, 7, 1, light);
+            }
+            else
+            {
+                R(4, 9, 5, 1, light); R(23, 24, 5, 1, light);
+                L(15, 5, 16, 8, GreenDark); P(17, 6, Moss);
+            }
+        }
+
+        private static void WinterAnimal(int species, int direction, bool moving, int frame)
+        {
+            if (species == 3) { Vole(direction, moving, frame); }
+            else if (species == 6) { Raven(direction, moving, frame); }
+            else { Canid(species == 4, direction, moving, frame); }
+        }
+
+        private static void MirrorLeft()
+        {
+            for (int y = 0; y < 64; y++)
+            for (int x = 1; x < 32; x++)
+            {
+                Color32 left = Get(x, y);
+                P(x, y, Get(64 - x, y)); P(64 - x, y, left);
+            }
+        }
+
+        private static void Vole(int direction, bool moving, int frame)
+        {
+            Shadow(6);
+            bool side = direction == 1 || direction == 3;
+            int bob = moving && frame % 2 == 1 ? 1 : !moving && frame == 3 ? 1 : 0;
+            int stride = moving ? (frame == 0 ? -1 : frame == 2 ? 1 : 0) : 0;
+            Color32 fur = C(123, 117, 101);
+            Color32 pale = C(173, 171, 150);
+            L(side ? 24 : 29, 12, side ? 18 : 26, 10 + frame % 2, SoilLight);
+            L(side ? 18 : 26, 10 + frame % 2, side ? 16 : 25, 12, Soil);
+            R(27 + stride, 8, 3, 3, SoilDark); R(34 - stride, 8, 3, 3, SoilDark);
+            E(31, 14 + bob, side ? 8 : 6, 5, Outline);
+            E(31, 15 + bob, side ? 7 : 5, 4, fur);
+            E(29, 17 + bob, 4, 2, pale);
+            int hx = side ? 38 : 32, hy = (direction == 2 ? 19 : 14) + bob;
+            E(hx, hy, 4, 4, Outline); E(hx, hy, 3, 3, fur);
+            E(hx - 2, hy + 4, 2, 2, Outline); P(hx - 2, hy + 4, SoilLight);
+            if (!side) { E(hx + 2, hy + 4, 2, 2, Outline); P(hx + 2, hy + 4, SoilLight); }
+            if (direction != 2)
+            {
+                int noseX = side ? hx + 4 : hx;
+                P(noseX, hy - 1, C(157, 128, 120)); P(hx + 1, hy + 1, Outline);
+                if (!side) { P(hx - 2, hy + 1, Outline); }
+                L(noseX - 1, hy - 1, noseX + 3, hy - 2, pale);
+            }
+            if (direction == 3) { MirrorLeft(); }
+        }
+
+        private static void Canid(bool fox, int direction, bool moving, int frame)
+        {
+            // Fox: low slender trunk, tall ears, swept white-tipped brush.
+            // Wolf: taller shoulders, broad chest, heavy muzzle, hanging grey tail.
+            Shadow(fox ? 11 : 15);
+            bool side = direction == 1 || direction == 3;
+            int bob = moving && frame % 2 == 1 ? 1 : !moving && frame == 3 ? 1 : 0;
+            int stride = moving ? (frame == 0 ? -2 : frame == 2 ? 2 : 0) : 0;
+            Color32 fur = fox ? C(160, 109, 76) : C(113, 128, 132);
+            Color32 light = fox ? C(190, 146, 105) : C(153, 165, 162);
+            Color32 dark = fox ? C(89, 69, 58) : C(71, 87, 94);
+            if (side)
+            {
+                if (fox)
+                {
+                    L(24, 22 + bob, 15, 16 + bob, Outline);
+                    E(19, 18 + bob, 8, 4, Outline); E(19, 19 + bob, 7, 3, fur);
+                    E(13, 17 + bob, 3, 3, Cream);
+                }
+                else
+                {
+                    L(21, 25 + bob, 13, 17 + bob, Outline);
+                    L(21, 24 + bob, 13, 16 + bob, dark);
+                    L(20, 24 + bob, 12, 17 + bob, fur);
+                }
+                for (int leg = 0; leg < 4; leg++)
+                {
+                    int x = 23 + leg * 6 + (leg % 2 == 0 ? stride : -stride);
+                    L(x, 20 + bob, x + (leg % 2 == 0 ? -stride : stride), 10, dark);
+                    R(x - 1, 8, 4, 3, Outline);
+                }
+                E(32, (fox ? 22 : 25) + bob, fox ? 11 : 14, fox ? 5 : 7, Outline);
+                E(32, (fox ? 23 : 26) + bob, fox ? 10 : 13, fox ? 4 : 6, fur);
+                E(29, (fox ? 25 : 29) + bob, fox ? 7 : 9, 2, light);
+                if (!fox) { E(40, 28 + bob, 6, 9, fur); E(41, 26 + bob, 3, 6, light); }
+            }
+            else
+            {
+                int tailX = direction == 2 ? 27 : 39;
+                E(tailX, 17 + bob, fox ? 4 : 2, fox ? 7 : 6, dark);
+                E(tailX, 18 + bob, fox ? 3 : 1, 5, fur);
+                if (fox) { E(tailX, 12 + bob, 3, 2, Cream); }
+                R(26 + stride, 8, 3, fox ? 11 : 14, dark);
+                R(35 - stride, 8, 3, fox ? 11 : 14, dark);
+                E(32, (fox ? 22 : 25) + bob, fox ? 7 : 10, fox ? 8 : 10, Outline);
+                E(32, (fox ? 23 : 26) + bob, fox ? 6 : 9, fox ? 7 : 9, fur);
+                if (direction == 0) { E(32, 21 + bob, fox ? 3 : 5, 6, Cream); }
+                else { E(32, 28 + bob, fox ? 3 : 5, 5, dark); }
+            }
+            int hx = side ? (fox ? 43 : 46) : 32;
+            int hy = (fox ? 29 : 33) + bob + (direction == 2 ? 2 : 0);
+            E(hx, hy, fox ? 5 : 7, fox ? 5 : 6, Outline);
+            E(hx, hy + 1, fox ? 4 : 6, fox ? 4 : 5, fur);
+            for (int ear = 0; ear < 2; ear++)
+            {
+                int ex = hx - 4 + ear * (side ? 5 : 8);
+                int height = fox ? 8 : 5;
+                for (int y = 0; y < height; y++)
+                {
+                    int half = (height - y) / 3;
+                    R(ex - half, hy + 3 + y, half * 2 + 1, 1, Outline);
+                    if (half > 0) { R(ex - half + 1, hy + 3 + y, half * 2 - 1, 1, light); }
+                }
+            }
+            if (direction != 2)
+            {
+                int mx = side ? hx + (fox ? 5 : 6) : hx;
+                E(mx, hy - 2, side ? 4 : 3, 2, Cream);
+                P(side ? mx + 3 : mx, hy - 2, Outline);
+                P(hx + 2, hy + 2, Outline);
+                if (!side) { P(hx - 3, hy + 2, Outline); }
+            }
+            if (direction == 3) { MirrorLeft(); }
+        }
+
+        private static void Raven(int direction, bool moving, int frame)
+        {
+            Shadow(6);
+            bool side = direction == 1 || direction == 3;
+            int bob = moving && frame % 2 == 1 ? 2 : !moving && frame == 3 ? 1 : 0;
+            int stride = moving ? (frame == 0 ? -2 : frame == 2 ? 2 : 0) : 0;
+            Color32 feather = C(43, 57, 68);
+            Color32 sheen = C(78, 98, 110);
+            L(29, 15 + bob, 28 + stride, 8, Outline); L(34, 15 + bob, 35 - stride, 8, Outline);
+            R(26 + stride, 8, 5, 1, Outline); R(33 - stride, 8, 5, 1, Outline);
+            if (side)
+            {
+                L(29, 20 + bob, 19, 13 + bob, Outline);
+                L(30, 21 + bob, 20, 14 + bob, feather);
+            }
+            else { R(29, 12 + bob, 7, 8, feather); R(30, 12 + bob, 1, 5, sheen); }
+            E(32, 22 + bob, side ? 8 : 6, 8, Outline);
+            E(32, 23 + bob, side ? 7 : 5, 7, feather);
+            E(side ? 30 : 28, 23 + bob, 4, 5, sheen);
+            L(27, 26 + bob, 32, 18 + bob, feather);
+            if (!side) { E(36, 23 + bob, 3, 5, feather); }
+            int hx = side ? 38 : 32, hy = 31 + bob;
+            E(hx, hy, 5, 5, Outline); E(hx, hy + 1, 4, 4, feather);
+            P(hx - 1, hy + 3, sheen);
+            if (direction != 2)
+            {
+                L(side ? hx + 3 : hx - 1, hy, side ? hx + 10 : hx, hy - 2, Outline);
+                L(side ? hx + 3 : hx + 1, hy + 1, side ? hx + 9 : hx, hy - 1, Stone);
+                P(hx + 2, hy + 1, Cream);
+                if (!side) { P(hx - 2, hy + 1, Cream); }
+            }
+            if (direction == 3) { MirrorLeft(); }
+        }
+
+        private static void AnimalAttack(int species, int direction, int frame)
+        {
+            int dir = direction == 3 ? 1 : direction;
+            if (species == 2) { DeerAttack(dir, frame); }
+            else if (species == 6) { RavenAttack(dir, frame); }
+            else
+            {
+                if (species < 2) { Animal(species, dir, false, 0); }
+                else { WinterAnimal(species, dir, false, 0); }
+                bool side = dir == 1;
+                int hx, hy;
+                switch (species)
+                {
+                    case 0: hx = side ? 41 : 32; hy = dir == 2 ? 22 : dir == 0 ? 15 : 16; break;
+                    case 1: hx = side ? 41 : 32; hy = dir == 2 ? 22 : dir == 0 ? 15 : 16; break;
+                    case 3: hx = side ? 38 : 32; hy = dir == 2 ? 19 : 14; break;
+                    case 4: hx = side ? 43 : 32; hy = dir == 2 ? 31 : 29; break;
+                    default: hx = side ? 46 : 32; hy = dir == 2 ? 35 : 33; break;
+                }
+                int reach = species == 3 ? 3 : species == 0 ? 4 : 6;
+                int mx = side ? hx + reach : hx;
+                int opening = frame == 2 ? (species == 3 ? 2 : 4) : frame == 1 ? 2 : 1;
+                Color32 muzzle = species == 1 ? C(150, 128, 110) : species == 3 ? SoilLight : Cream;
+                if (dir != 2)
+                {
+                    E(mx, hy - 2, side ? 4 : 3, opening, Outline);
+                    R(mx - 2, hy - 2, 4, 1, C(144, 101, 96));
+                    R(mx - 2, hy - 2 - opening, 5, 1, muzzle);
+                    P(mx + (side ? 3 : 0), hy - 1 + opening, Outline);
+                    if (frame == 1 || frame == 2)
+                    {
+                        P(mx - 1, hy - 1, Cream); P(mx + 1, hy - 1, Cream);
+                    }
+                }
+                else
+                {
+                    // Rear-facing bite: the two cheeks project beyond the nape, no rear eyes.
+                    E(hx - 4, hy + frame % 2, 2, 2, muzzle);
+                    E(hx + 4, hy + frame % 2, 2, 2, muzzle);
+                }
+            }
+            int lunge = frame == 0 ? -1 : frame == 2 ? 3 : frame == 3 ? 1 : 0;
+            ShiftDrawing(dir == 1 ? lunge : 0, dir == 0 ? -lunge : dir == 2 ? lunge : 0);
+            if (direction == 3) { MirrorLeft(); }
+        }
+
+        private static void DeerAttack(int direction, int frame)
+        {
+            Shadow(11);
+            bool side = direction == 1;
+            Color32 fur = C(144, 116, 92);
+            int stride = frame == 2 ? 2 : frame == 0 ? -1 : 0;
+            for (int leg = 0; leg < 4; leg++)
+            {
+                int x = 22 + leg * 6 + (leg % 2 == 0 ? stride : -stride);
+                R(x, 9, 2, 12, fur); R(x, 8, 3, 2, Outline);
+            }
+            E(31, 23, 13, 7, Outline); E(31, 24, 12, 6, fur);
+            E(22, 25, 3, 3, Cream);
+            int hx = side ? 43 : 32;
+            int hy = (frame == 0 ? 34 : frame == 1 ? 29 : frame == 2 ? 24 : 30) + (direction == 2 ? 3 : 0);
+            L(side ? 40 : 32, 27, hx, hy, fur);
+            E(hx, hy, 5, 5, Outline); E(hx, hy + 1, 4, 4, fur);
+            if (side)
+            {
+                E(hx + 4, hy - 2, 4, 2, SoilLight); P(hx + 7, hy - 2, Outline);
+                P(hx + 2, hy + 2, Outline);
+            }
+            else if (direction == 0) { P(hx - 2, hy + 1, Outline); P(hx + 2, hy + 1, Outline); }
+            for (int antler = 0; antler < 2; antler++)
+            {
+                int ax = hx - 4 + antler * 8;
+                int tipX = side ? ax + 8 : ax + (antler == 0 ? -4 : 4);
+                L(ax, hy + 3, tipX, hy + 11, Soil);
+                L(ax + (side ? 4 : antler == 0 ? -2 : 2), hy + 7, tipX + 3, hy + 7, Soil);
+                P(tipX, hy + 12, SoilLight);
+            }
+        }
+
+        private static void RavenAttack(int direction, int frame)
+        {
+            Raven(direction, false, 0);
+            bool side = direction == 1;
+            Color32 feather = C(43, 57, 68);
+            int dip = frame == 0 ? -1 : frame == 1 ? 4 : frame == 2 ? 9 : 3;
+            if (frame == 1 || frame == 2)
+            {
+                E(24, 24, 7, 3 + frame, Outline); E(24, 25, 6, 2 + frame, feather);
+                if (!side) { E(40, 24, 7, 3 + frame, feather); }
+            }
+            R(side ? 34 : 27, 27, side ? 17 : 11, 12, C(0, 0, 0, 0));
+            int hx = side ? 38 + frame : 32, hy = 31 - dip;
+            L(34, 25, hx, hy, feather);
+            E(hx, hy, 5, 5, Outline); E(hx, hy + 1, 4, 4, feather);
+            P(hx - 1, hy + 3, C(78, 98, 110));
+            int tx = side ? hx + 7 : hx, ty = hy - (frame == 2 ? 7 : 3);
+            L(side ? hx + 3 : hx - 1, hy, tx, ty, Outline);
+            L(side ? hx + 3 : hx + 1, hy + 1, tx, ty + 1, Stone);
+            if (direction != 2)
+            {
+                P(hx + 2, hy + 1, Cream);
+                if (!side) { P(hx - 2, hy + 1, Cream); }
+            }
+        }
+
+        private static void ShiftDrawing(int dx, int dy)
+        {
+            if (dx == 0 && dy == 0) { return; }
+            var pixels = new Color32[64 * 64];
+            for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++) { pixels[y * 64 + x] = Get(x, y); }
+            R(0, 0, 64, 64, C(0, 0, 0, 0));
+            for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++) { P(x + dx, y + dy, pixels[y * 64 + x]); }
+        }
+
+        private static void Carcass(int species)
+        {
+            int width = species == 3 ? 6 : species == 0 || species == 6 ? 9 : species == 5 ? 17 : 14;
+            Color32 fur;
+            switch (species)
+            {
+                case 0: fur = C(206, 204, 192); break;
+                case 1: fur = C(104, 94, 84); break;
+                case 2: fur = C(144, 116, 92); break;
+                case 3: fur = C(123, 117, 101); break;
+                case 4: fur = C(160, 109, 76); break;
+                case 5: fur = C(113, 128, 132); break;
+                default: fur = C(43, 57, 68); break;
+            }
+            Shadow(width);
+            E(31, 13, width, species == 3 ? 3 : 5, Outline);
+            E(31, 14, width - 1, species == 3 ? 2 : 4, fur);
+            int hx = 32 + width - 1;
+            E(hx, 12, species == 3 ? 3 : 5, species == 3 ? 2 : 3, fur);
+            // Closed eye, folded limbs and flattened outline; no living idle pose.
+            L(hx, 13, hx + 2, 12, Outline);
+            if (species == 0)
+            {
+                L(hx - 2, 15, hx + 7, 17, fur); L(hx, 15, hx + 9, 14, Cream);
+                E(23, 12, 3, 2, Cream);
+            }
+            else if (species == 1)
+            {
+                R(22, 17, 19, 2, SoilDark); E(hx + 3, 11, 3, 2, SoilLight);
+                P(hx + 2, 9, Cream);
+            }
+            else if (species == 2)
+            {
+                L(24, 12, 19, 9, fur); L(36, 12, 30, 9, fur);
+                L(hx, 15, hx + 3, 23, Soil); L(hx + 3, 21, hx + 8, 21, Soil);
+                L(hx + 3, 18, hx + 7, 18, Soil);
+            }
+            else if (species == 3) { L(26, 13, 21, 11, SoilLight); E(hx - 1, 15, 2, 2, SoilLight); }
+            else if (species == 4 || species == 5)
+            {
+                E(19, 13, species == 4 ? 7 : 4, 3, fur);
+                if (species == 4) { E(13, 12, 3, 2, Cream); }
+                L(hx - 3, 14, hx - 2, 19, Outline); E(hx + 4, 11, 3, 2, Cream);
+                L(25, 11, 22, 9, SoilDark); L(36, 11, 33, 9, SoilDark);
+            }
+            else
+            {
+                E(29, 14, 7, 3, C(78, 98, 110)); L(27, 15, 33, 12, fur);
+                L(hx + 3, 11, hx + 9, 10, Outline); L(23, 12, 18, 10, fur);
+                L(30, 10, 29, 8, Outline);
+            }
+        }
+
+        private static void WinterResource(int item)
+        {
+            Shadow(10);
+            if (item == 15)
+            {
+                Arrow(21, 13, 43, 25); Arrow(22, 17, 44, 29); Arrow(20, 10, 42, 22);
+                L(29, 16, 31, 23, SoilDark);
+            }
+            else if (item == 16)
+            {
+                E(31, 17, 11, 7, Outline); E(31, 18, 10, 6, C(151, 91, 87));
+                E(28, 20, 5, 3, C(185, 124, 115)); E(35, 16, 3, 3, Cream);
+                E(35, 16, 1, 1, C(132, 91, 87)); L(23, 15, 28, 12, C(206, 173, 155));
+            }
+            else if (item == 17)
+            {
+                E(32, 19, 10, 9, Outline); E(32, 20, 9, 8, SoilLight);
+                E(23, 12, 4, 3, Soil); E(41, 12, 4, 3, Soil);
+                E(23, 27, 3, 4, SoilLight); E(41, 27, 3, 4, SoilLight);
+                L(30, 12, 34, 27, Soil); P(28, 24, Cream); P(36, 18, Cream);
+            }
+            else
+            {
+                E(32, 30, 8, 8, Outline); E(32, 31, 7, 7, Cream);
+                E(32, 31, 4, 4, SoilDark);
+                R(22, 10, 21, 19, Outline); R(24, 12, 17, 17, C(83, 105, 116));
+                R(17, 15, 6, 13, Outline); R(18, 16, 4, 11, C(83, 105, 116));
+                R(42, 15, 6, 13, Outline); R(43, 16, 4, 11, C(83, 105, 116));
+                R(24, 11, 17, 3, Cream); R(31, 14, 3, 15, Cream);
+                R(18, 15, 4, 3, Cream); R(43, 15, 4, 3, Cream);
+                P(32, 19, Soil); P(32, 24, Soil);
+            }
+        }
+
+        private static void PersonCombat(int role, int look, int direction, int stage, int frame)
+        {
+            int dir = direction == 3 ? 1 : direction;
+            Person(role, look, dir, 0, 0, true);
+            NpcLook style = LookOf(look);
+            if (stage == 0 || stage == 1)
+            {
+                // Draw -> release: nock travels away from the bow then snaps back to the limbs.
+                int draw = stage == 0 ? 3 + frame * 3 : frame == 0 ? 12 : frame == 1 ? 6 : 0;
+                if (dir == 1)
+                {
+                    int bx = 44, by = stage == 0 ? 28 + frame : 31 - frame;
+                    int pullX = bx - draw;
+                    DrawCombatBow(bx, by, dir, draw);
+                    if (stage == 0 || frame == 0) { Arrow(pullX, by, bx + 12, by); }
+                    CombatArm(32, 26, 38, by - 2, bx, by, style);
+                    CombatArm(31, 26, 27, by - 4, stage == 1 && frame > 1 ? 30 : pullX, by, style);
+                }
+                else
+                {
+                    int sign = dir == 0 ? -1 : 1;
+                    int bx = 44, by = dir == 0 ? 19 - frame / 2 : 42 + frame / 2;
+                    int pullY = by - sign * draw;
+                    DrawCombatBow(bx, by, dir, draw);
+                    if (stage == 0 || frame == 0) { Arrow(bx, pullY, bx, by + sign * 10); }
+                    CombatArm(39, 25, 44, 27, bx, by, style);
+                    CombatArm(24, 25, 31, dir == 0 ? 22 : 30,
+                        stage == 1 && frame > 1 ? 33 : bx,
+                        stage == 1 && frame > 1 ? 27 : pullY, style);
+                }
+            }
+            else if (stage == 2 || stage == 3)
+            {
+                int extension = stage == 2 ? -frame : frame == 0 ? 0 : frame == 1 ? 4 : frame == 2 ? 9 : 3;
+                if (dir == 1)
+                {
+                    int handX = 33 + extension, handY = stage == 2 ? 25 + frame : 29 + frame % 2;
+                    DrawSpear(handX - 15, handY - 1, handX + 20, handY + (stage == 2 ? 2 : 0));
+                    CombatArm(32, 26, 36, 23, handX, handY, style);
+                    CombatArm(30, 26, 26, 22, handX - 9, handY, style);
+                }
+                else
+                {
+                    int sign = dir == 0 ? -1 : 1;
+                    int handX = 43, handY = stage == 2 ? 25 + frame : 30;
+                    int reach = stage == 2 ? 15 : 16 + extension;
+                    DrawSpear(handX - 2, handY - sign * 12, handX, handY + sign * reach);
+                    CombatArm(39, 25, 45, 28, handX, handY, style);
+                    CombatArm(24, 25, 31, 22, handX - 1, handY - sign * 8, style);
+                }
+            }
+            else
+            {
+                // Hurt is a standing recoil, not the legacy downed/work action.
+                int lift = frame == 1 ? 5 : frame == 2 ? 3 : frame == 0 ? 1 : 0;
+                CombatArm(dir == 1 ? 32 : 24, 26, 22, 26 + lift, 27, 29 + lift, style);
+                CombatArm(dir == 1 ? 32 : 39, 26, 43, 22 + lift, 39, 27 + lift, style);
+                L(dir == 1 ? 37 : 35, 31, dir == 1 ? 39 : 37, 32, C(171, 106, 97));
+                int recoil = frame == 1 ? 3 : frame == 2 ? 2 : frame == 0 ? 1 : 0;
+                ShiftDrawing(dir == 1 ? -recoil : 0, dir == 0 ? recoil : dir == 2 ? -recoil : 0);
+            }
+            if (direction == 3) { MirrorLeft(); }
+        }
+
+        private static void CombatArm(int sx, int sy, int ex, int ey, int hx, int hy, NpcLook style)
+        {
+            // Articulated sleeve and bare grip: weapons are held, not floating work effects.
+            for (int offset = -1; offset <= 1; offset++)
+            {
+                L(sx + offset, sy, ex + offset, ey, Outline);
+                L(ex + offset, ey, hx + offset, hy, Outline);
+            }
+            L(sx, sy, ex, ey, style.Coat); L(ex, ey, hx, hy, style.Coat);
+            E(hx, hy, 2, 2, Outline); E(hx, hy, 1, 1, style.Skin);
+        }
+
+        private static void DrawCombatBow(int x, int y, int direction, int draw)
+        {
+            int ax, ay, bx, by, bendX, bendY, pullX, pullY;
+            if (direction == 1)
+            {
+                ax = x - 1; ay = y - 10; bx = x - 1; by = y + 10;
+                bendX = x + 3; bendY = y; pullX = x - draw; pullY = y;
+            }
+            else
+            {
+                int sign = direction == 0 ? -1 : 1;
+                ax = x - 10; ay = y; bx = x + 10; by = y;
+                bendX = x; bendY = y + sign * 3; pullX = x; pullY = y - sign * draw;
+            }
+            L(ax, ay, bendX, bendY, Outline); L(bendX, bendY, bx, by, Outline);
+            L(ax + 1, ay, bendX + 1, bendY, SoilLight);
+            L(bendX + 1, bendY, bx + 1, by, SoilLight);
+            L(ax, ay, pullX, pullY, Cream); L(pullX, pullY, bx, by, Cream);
+            R(bendX, bendY - 1, 2, 3, SoilDark);
+        }
+
+        private static void DrawSpear(int x, int y, int tipX, int tipY)
+        {
+            int dx = tipX - x, dy = tipY - y;
+            int length = Math.Max(1, Math.Max(Math.Abs(dx), Math.Abs(dy)));
+            int nx = Math.Abs(dx) >= Math.Abs(dy) ? 0 : 1;
+            int ny = nx == 0 ? 1 : 0;
+            int neckX = tipX - dx * 5 / length, neckY = tipY - dy * 5 / length;
+            L(x, y - 1, neckX, neckY - 1, Outline); L(x, y, neckX, neckY, SoilLight);
+            for (int offset = -2; offset <= 2; offset++)
+            {
+                L(neckX + nx * offset, neckY + ny * offset, tipX, tipY, offset < 0 ? Stone : StoneLight);
+            }
+            L(neckX, neckY, tipX, tipY, Cream);
+            R(neckX - 1, neckY - 1, 3, 2, SoilDark);
+        }
+
+        private static void Arrow(int x, int y, int tipX, int tipY)
+        {
+            int dx = tipX - x, dy = tipY - y;
+            int length = Math.Max(1, Math.Max(Math.Abs(dx), Math.Abs(dy)));
+            int nx = Math.Abs(dx) >= Math.Abs(dy) ? 0 : 1;
+            int ny = nx == 0 ? 1 : 0;
+            L(x, y - 1, tipX, tipY - 1, Outline);
+            L(x, y, tipX, tipY, SoilLight);
+            int neckX = tipX - dx * 4 / length, neckY = tipY - dy * 4 / length;
+            L(neckX + nx * 2, neckY + ny * 2, tipX, tipY, StoneLight);
+            L(neckX - nx * 2, neckY - ny * 2, tipX, tipY, StoneLight);
+            L(neckX, neckY, tipX, tipY, Cream);
+            int featherX = x + dx * 4 / length, featherY = y + dy * 4 / length;
+            L(x + nx * 2, y + ny * 2, featherX, featherY, Cream);
+            L(x - nx * 2, y - ny * 2, featherX, featherY, StoneLight);
+        }
+
+        private static void ProjectileImpact(bool hit)
+        {
+            // Origin sits at the normal 64px entity pivot (32, 8), not sprite center.
+            Color32 color = hit ? C(177, 105, 92) : C(174, 191, 197);
+            for (int ray = 0; ray < 6; ray++)
+            {
+                int dx = ray % 3 - 1, dy = ray / 3 == 0 ? 1 : -1;
+                L(32 + dx * 3, 8 + dy * 2, 32 + dx * 7, 8 + dy * 5, color);
+            }
+            P(32, 8, hit ? Cream : StoneLight);
+            if (!hit) { L(25, 8, 29, 8, SoilLight); L(35, 8, 39, 8, SoilLight); }
         }
 
         private static void EnsureAtmosphereProfile()
@@ -983,7 +1566,8 @@ namespace MyAiWorld.EditorTools
             }
         }
 
-        private static void Person(int role, int look, int dir, int action, int frame)
+        // combatBody suppresses only work arms/tools; every legacy call keeps the default pixels.
+        private static void Person(int role, int look, int dir, int action, int frame, bool combatBody = false)
         {
             NpcLook style = LookOf(look);
             Color32 coat = style.Coat;
@@ -998,7 +1582,7 @@ namespace MyAiWorld.EditorTools
             }
             if (dir == 1 || dir == 3)
             {
-                PersonSide(role, look, action, frame, coat, accent);
+                PersonSide(role, look, action, frame, coat, accent, combatBody);
                 if (dir == 3)
                 {
                     for (int y = 0; y < 64; y++)
@@ -1019,8 +1603,11 @@ namespace MyAiWorld.EditorTools
             R(27, 17 + bob, 2, 10, style.Trim); R(27, 17 + bob, 11, 2, C(56, 70, 66));
             if (style.Style == 3) { R(26, 16 + bob, 13, 2, style.Trim); R(20, 18 + bob, 3, 9, style.Trim); }
             int arm = (action >= 2 ? frame % 2 * 3 + 3 : stride);
-            R(22, 18 + bob + arm, 4, 8, coat); R(39, 18 + bob - stride, 4, 8, coat);
-            R(22, 16 + bob + arm, 4, 4, style.Skin); R(39, 16 + bob - stride, 4, 4, style.Skin);
+            if (!combatBody)
+            {
+                R(22, 18 + bob + arm, 4, 8, coat); R(39, 18 + bob - stride, 4, 8, coat);
+                R(22, 16 + bob + arm, 4, 4, style.Skin); R(39, 16 + bob - stride, 4, 4, style.Skin);
+            }
             E(32, 33 + bob, 8, 8, Outline); E(32, 33 + bob, 7, 7, style.Skin);
             R(25, 36 + bob, 14, 5, style.Hair);
             if (dir == 2) { R(26, 30 + bob, 13, 8, style.Hair); }
@@ -1033,9 +1620,21 @@ namespace MyAiWorld.EditorTools
             DrawHeadwear(style, dir, bob);
             if (role == 0) { R(21, 39 + bob, 23, 3, accent); R(26, 42 + bob, 12, 4, Cream); R(26, 42 + bob, 12, 1, Soil); }
             if (role == 1) { R(25, 40 + bob, 14, 3, accent); R(39, 35 + bob, 3, 7, accent); }
-            if (role == 2) { R(25, 39 + bob, 14, 5, coat); L(43, 14, 46, 25, Soil); L(46, 25, 43, 34, Soil); L(43, 14, 43, 34, Cream); }
-            if (role == 3) { R(27, 40 + bob, 11, 4, accent); R(30, 26 + bob, 3, 1, Cream); E(43, 15, 3, 4, Soil); }
-            if (role == 4) { R(24, 39 + bob, 17, 3, accent); R(27, 42 + bob, 11, 3, Cream); R(44, 13 + arm, 2, 12, Soil); R(41, 24 + arm, 8, 4, C(118, 132, 128)); }
+            if (role == 2)
+            {
+                R(25, 39 + bob, 14, 5, coat);
+                if (!combatBody) { L(43, 14, 46, 25, Soil); L(46, 25, 43, 34, Soil); L(43, 14, 43, 34, Cream); }
+            }
+            if (role == 3)
+            {
+                R(27, 40 + bob, 11, 4, accent); R(30, 26 + bob, 3, 1, Cream);
+                if (!combatBody) { E(43, 15, 3, 4, Soil); }
+            }
+            if (role == 4)
+            {
+                R(24, 39 + bob, 17, 3, accent); R(27, 42 + bob, 11, 3, Cream);
+                if (!combatBody) { R(44, 13 + arm, 2, 12, Soil); R(41, 24 + arm, 8, 4, C(118, 132, 128)); }
+            }
             if (action == 2) { E(26, 28 + arm / 2, 3, 2, C(168, 88, 74)); }
             if (action == 3) { R(22, 25 + arm / 2, 5, 6, C(88, 138, 152)); R(23, 29 + arm / 2, 3, 1, Cream); }
             if (action == 5 || action == 6) { L(20, 12 + arm, 23, 30 + arm, Soil); R(17, 29 + arm, 10, 3, Cream); }
@@ -1074,7 +1673,7 @@ namespace MyAiWorld.EditorTools
             }
         }
 
-        private static void PersonSide(int role, int look, int action, int frame, Color32 coat, Color32 accent)
+        private static void PersonSide(int role, int look, int action, int frame, Color32 coat, Color32 accent, bool combatBody = false)
         {
             NpcLook style = LookOf(look);
             bool moving = action == 1;
@@ -1092,8 +1691,11 @@ namespace MyAiWorld.EditorTools
             L(33, 18, 32 + stride, 10, Outline);
             R(30 + stride, 8 + (moving && frame == 1 ? 2 : 0), 8, 3, boots);
             int armX = action >= 2 ? 37 + frame % 2 * 2 : 31 - stride;
-            L(32, 26 + bob, armX, 20 + bob, Outline);
-            R(armX - 1, 19 + bob, 4, 4, skin);
+            if (!combatBody)
+            {
+                L(32, 26 + bob, armX, 20 + bob, Outline);
+                R(armX - 1, 19 + bob, 4, 4, skin);
+            }
 
             E(32, 34 + bob, 7, 8, Outline);
             E(33, 34 + bob, 6, 7, skin);
@@ -1107,9 +1709,21 @@ namespace MyAiWorld.EditorTools
             else if (style.Style == 3) { E(32, 35 + bob, 9, 9, style.Coat); R(25, 29 + bob, 13, 4, style.Coat); R(40, 33 + bob, 2, 2, skin); }
             if (role == 0) { R(23, 39 + bob, 22, 3, accent); R(28, 42 + bob, 11, 4, Cream); }
             if (role == 1) { R(26, 40 + bob, 13, 3, accent); R(25, 35 + bob, 3, 7, accent); }
-            if (role == 2) { R(26, 39 + bob, 13, 5, coat); L(23, 15, 20, 26, Soil); L(20, 26, 23, 35, Soil); L(23, 15, 23, 35, Cream); }
-            if (role == 3) { R(28, 40 + bob, 10, 4, accent); E(armX + 1, 16 + bob, 3, 4, Soil); }
-            if (role == 4) { R(25, 39 + bob, 16, 3, accent); R(28, 42 + bob, 10, 3, Cream); R(armX + 3, 12, 2, 12, Soil); R(armX, 23, 8, 4, C(118, 132, 128)); }
+            if (role == 2)
+            {
+                R(26, 39 + bob, 13, 5, coat);
+                if (!combatBody) { L(23, 15, 20, 26, Soil); L(20, 26, 23, 35, Soil); L(23, 15, 23, 35, Cream); }
+            }
+            if (role == 3)
+            {
+                R(28, 40 + bob, 10, 4, accent);
+                if (!combatBody) { E(armX + 1, 16 + bob, 3, 4, Soil); }
+            }
+            if (role == 4)
+            {
+                R(25, 39 + bob, 16, 3, accent); R(28, 42 + bob, 10, 3, Cream);
+                if (!combatBody) { R(armX + 3, 12, 2, 12, Soil); R(armX, 23, 8, 4, C(118, 132, 128)); }
+            }
             if (action == 2) { E(41, 29 + frame % 2, 3, 2, C(168, 88, 74)); }
             if (action == 3) { R(39, 27 + frame % 2, 5, 6, C(88, 138, 152)); R(40, 31 + frame % 2, 3, 1, Cream); }
             if (action == 5 || action == 6) { L(armX + 2, 12, armX + 4, 29, Soil); R(armX, 28, 10, 3, Cream); }

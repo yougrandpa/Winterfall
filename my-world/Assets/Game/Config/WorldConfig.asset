@@ -16,5 +16,7 @@ MonoBehaviour:
   height: 64
   seed: 20261020
   npcCount: 20
+  startTick: 121320
+  challengeDays: 14
   ticksPerSecondAt1x: 2
   speedMultipliers: 01000000020000000400000008000000

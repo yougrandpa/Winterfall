@@ -41,6 +41,8 @@ namespace MyAiWorld.EditorTools
             config.height = 64;
             config.seed = 20261020;
             config.npcCount = 20;
+            config.startTick = MyAiWorld.Sim.World.GameCalendar.WinterStartTick;
+            config.challengeDays = MyAiWorld.Sim.World.GameCalendar.DefaultChallengeDays;
             config.ticksPerSecondAt1x = 2;
             config.speedMultipliers = new[] { 1, 2, 4, 8 };
             EditorUtility.SetDirty(config);

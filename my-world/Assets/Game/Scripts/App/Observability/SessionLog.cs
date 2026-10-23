@@ -42,6 +42,11 @@ namespace MyAiWorld.App.Observability
                     height = world.Config.Height,
                     npcCount = world.Config.NpcCount,
                     startTick = world.Tick,
+                    configuredStartTick = world.Config.StartTick,
+                    challengeDays = world.Config.ChallengeDays,
+                    ticksPerSecondAt1x = world.Config.TicksPerSecondAt1x,
+                    speedMultipliers = world.Config.SpeedMultipliers,
+                    campaignPhase = world.Campaign.Phase.ToString(),
                     initialStateHash = StateHasher.ToHex(StateHasher.Compute(world))
                 });
 

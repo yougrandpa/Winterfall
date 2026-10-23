@@ -4,6 +4,7 @@ using MyAiWorld.App;
 using MyAiWorld.App.Query;
 using MyAiWorld.Presentation.Atmosphere;
 using MyAiWorld.Sim.Core;
+using MyAiWorld.Sim.Systems;
 using MyAiWorld.Sim.World;
 using UnityEngine;
 using UnityEngine.Tilemaps;
@@ -31,7 +32,24 @@ namespace MyAiWorld.Presentation.Rendering
         private Tilemap _ground;
         private readonly Tile[,] _waterTiles = new Tile[4, 4];
         private int _waterFrame;
+        private readonly Dictionary<long, ProjectileView> _projectileViews = new Dictionary<long, ProjectileView>();
+        private readonly List<ProjectileView> _impactViews = new List<ProjectileView>();
+        private readonly List<ScheduledCombatEvent> _combatEvents = new List<ScheduledCombatEvent>();
+        private readonly Dictionary<long, AttackSnapshot> _knownAttacks = new Dictionary<long, AttackSnapshot>();
+        private Transform _combatRoot;
+        private float _combatClock;
+        private float _lastAnimationTime;
+        private float _combatPlaybackEnd;
+        private long _lastCombatFrame = long.MinValue;
 
+        private sealed class ScheduledCombatEvent
+        {
+            public CombatVisualEvent Event;
+            public float At;
+            public CombatAttackKind Kind;
+            public int FacingX;
+            public int FacingY;
+        }
 
         private GameSession _session;
         private SimulationRunner _runner;
@@ -43,6 +61,11 @@ namespace MyAiWorld.Presentation.Rendering
 
         public int NpcViewCount => _views.Count;
         public int AnimalViewCount => _animalViews.Count;
+        public int ProjectileViewCount => _projectileViews.Count;
+        public int CombatImpactViewCount => _impactViews.Count;
+        public int ConsumedCombatFrameCount { get; private set; }
+        public int ConsumedCombatTraceCount { get; private set; }
+        public int PresentedCombatEventCount { get; private set; }
         public int ResourceNodeViewCount => _resourceViews.Count;
         public int FarmPlotViewCount => _cropViews.Count;
         public int MapWidth => _session != null ? _session.ReadModel.Width : 0;
@@ -63,6 +86,7 @@ namespace MyAiWorld.Presentation.Rendering
             BuildMap();
             BuildNpcViews();
             BuildResourceViews();
+            BuildCombatViews();
         }
 
         private void BuildAtmosphere()
@@ -103,6 +127,15 @@ namespace MyAiWorld.Presentation.Rendering
 
             if (_worldRevision != _session.WorldRevision) { ResetWorldViews(); }
             WorldReadModel model = _session.ReadModel;
+            // Drain exactly once per rendered frame, including every catch-up tick.
+            float elapsed = Mathf.Max(0f, _runner.AnimationTime - _lastAnimationTime);
+            _lastAnimationTime = _runner.AnimationTime;
+            float tickDuration = 1f / Mathf.Max(0.001f, (float)_session.Config.TicksPerSecondAt1x);
+            // Keep up with the runner at 8x. ProjectileView guarantees a visible sample
+            // for every recorded sweep, even when this clock passes a short contact.
+            _combatClock += elapsed;
+            ConsumeCombatFrames(_session.DrainCombatFrames(), model, tickDuration);
+            DispatchCombatEvents();
             IReadOnlyList<NpcSnapshot> npcs = model.Npcs;
             for (int i = 0; i < npcs.Count; i++)
             {
@@ -118,7 +151,7 @@ namespace MyAiWorld.Presentation.Rendering
 
 
             RefreshResourceViews(model);
-            foreach (AnimalView animal in _animalViews.Values) { animal.Present(_runner.TickAlpha, _runner.AnimationTime); }
+            foreach (AnimalView animal in _animalViews.Values) { animal.Present(_runner.TickAlpha, _runner.AnimationTime, model.Combat.GetAttack(animal.Id)); }
             for (int i = _fadingAnimals.Count - 1; i >= 0; i--)
             {
                 if (_fadingAnimals[i].Present(_runner.TickAlpha, _runner.AnimationTime))
@@ -126,6 +159,7 @@ namespace MyAiWorld.Presentation.Rendering
                     Destroy(_fadingAnimals[i].gameObject); _fadingAnimals.RemoveAt(i);
                 }
             }
+            PresentProjectiles(model);
             UpdateWater();
             if (_atmosphere != null) { _atmosphere.Present(model.Date, _runner.AnimationTime); }
             if (_canopyFader != null)
@@ -143,7 +177,7 @@ namespace MyAiWorld.Presentation.Rendering
         private void ResetWorldViews()
         {
             _worldRevision = _session.WorldRevision;
-            foreach (string name in new[] { "WorldGrid", "NpcViews", "Resources" })
+            foreach (string name in new[] { "WorldGrid", "NpcViews", "Resources", "CombatViews" })
             {
                 Transform child = transform.Find(name);
                 if (child != null) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
@@ -152,11 +186,212 @@ namespace MyAiWorld.Presentation.Rendering
             _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear();
             _resourceTick = -1; _selected = null;
             if (_canopyFader != null) { _canopyFader.Clear(); }
-            if (_atmosphere != null) { _atmosphere.SetCampfire(null); }
             _campDressing = null;
             _restoringWorldViews = true;
-            BuildMap(); BuildNpcViews(); BuildResourceViews();
+            BuildMap(); BuildNpcViews(); BuildResourceViews(); BuildCombatViews();
             _restoringWorldViews = false;
+        }
+
+        public ProjectileView FindProjectileView(long id) => _projectileViews.TryGetValue(id, out ProjectileView view) ? view : null;
+        public AnimalView FindAnimalView(EntityId id) => _animalViews.TryGetValue(id, out AnimalView view) ? view : null;
+
+        private void BuildCombatViews()
+        {
+            _projectileViews.Clear(); _impactViews.Clear(); _combatEvents.Clear(); _knownAttacks.Clear();
+            ConsumedCombatFrameCount = 0; ConsumedCombatTraceCount = 0; PresentedCombatEventCount = 0;
+            _combatClock = 0f; _combatPlaybackEnd = 0f; _lastAnimationTime = _runner.AnimationTime;
+            _lastCombatFrame = long.MinValue;
+            var root = new GameObject("CombatViews"); root.transform.SetParent(transform, false); _combatRoot = root.transform;
+            foreach (AttackSnapshot attack in _session.ReadModel.Combat.Attacks) { _knownAttacks[attack.Id] = attack; }
+            foreach (ProjectileSnapshot snapshot in _session.ReadModel.Combat.Projectiles)
+            {
+                CreateProjectile(snapshot.Id).SetAuthoritative(snapshot, true);
+            }
+        }
+
+        private ProjectileView CreateProjectile(long id)
+        {
+            if (_projectileViews.TryGetValue(id, out ProjectileView existing)) { return existing; }
+            var go = new GameObject("Projectile_" + id); go.transform.SetParent(_combatRoot, false);
+            var view = go.AddComponent<ProjectileView>(); view.Initialize(id, _art); _projectileViews.Add(id, view);
+            return view;
+        }
+
+        private void ConsumeCombatFrames(IReadOnlyList<TickResult> frames, WorldReadModel model, float tickDuration)
+        {
+            foreach (AttackSnapshot attack in model.Combat.Attacks) { _knownAttacks[attack.Id] = attack; }
+            var releases = new Dictionary<long, CombatVisualEvent>();
+            var starts = new Dictionary<long, CombatVisualEvent>();
+            var contacts = new Dictionary<long, CombatVisualEvent>();
+            var firstTraces = new Dictionary<long, CombatTraceSegment>();
+            foreach (TickResult frame in frames)
+            {
+                if (frame.Tick <= _lastCombatFrame) { continue; }
+                foreach (CombatVisualEvent evt in frame.CombatEvents)
+                {
+                    if (evt.State == CombatEventKind.Released) { releases[evt.AttackId] = evt; }
+                    if (evt.State == CombatEventKind.Started) { starts[evt.AttackId] = evt; }
+                    if (evt.State == CombatEventKind.Contact && evt.ProjectileId == 0) { contacts[evt.AttackId] = evt; }
+                }
+                foreach (CombatTraceSegment trace in frame.CombatTraces)
+                {
+                    if (!firstTraces.ContainsKey(trace.ProjectileId)) { firstTraces.Add(trace.ProjectileId, trace); }
+                }
+            }
+            foreach (TickResult frame in frames)
+            {
+                if (frame.Tick <= _lastCombatFrame) { continue; }
+                _lastCombatFrame = frame.Tick; ConsumedCombatFrameCount++;
+                if (frame.CombatTraces.Count == 0 && frame.CombatEvents.Count == 0) { continue; }
+                float start = Mathf.Max(_combatClock, _combatPlaybackEnd);
+                _combatPlaybackEnd = start + tickDuration;
+                foreach (CombatTraceSegment trace in frame.CombatTraces)
+                {
+                    float from = start + tickDuration * Mathf.Clamp01((float)trace.FromTime / CombatState.TimeUnitsPerTick);
+                    float to = start + tickDuration * Mathf.Clamp01((float)trace.ToTime / CombatState.TimeUnitsPerTick);
+                    CreateProjectile(trace.ProjectileId).Enqueue(trace, from, to); ConsumedCombatTraceCount++;
+                }
+                foreach (CombatVisualEvent evt in frame.CombatEvents)
+                {
+                    _knownAttacks.TryGetValue(evt.AttackId, out AttackSnapshot attack);
+                    CombatAttackKind kind = attack != null ? attack.Kind :
+                        evt.ProjectileId != 0 ? CombatAttackKind.Bow : CombatAttackKind.Spear;
+                    int facingX = attack != null ? attack.FacingX : 0, facingY = attack != null ? attack.FacingY : 0;
+                    if (attack == null)
+                    {
+                        // Catch-up can remove a whole melee attack before the read model is sampled.
+                        // Prefer the recorded start/contact, not a stale movement direction.
+                        GridPos actor = ActorCell(model, evt.Shooter);
+                        GridPos target = ActorCell(model, evt.HitId);
+                        int fromX = actor.IsValid ? actor.X * CombatState.UnitsPerCell + CombatState.UnitsPerCell / 2 : evt.X;
+                        int fromY = actor.IsValid ? actor.Y * CombatState.UnitsPerCell + CombatState.UnitsPerCell / 2 : evt.Y;
+                        if (starts.TryGetValue(evt.AttackId, out CombatVisualEvent started))
+                        {
+                            fromX = started.X; fromY = started.Y;
+                            target = ActorCell(model, started.HitId);
+                        }
+                        if (contacts.TryGetValue(evt.AttackId, out CombatVisualEvent contact))
+                        {
+                            facingX = contact.X - fromX; facingY = contact.Y - fromY;
+                        }
+                        else if (target.IsValid)
+                        {
+                            facingX = target.X * CombatState.UnitsPerCell + CombatState.UnitsPerCell / 2 - fromX;
+                            facingY = target.Y * CombatState.UnitsPerCell + CombatState.UnitsPerCell / 2 - fromY;
+                        }
+                    }
+                    if (releases.TryGetValue(evt.AttackId, out CombatVisualEvent release))
+                    {
+                        if (release.ProjectileId != 0)
+                        {
+                            kind = CombatAttackKind.Bow;
+                            if (firstTraces.TryGetValue(release.ProjectileId, out CombatTraceSegment trace) && attack == null)
+                            {
+                                facingX = trace.ToX - trace.FromX; facingY = trace.ToY - trace.FromY;
+                            }
+                        }
+                        else if (attack == null && evt.State == CombatEventKind.Contact)
+                        {
+                            facingX = evt.X - release.X; facingY = evt.Y - release.Y;
+                        }
+                    }
+                    _combatEvents.Add(new ScheduledCombatEvent
+                    {
+                        Event = evt, At = start + tickDuration * Mathf.Clamp01((float)evt.Time / CombatState.TimeUnitsPerTick),
+                        Kind = kind, FacingX = facingX, FacingY = facingY
+                    });
+                }
+            }
+            _combatEvents.Sort((a, b) =>
+            {
+                int order = a.At.CompareTo(b.At);
+                if (order == 0) { order = a.Event.AttackId.CompareTo(b.Event.AttackId); }
+                return order != 0 ? order : ((int)a.Event.State).CompareTo((int)b.Event.State);
+            });
+            // Scheduled events already own their pose facts; bound the lookup to current attacks.
+            _knownAttacks.Clear();
+            foreach (AttackSnapshot attack in model.Combat.Attacks) { _knownAttacks[attack.Id] = attack; }
+        }
+
+        private static GridPos ActorCell(WorldReadModel model, EntityId id)
+        {
+            foreach (NpcSnapshot npc in model.Npcs) { if (npc.Id == id) { return npc.Cell; } }
+            foreach (AnimalSnapshot animal in model.EcologyEconomy.Animals)
+            {
+                if (animal.Id == id && !model.IsAnimalNonLocal(id)) { return animal.Cell; }
+            }
+            return GridPos.Invalid;
+        }
+
+        private void DispatchCombatEvents()
+        {
+            int consumed = 0;
+            foreach (ScheduledCombatEvent scheduled in _combatEvents)
+            {
+                if (scheduled.At > _combatClock) { break; }
+                CombatVisualEvent evt = scheduled.Event;
+                if (_views.TryGetValue(evt.Shooter, out NpcView shooter))
+                {
+                    shooter.ReceiveCombatEvent(evt, scheduled.Kind, scheduled.FacingX, scheduled.FacingY, _runner.AnimationTime);
+                }
+                if (evt.HitId != evt.Shooter && _views.TryGetValue(evt.HitId, out NpcView victim))
+                {
+                    victim.ReceiveCombatEvent(evt, scheduled.Kind, scheduled.FacingX, scheduled.FacingY, _runner.AnimationTime);
+                }
+                if (_animalViews.TryGetValue(evt.Shooter, out AnimalView animal))
+                {
+                    animal.ReceiveCombatEvent(evt, scheduled.FacingX, scheduled.FacingY, _runner.AnimationTime);
+                }
+                if (evt.HitId != evt.Shooter && _animalViews.TryGetValue(evt.HitId, out AnimalView prey))
+                {
+                    prey.ReceiveCombatEvent(evt, scheduled.FacingX, scheduled.FacingY, _runner.AnimationTime);
+                }
+                if (evt.ProjectileId != 0 && evt.State == CombatEventKind.Released)
+                {
+                    CreateProjectile(evt.ProjectileId).ReceiveRelease(evt);
+                }
+                if (evt.ProjectileId == 0 && evt.State == CombatEventKind.Contact && evt.Damage > 0)
+                {
+                    var go = new GameObject("MeleeImpact_" + evt.AttackId); go.transform.SetParent(_combatRoot, false);
+                    var impact = go.AddComponent<ProjectileView>(); impact.InitializeEffect(evt, _art, _combatClock); _impactViews.Add(impact);
+                }
+                consumed++; PresentedCombatEventCount++;
+            }
+            if (consumed > 0) { _combatEvents.RemoveRange(0, consumed); }
+        }
+
+        private void PresentProjectiles(WorldReadModel model)
+        {
+            var live = new Dictionary<long, ProjectileSnapshot>();
+            foreach (ProjectileSnapshot snapshot in model.Combat.Projectiles)
+            {
+                live.Add(snapshot.Id, snapshot); CreateProjectile(snapshot.Id).SetAuthoritative(snapshot);
+            }
+            var removed = new List<long>();
+            foreach (var pair in _projectileViews)
+            {
+                live.TryGetValue(pair.Key, out ProjectileSnapshot snapshot); pair.Value.SetAuthoritative(snapshot);
+                if (pair.Value.Present(_combatClock))
+                {
+                    pair.Value.gameObject.SetActive(false); Destroy(pair.Value.gameObject); removed.Add(pair.Key); continue;
+                }
+                if (snapshot != null && snapshot.Phase == ProjectilePhase.Embedded)
+                {
+                    if (snapshot.EmbeddedTargetIsAnimal && _animalViews.TryGetValue(snapshot.EmbeddedTarget, out AnimalView animal))
+                    {
+                        pair.Value.Attach(animal.transform.position);
+                    }
+                    else if (!snapshot.EmbeddedTargetIsAnimal && _views.TryGetValue(snapshot.EmbeddedTarget, out NpcView npc))
+                    {
+                        pair.Value.Attach(npc.transform.position);
+                    }
+                }
+            }
+            foreach (long id in removed) { _projectileViews.Remove(id); }
+            for (int i = _impactViews.Count - 1; i >= 0; i--)
+            {
+                if (_impactViews[i].Present(_combatClock)) { Destroy(_impactViews[i].gameObject); _impactViews.RemoveAt(i); }
+            }
         }
 
         private void BuildMap()
@@ -281,7 +516,6 @@ namespace MyAiWorld.Presentation.Rendering
             campObject.transform.SetParent(grid, false);
             _campDressing = campObject.AddComponent<CampDressing>();
             _campDressing.Initialize(_session, _runner, _art, _canopyFader);
-            if (_atmosphere != null) { _atmosphere.SetCampfire(_campDressing.CampfirePosition); }
         }
 
         private void UpdateWater()
@@ -362,7 +596,7 @@ namespace MyAiWorld.Presentation.Rendering
             int role = NpcView.RoleIndex(snapshot.Role);
             int look = NpcView.LookIndex(snapshot.Id);
             view.Initialize(snapshot.Id, _art.Get("npc_" + role + "_" + look + "_0_0_0"), _npcRoot, look);
-            view.Configure(_art, snapshot.Role, _runner.AnimationTime - (_restoringWorldViews || _session.ReadModel.Tick == GameCalendar.StartTick ? 1f : 0f), snapshot.Health);
+            view.Configure(_art, snapshot.Role, _runner.AnimationTime - (_restoringWorldViews || _session.ReadModel.Tick == _session.Config.StartTick ? 1f : 0f), snapshot.Health);
             _views[snapshot.Id] = view;
             _viewList.Add(view);
             return view;
@@ -415,13 +649,14 @@ namespace MyAiWorld.Presentation.Rendering
             var living = new HashSet<EntityId>();
             foreach (AnimalSnapshot animal in model.EcologyEconomy.Animals)
             {
+                if (model.IsAnimalNonLocal(animal.Id) || !animal.Cell.IsValid) { continue; }
                 living.Add(animal.Id);
                 AnimalView view;
                 if (!_animalViews.TryGetValue(animal.Id, out view))
                 {
                     var go = new GameObject("Animal_" + animal.Id.Value);
                     go.transform.SetParent(_resourceRoot, false); view = go.AddComponent<AnimalView>();
-                    view.Initialize(animal, _art, model.Tick, _runner.AnimationTime, _restoringWorldViews || model.Tick == GameCalendar.StartTick);
+                    view.Initialize(animal, _art, model.Tick, _runner.AnimationTime, _restoringWorldViews || model.Tick == _session.Config.StartTick);
                     _animalViews.Add(animal.Id, view);
                 }
                 else { view.Receive(animal, model.Tick, _runner.AnimationTime); }
@@ -431,7 +666,9 @@ namespace MyAiWorld.Presentation.Rendering
             {
                 if (!living.Contains(pair.Key))
                 {
-                    pair.Value.BeginDeath(_runner.AnimationTime); _fadingAnimals.Add(pair.Value); removed.Add(pair.Key);
+                    if (model.IsAnimalNonLocal(pair.Key)) { pair.Value.BeginDespawn(_runner.AnimationTime); }
+                    else { pair.Value.BeginDeath(_runner.AnimationTime); }
+                    _fadingAnimals.Add(pair.Value); removed.Add(pair.Key);
                 }
             }
             foreach (EntityId id in removed) { _animalViews.Remove(id); }

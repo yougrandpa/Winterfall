@@ -6,7 +6,8 @@ namespace MyAiWorld.Sim.Ai
 {
     public enum PlanStepType
     {
-        Move, TakeFromStock, Eat, Drink, Sleep, Gather, Deposit, Plant, Water, Harvest, Wait, Hunt, Buy, Sell, Greet, GiveFood, Deliver, TakeFacility, Build, Craft, Maintain, Equip, Pickup, Rescue, DrinkRaw, Treat
+        Move, TakeFromStock, Eat, Drink, Sleep, Gather, Deposit, Plant, Water, Harvest, Wait, Hunt, Buy, Sell, Greet, GiveFood,
+        Deliver, TakeFacility, Build, Craft, Maintain, Equip, Pickup, Rescue, DrinkRaw, Treat, WarmUp, DeliverFuel, MeltSnow
     }
 
     public sealed class PlanStep
@@ -31,7 +32,7 @@ namespace MyAiWorld.Sim.Ai
         public int UnitPrice { get; }
         public string Preconditions => Type == PlanStepType.Move ? "reachable target" :
             Type == PlanStepType.Eat ? "carry food" : Type == PlanStepType.Drink ? "carry water" :
-            Type == PlanStepType.Hunt ? "reserved live prey; tool; energy; adjacent for strike; bag space; refuge quota" :
+            Type == PlanStepType.Hunt ? "perceived reserved prey; weapon and ammunition; energy; attack range; recovery route" :
             Type == PlanStepType.Buy ? "at market; current quote; coins; market stock; bag space" :
             Type == PlanStepType.Sell ? "at market; current quote; bag stock; treasury; market space" :
             Type == PlanStepType.Sleep ? "at home" : Type == PlanStepType.Gather ? "at reserved node; yield available; bag space" :
@@ -42,7 +43,7 @@ namespace MyAiWorld.Sim.Ai
             Type == PlanStepType.Harvest ? "at reserved mature plot; bag space" : "wait elapsed";
         public string Effects => Type == PlanStepType.Eat ? "consume 1 food; food satisfaction +4500" :
             Type == PlanStepType.Drink ? "consume 1 water; water satisfaction +5500" :
-            Type == PlanStepType.Hunt ? "pursue; spend energy; risk injury; gain skill; kill yields food once" :
+            Type == PlanStepType.Hunt ? "prepare and release attacks; spend ammunition; recover finite carcass meat and hide" :
             Type == PlanStepType.Buy ? "atomic coins for goods; ledger records result" :
             Type == PlanStepType.Sell ? "atomic goods for coins; ledger records result" :
             Type == PlanStepType.Sleep ? "energy recovers each minute" :

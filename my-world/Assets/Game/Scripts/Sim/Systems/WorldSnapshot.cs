@@ -12,7 +12,7 @@ namespace MyAiWorld.Sim.Systems
     // Explicit wire format. Never serialize engine objects, backing fields or CLR type names.
     public static partial class WorldSnapshot
     {
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
 
         public static byte[] Capture(WorldState world, int version = CurrentVersion)
         {
@@ -20,15 +20,10 @@ namespace MyAiWorld.Sim.Systems
             using (var w = new BinaryWriter(stream))
             {
                 Require(version == CurrentVersion);
-                if (version == 1)
-                {
-                    Require(world.Social.NextSequence == 1);
-                    foreach (NpcState npc in world.Entities.Npcs) { Require(npc.Social.NextInteractionTick == 0 && npc.Social.Relations.Count == 0); }
-                }
                 w.Write(version);
                 WorldConfigData c = world.Config;
                 w.Write(c.Seed); w.Write(c.Width); w.Write(c.Height); w.Write(c.NpcCount);
-                w.Write(c.StartTick); w.Write(c.TicksPerSecondAt1x);
+                w.Write(c.StartTick); w.Write(c.ChallengeDays); w.Write(c.TicksPerSecondAt1x);
                 w.Write(c.SpeedMultipliers.Length);
                 foreach (int speed in c.SpeedMultipliers) { w.Write(speed); }
                 w.Write(world.Tick); w.Write(world.NextEntityId); w.Write(world.Rng.State);
@@ -57,8 +52,11 @@ namespace MyAiWorld.Sim.Systems
                 world.Materials.WriteSnapshot(w);
                 w.Write(world.Entities.Npcs.Count);
                 foreach (NpcState n in world.Entities.Npcs) { WriteNpc(w, n); }
-                if (version >= 2) { WriteSocial(w, world); }
+                WriteSocial(w, world);
                 SurvivalSnapshot.Write(w, world);
+                WriteEnvironment(w, world);
+                world.Campaign.Write(w);
+                CombatSnapshot.Write(w, world);
                 return stream.ToArray();
             }
         }
@@ -73,11 +71,11 @@ namespace MyAiWorld.Sim.Systems
                 if (version != CurrentVersion) { throw new InvalidDataException("Unsupported snapshot version: " + version); }
                 int seed = r.ReadInt32(), width = r.ReadInt32(), height = r.ReadInt32(), npcs = r.ReadInt32();
                 Require(width >= 16 && height >= 16 && (long)width * height <= 1048576 && npcs >= 0 && npcs <= 10000);
-                long start = r.ReadInt64(); int rate = r.ReadInt32();
+                long start = r.ReadInt64(); int challengeDays = r.ReadInt32(); int rate = r.ReadInt32();
                 var speeds = new int[ReadCount(r, 32)];
                 for (int i = 0; i < speeds.Length; i++) { speeds[i] = r.ReadInt32(); }
                 Require(speeds.Length > 0);
-                var config = new WorldConfigData(seed, width, height, npcs, start, rate, speeds);
+                var config = new WorldConfigData(seed, width, height, npcs, start, rate, speeds, challengeDays);
                 var world = new WorldState(config, new WorldMap(width, height), new DeterministicRng(1));
                 world.Tick = r.ReadInt64(); world.NextEntityId = r.ReadInt32(); world.Rng.State = r.ReadUInt64();
                 for (int y = 0; y < height; y++)
@@ -123,12 +121,34 @@ namespace MyAiWorld.Sim.Systems
                 world.Materials.ReadSnapshot(r);
                 count = ReadCount(r, 10000);
                 for (int i = 0; i < count; i++) { world.Entities.AddNpc(ReadNpc(r)); }
-                if (version >= 2) { ReadSocial(r, world); }
+                ReadSocial(r, world);
                 SurvivalSnapshot.Read(r, world);
+                ReadEnvironment(r, world);
+                world.Campaign.Read(r, world);
+                CombatSnapshot.Read(r, world);
                 Require(stream.Position == stream.Length);
                 Validate(world);
                 return world;
             }
+        }
+
+        internal static void WriteEnvironment(BinaryWriter writer, WorldState world)
+        {
+            EnvironmentState state = world.Environment;
+            writer.Write(state.Temperature); writer.Write(state.Wind); writer.Write(state.Daylight); writer.Write(state.SnowDepth);
+            writer.Write((int)state.Weather); writer.Write(state.NextWeatherTick); writer.Write(state.RngState);
+        }
+
+        private static void ReadEnvironment(BinaryReader reader, WorldState world)
+        {
+            EnvironmentState state = world.Environment;
+            state.Temperature = reader.ReadInt32(); state.Wind = reader.ReadInt32(); state.Daylight = reader.ReadInt32();
+            state.SnowDepth = reader.ReadInt32(); state.Weather = (WeatherKind)reader.ReadInt32();
+            state.NextWeatherTick = reader.ReadInt64(); state.RngState = reader.ReadUInt64();
+            Require(state.Temperature >= EnvironmentState.MinTemperature && state.Temperature <= EnvironmentState.MaxTemperature &&
+                state.Wind >= 0 && state.Wind <= 100 && state.Daylight >= 0 && state.Daylight <= 10000 &&
+                state.SnowDepth >= 0 && state.SnowDepth <= EnvironmentState.MaxSnowDepth &&
+                Enum.IsDefined(typeof(WeatherKind), state.Weather) && state.NextWeatherTick >= 0 && state.RngState != 0);
         }
 
         internal static void WritePos(BinaryWriter w, GridPos p) { w.Write(p.X); w.Write(p.Y); }
@@ -221,7 +241,7 @@ namespace MyAiWorld.Sim.Systems
             }
             foreach (AnimalState a in world.Ecology.Animals)
             {
-                Require(a.Id.Value > 0 && ids.Add(a.Id.Value) && world.Map.IsWalkable(a.Position) && a.RngState != 0);
+                Require(a.Id.Value > 0 && ids.Add(a.Id.Value) && a.RngState != 0);
                 largest = Math.Max(largest, a.Id.Value);
                 NpcState owner;
                 Require(a.ReservedBy.IsNone || world.Entities.TryGetNpc(a.ReservedBy, out owner));
@@ -230,6 +250,9 @@ namespace MyAiWorld.Sim.Systems
             {
                 NpcState owner; Require(world.Entities.TryGetNpc(reservation.Owner, out owner));
             }
+            world.Ecology.Validate(world);
+            world.Campaign.Validate(world);
+            CombatSnapshot.Validate(world);
             Require(world.NextEntityId > largest && world.Market.CurrencyError(world) == 0);
             for (int i = 0; i < (int)ItemKind.Count; i++) { Require(world.Materials.Error(world, (ItemKind)i) == 0); }
         }
@@ -238,31 +261,6 @@ namespace MyAiWorld.Sim.Systems
 
 namespace MyAiWorld.Sim.World
 {
-    public sealed partial class EcologyState
-    {
-        internal void WriteSnapshot(BinaryWriter w)
-        {
-            w.Write(Rng.State); w.Write(BirthProgress); w.Write(Births); w.Write(NaturalDeaths); w.Write(HuntKills); w.Write(_animals.Count);
-            foreach (AnimalState a in _animals)
-            {
-                w.Write(a.Id.Value); w.Write((int)a.Species); WorldSnapshot.WritePos(w, a.Position); w.Write(a.RngState);
-                w.Write(a.AgeTicks); w.Write(a.Health); w.Write(a.Fleeing); w.Write(a.ReservedBy.Value);
-            }
-        }
-        internal void ReadSnapshot(BinaryReader r)
-        {
-            Rng.State = r.ReadUInt64(); BirthProgress = r.ReadInt64(); Births = r.ReadInt32(); NaturalDeaths = r.ReadInt32(); HuntKills = r.ReadInt32();
-            WorldSnapshot.Require(Rng.State != 0 && BirthProgress >= 0 && BirthProgress < 240 && Births >= 0 && NaturalDeaths >= 0 && HuntKills >= 0);
-            int count = WorldSnapshot.ReadCount(r, SpeciesCapacity * 3 + 3);
-            for (int i = 0; i < count; i++)
-            {
-                var a = new AnimalState(new EntityId(r.ReadInt32()), (AnimalSpecies)r.ReadInt32(), WorldSnapshot.ReadPos(r), r.ReadUInt64(), r.ReadInt32());
-                a.Health = r.ReadInt32(); a.Fleeing = r.ReadBoolean(); a.ReservedBy = new EntityId(r.ReadInt32());
-                WorldSnapshot.Require(Enum.IsDefined(typeof(AnimalSpecies), a.Species) && a.Health >= 0 && a.Health <= a.Definition.Health && a.AgeTicks >= 0);
-                _animals.Add(a);
-            }
-        }
-    }
     public sealed partial class MarketState
     {
         internal void WriteSnapshot(BinaryWriter w)

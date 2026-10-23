@@ -27,6 +27,10 @@ namespace MyAiWorld.App.Observability
                 TradeOrder o = trade.Order;
                 return new SavedCommand { Kind = "trade", OrderId = o.Id, Arguments = new[] { o.NpcId.Value, (int)o.Side, (int)o.Item, o.Quantity, o.UnitPrice } };
             }
+            if (command is ContinueObservationCommand)
+            {
+                return new SavedCommand { Kind = "continue_observation", Arguments = new int[0] };
+            }
             throw new InvalidDataException("Unsupported pending command.");
         }
         public IWorldCommand Restore()
@@ -38,6 +42,10 @@ namespace MyAiWorld.App.Observability
             if (Kind == "trade" && Arguments != null && Arguments.Length == 5)
             {
                 return new TradeCommand(new TradeOrder(OrderId, new EntityId(Arguments[0]), (TradeSide)Arguments[1], (ItemKind)Arguments[2], Arguments[3], Arguments[4]));
+            }
+            if (Kind == "continue_observation" && Arguments != null && Arguments.Length == 0)
+            {
+                return new ContinueObservationCommand();
             }
             throw new InvalidDataException("Invalid saved command.");
         }
@@ -56,7 +64,7 @@ namespace MyAiWorld.App.Observability
 
     public static class SaveStore
     {
-        public const int CurrentVersion = 3;
+        public const int CurrentVersion = 4;
         private const int MaxBytes = 96 * 1024 * 1024;
         private sealed class Envelope
         {

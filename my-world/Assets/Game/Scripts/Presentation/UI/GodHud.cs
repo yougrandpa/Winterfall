@@ -53,6 +53,7 @@ namespace MyAiWorld.Presentation.UI
         private GodCameraController _cameraController;
         private NeedsHistoryGraph _historyGraph;
         private HudEntries _relations, _memories, _plan, _events, _ledger, _production, _inspection;
+        private HudEntries _ecology;
         private ScrollRect _resourceScroll;
         private GameObject _debugPanel;
         private EntityId? _selected;
@@ -105,6 +106,7 @@ namespace MyAiWorld.Presentation.UI
                 _selection.Select(null);
                 _timelinePage = 0;
             }
+            RefreshCampaign();
             HandleShortcuts();
             HudTheme.Select(_followButton, _cameraController.IsFollowing);
             if (Time.unscaledDeltaTime > 0.0001f) { _fps = Mathf.Lerp(_fps, 1f / Time.unscaledDeltaTime, 0.08f); }
@@ -117,6 +119,7 @@ namespace MyAiWorld.Presentation.UI
         private void HandleShortcuts()
         {
             if (Input.GetKeyDown(KeyCode.Escape)) { CloseTopmostPanel(); }
+            if (CampaignModalOpen || CampaignLocked) { return; }
             if (Input.GetKeyDown(KeyCode.Space)) { _runner.TogglePause(); RefreshTopBar(); }
             for (int i = 0; i < 4; i++)
             {
@@ -132,6 +135,12 @@ namespace MyAiWorld.Presentation.UI
 
         public void CloseTopmostPanel()
         {
+            if (CampaignModalOpen || CampaignLocked)
+            {
+                if (ContinueObservationConfirmationOpen) { CancelContinueObservation(); }
+                else { CloseCampaignResult(); }
+                return;
+            }
             if (HelpOpen) { ToggleHelp(); }
             else if (SaveMenuOpen) { ToggleSaveMenu(); }
             else if (OpenGlobalPanel >= 0) { CloseGlobalPanels(); }
@@ -294,6 +303,7 @@ namespace MyAiWorld.Presentation.UI
             RefreshEventLog();
             RefreshSaveStatus();
             RefreshDebug();
+            RefreshCampaign();
         }
 
         private void RefreshSaveStatus()

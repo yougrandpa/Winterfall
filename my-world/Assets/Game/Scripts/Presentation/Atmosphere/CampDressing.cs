@@ -22,20 +22,16 @@ namespace MyAiWorld.Presentation.Atmosphere
         private readonly List<Placed> _placed = new List<Placed>();
         private readonly HashSet<int> _occupied = new HashSet<int>();
         private PastoralArtConfig _art;
-        private SimulationRunner _runner;
         private GameSession _session;
-        private SpriteRenderer _fire;
-        private SpriteRenderer _embers;
-        private int _fireFrame = -1;
+        private Sprite _coldStove;
         private long _checkedTick = -1;
+        private int _checkedRevision = -1;
 
         public int PropCount => _placed.Count;
-        public Vector3? CampfirePosition => _fire != null ? (Vector3?)_fire.transform.position : null;
 
         public void Initialize(GameSession session, SimulationRunner runner, PastoralArtConfig art, CanopyFader canopy)
         {
             _session = session;
-            _runner = runner;
             _art = art;
             Build(canopy);
         }
@@ -69,8 +65,19 @@ namespace MyAiWorld.Presentation.Atmosphere
                 return a.Y != b.Y ? a.Y.CompareTo(b.Y) : a.X.CompareTo(b.X);
             });
 
+            // Only retain the stone/log base of the decorative fire. No flame, sparks or light.
+            Sprite source = _art.Get("campfire_0");
+            if (source != null)
+            {
+                Rect rect = source.rect;
+                rect.height *= 17f / 64f;
+                _coldStove = Sprite.Create(source.texture, rect,
+                    new Vector2(source.pivot.x / rect.width, source.pivot.y / rect.height),
+                    source.pixelsPerUnit, 0, SpriteMeshType.FullRect);
+                _coldStove.name = "CampColdStove (runtime)";
+            }
             var used = new List<GridPos>();
-            Place("campfire_0", "campfire", candidates, used, 1.6f, canopy, false);
+            Place("campfire_0", "cold_stove", candidates, used, 1.6f, canopy, false);
             Place("tent_0", "tent", candidates, used, 1.8f, canopy, true);
             Place("tent_1", "tent", candidates, used, 1.8f, canopy, true);
             Place("lean_to", "lean_to", candidates, used, 1.8f, canopy, true);
@@ -94,7 +101,7 @@ namespace MyAiWorld.Presentation.Atmosphere
                     if (dx * dx + dy * dy < spacing * spacing) { taken = true; break; }
                 }
                 if (taken) { continue; }
-                Sprite sprite = _art.Get(key);
+                Sprite sprite = label == "cold_stove" ? _coldStove : _art.Get(key);
                 if (sprite == null) { return; }
                 var go = new GameObject(label + "_" + _placed.Count, typeof(SpriteRenderer));
                 go.transform.SetParent(transform, false);
@@ -104,15 +111,6 @@ namespace MyAiWorld.Presentation.Atmosphere
                 renderer.sortingOrder = CreatureMotion.SortOrder(go.transform.position.y);
                 _placed.Add(new Placed { Object = go, Cell = cell });
                 used.Add(cell);
-                if (label == "campfire")
-                {
-                    _fire = renderer;
-                    var emberObject = new GameObject("campfire_embers", typeof(SpriteRenderer));
-                    emberObject.transform.SetParent(go.transform, false);
-                    _embers = emberObject.GetComponent<SpriteRenderer>();
-                    _embers.sprite = _art.Get("campfire_embers_0");
-                    _embers.sortingOrder = renderer.sortingOrder + 1;
-                }
                 if (shelter && canopy != null) { canopy.Register(renderer); }
                 return;
             }
@@ -120,30 +118,27 @@ namespace MyAiWorld.Presentation.Atmosphere
 
         private void Update()
         {
-            if (_fire != null && _runner != null)
-            {
-                int frame = Mathf.FloorToInt(_runner.AnimationTime * 8f) & 3;
-                if (frame != _fireFrame)
-                {
-                    _fireFrame = frame;
-                    _fire.sprite = _art.Get("campfire_" + frame);
-                    if (_embers != null)
-                    {
-                        _embers.sprite = _art.Get("campfire_embers_" + (frame & 1));
-                        _embers.sortingOrder = _fire.sortingOrder + 1;
-                    }
-                }
-            }
             RefreshConflicts();
+        }
+
+        private void OnDestroy()
+        {
+            if (_coldStove != null) { Destroy(_coldStove); }
         }
 
         private void RefreshConflicts()
         {
             if (_session == null) { return; }
             WorldReadModel model = _session.ReadModel;
-            if (model.Tick == _checkedTick) { return; }
+            if (model.Tick == _checkedTick && _checkedRevision == _session.WorldRevision) { return; }
             _checkedTick = model.Tick;
+            _checkedRevision = _session.WorldRevision;
             _occupied.Clear();
+            foreach (ShelterSnapshot shelter in model.Survival.Shelters)
+            {
+                _occupied.Add(shelter.Cell.Y * model.Width + shelter.Cell.X);
+                _occupied.Add(shelter.Entrance.Y * model.Width + shelter.Entrance.X);
+            }
             for (int i = 0; i < model.Survival.Facilities.Count; i++)
             {
                 FacilitySnapshot facility = model.Survival.Facilities[i];
@@ -171,6 +166,10 @@ namespace MyAiWorld.Presentation.Atmosphere
         private static bool IsReserved(WorldReadModel model, GridPos cell)
         {
             if (cell == model.StockpileCell) { return true; }
+            foreach (ShelterSnapshot shelter in model.Survival.Shelters)
+            {
+                if (shelter.Cell == cell || shelter.Entrance == cell) { return true; }
+            }
             for (int i = 0; i < model.Survival.Facilities.Count; i++)
             {
                 if (model.Survival.Facilities[i].Cell == cell) { return true; }

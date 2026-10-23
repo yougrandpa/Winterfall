@@ -62,7 +62,7 @@ namespace MyAiWorld.App.Observability
 
             var replay = new ReplayData
             {
-                FormatVersion = 4,
+                FormatVersion = 5,
                 InitialSnapshot = _initialSnapshot,
                 StateHashVersion = StateHasher.Version,
                 Seed = _config.Seed,
@@ -70,6 +70,9 @@ namespace MyAiWorld.App.Observability
                 Height = _config.Height,
                 NpcCount = _config.NpcCount,
                 StartTick = _config.StartTick,
+                ChallengeDays = _config.ChallengeDays,
+                TicksPerSecondAt1x = _config.TicksPerSecondAt1x,
+                SpeedMultipliers = _config.SpeedMultipliers,
                 FinalTick = tick,
                 FinalStateHash = stateHash.ToString("x16"),
                 Commands = _commands
@@ -110,6 +113,9 @@ namespace MyAiWorld.App.Observability
             public int Height { get; set; }
             public int NpcCount { get; set; }
             public long StartTick { get; set; }
+            public int ChallengeDays { get; set; }
+            public int TicksPerSecondAt1x { get; set; }
+            public int[] SpeedMultipliers { get; set; }
             public long FinalTick { get; set; }
             public string FinalStateHash { get; set; }
             public List<ReplayCommandRecord> Commands { get; set; }

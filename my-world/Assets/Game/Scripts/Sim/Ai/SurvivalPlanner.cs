@@ -38,7 +38,8 @@ namespace MyAiWorld.Sim.Ai
                 for (int i = 0; i < (int)ItemKind.Count; i++)
                 {
                     ItemKind carried = (ItemKind)i;
-                    int amount = Math.Min(npc.Inventory.Count(carried), stockSpace - deposited);
+                    int retained = carried == ItemKind.Arrow && npc.Role == "Hunter" ? Math.Min(4, npc.Inventory.Count(carried)) : 0;
+                    int amount = Math.Min(npc.Inventory.Count(carried) - retained, stockSpace - deposited);
                     if (amount <= 0)
                     {
                         continue;
@@ -59,6 +60,27 @@ namespace MyAiWorld.Sim.Ai
             }
             switch (decision.Goal)
             {
+                case NpcGoalType.WarmUp:
+                    ShelterState home = world.Survival.FindShelter(npc.Survival.ShelterId);
+                    if (home != null && home.FuelTicks == 0 && home.Inventory.Count(ItemKind.Wood) == 0 &&
+                        SupplyShelter(world, npc, steps))
+                    {
+                        found = true;
+                        break;
+                    }
+                    if (npc.Survival.CoatDurability == 0 && npc.Inventory.Count(ItemKind.WinterCoat) > 0)
+                    {
+                        steps.Add(new PlanStep(PlanStepType.Equip, npc.Position, item: ItemKind.WinterCoat));
+                        found = true;
+                        break;
+                    }
+                    found = home != null && CanReach(world, npc.Position, npc.Home);
+                    if (found)
+                    {
+                        Move(steps, npc.Home);
+                        steps.Add(new PlanStep(PlanStepType.WarmUp, npc.Home, npc.Survival.ShelterId, durationTicks: 30));
+                    }
+                    break;
                 case NpcGoalType.Treat:
                     found = EnsureItem(world, npc, ItemKind.Medicine, steps);
                     if (found) { steps.Add(new PlanStep(PlanStepType.Treat, steps.Count == 0 ? npc.Position : steps[steps.Count - 1].Target, item: ItemKind.Medicine, durationTicks: 4)); }
@@ -73,6 +95,18 @@ namespace MyAiWorld.Sim.Ai
                 case NpcGoalType.Drink:
                     ItemKind item = decision.Goal == NpcGoalType.Eat ? ItemKind.Food : ItemKind.Water;
                     found = EnsureItem(world, npc, item, steps);
+                    if (!found)
+                    {
+                        world.Resources.Release(npc.Id); steps.Clear();
+                        found = Recipe(world, npc, ProductionRecipe.For(item), steps);
+                        if (found) { break; }
+                        world.Resources.Release(npc.Id); steps.Clear();
+                        if (item == ItemKind.Water && MeltSnow(world, npc, steps))
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
                     if (!found && item == ItemKind.Water && npc.Needs.Thirst < 3000)
                     {
                         world.Resources.Release(npc.Id); steps.Clear();
@@ -97,6 +131,12 @@ namespace MyAiWorld.Sim.Ai
                 case NpcGoalType.GatherWater:
                     item = decision.Goal == NpcGoalType.GatherFood ? ItemKind.Food : ItemKind.RawWater;
                     found = Gather(world, npc, item, steps, item == ItemKind.RawWater ? WaterSystem.CollectionAmount(world, npc) : 3);
+                    if (!found && item == ItemKind.RawWater)
+                    {
+                        world.Resources.Release(npc.Id);
+                        steps.Clear();
+                        found = MeltSnow(world, npc, steps);
+                    }
                     if (found)
                     {
                         AddDeposit(world, steps, item, steps[steps.Count - 1].Quantity);
@@ -178,6 +218,14 @@ namespace MyAiWorld.Sim.Ai
             {
                 Move(steps, stock);
                 steps.Add(new PlanStep(PlanStepType.TakeFromStock, stock, item: item));
+                return true;
+            }
+            foreach (FacilityState facility in world.Survival.Facilities)
+            {
+                if (facility.Inventory.Count(item) <= 0 || !facility.ReservedBy.IsNone ||
+                    !CanReach(world, start, facility.WorkCell) || !ClaimFacility(world, npc, facility)) { continue; }
+                Move(steps, facility.WorkCell);
+                steps.Add(new PlanStep(PlanStepType.TakeFacility, facility.WorkCell, facility.Id, item));
                 return true;
             }
             return !SurvivalRules.IsSeed(item) && Gather(world, npc, item, steps, 1);
@@ -278,7 +326,18 @@ namespace MyAiWorld.Sim.Ai
 
         private bool Hunt(WorldState world, NpcState npc, List<PlanStep> steps)
         {
-            if (!npc.HasHuntingTool || npc.Needs.Energy < 3000 || npc.Needs.Health < 3000)
+            foreach (CarcassState carcass in world.Ecology.Carcasses)
+            {
+                if (carcass.Region != -1 || !carcass.ReservedBy.IsNone ||
+                    carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount == 0 ||
+                    npc.Inventory.TotalCount == npc.Inventory.Capacity || !HuntingSystem.Perceived(world, npc, carcass.Position) ||
+                    !CanReach(world, npc.Position, carcass.Position)) { continue; }
+                carcass.ReservedBy = npc.Id;
+                steps.Add(new PlanStep(PlanStepType.Hunt, carcass.Position, carcass.Id.Value, durationTicks: 120));
+                return true;
+            }
+            if (!npc.HasHuntingTool || npc.Survival.Durability(HuntingSystem.Weapon(npc)) <= 0 ||
+                npc.Needs.Energy < 3000 || npc.Needs.Health < 3000 || npc.Inventory.TotalCount == npc.Inventory.Capacity)
             {
                 return false;
             }
@@ -286,8 +345,7 @@ namespace MyAiWorld.Sim.Ai
             for (int i = 0; i < world.Ecology.Animals.Count; i++)
             {
                 AnimalState animal = world.Ecology.Animals[i];
-                if (world.Ecology.CanHunt(animal) && animal.ReservedBy.IsNone &&
-                    npc.Inventory.Capacity - npc.Inventory.TotalCount >= animal.Definition.FoodYield)
+                if (HuntingSystem.Perceived(world, npc, animal) && animal.ReservedBy.IsNone)
                 {
                     candidates.Add(animal);
                 }
@@ -309,7 +367,6 @@ namespace MyAiWorld.Sim.Ai
                 }
                 animal.ReservedBy = npc.Id;
                 steps.Add(new PlanStep(PlanStepType.Hunt, animal.Position, animal.Id.Value, durationTicks: 120));
-                AddDeposit(world, steps, ItemKind.Food, animal.Definition.FoodYield);
                 return true;
             }
             return false;

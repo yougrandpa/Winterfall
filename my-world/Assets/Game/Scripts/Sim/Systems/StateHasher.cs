@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using MyAiWorld.Sim.Agents;
 using MyAiWorld.Sim.Core;
 using MyAiWorld.Sim.Ai;
@@ -8,7 +9,7 @@ namespace MyAiWorld.Sim.Systems
 {
     public static class StateHasher
     {
-        public const int Version = 5;
+        public const int Version = 6;
         private const ulong FnvOffset = 14695981039346656037UL;
         private const ulong FnvPrime = 1099511628211UL;
 
@@ -28,6 +29,7 @@ namespace MyAiWorld.Sim.Systems
             hash = Mix(hash, state.Config.Height);
             hash = Mix(hash, state.Config.NpcCount);
             hash = Mix(hash, state.Config.StartTick);
+            hash = Mix(hash, state.Config.ChallengeDays);
             hash = Mix(hash, state.Config.TicksPerSecondAt1x);
             int[] speeds = state.Config.SpeedMultipliers;
             hash = Mix(hash, speeds.Length);
@@ -217,6 +219,15 @@ namespace MyAiWorld.Sim.Systems
                 }
             }
             foreach (byte value in SurvivalSnapshot.Capture(state)) { hash = Mix(hash, (int)value); }
+            using (var stream = new MemoryStream())
+            using (var writer = new BinaryWriter(stream))
+            {
+                WorldSnapshot.WriteEnvironment(writer, state);
+                state.Campaign.Write(writer);
+                state.Ecology.WriteSnapshot(writer);
+                CombatSnapshot.Write(writer, state);
+                foreach (byte value in stream.ToArray()) { hash = Mix(hash, (int)value); }
+            }
             return hash;
         }
 

@@ -17,6 +17,12 @@ namespace MyAiWorld.Presentation.Rendering
         private int _action;
         private int _health = 10000;
         private float _flashUntil;
+        private float _combatUntil;
+        private int _eventStage = -1;
+        private int _eventDirection;
+        public int CombatStage { get; private set; } = -1;
+        public int FacingDirection { get; private set; }
+        public string SpriteKey { get; private set; }
         private SpriteRenderer _selectionRing;
         private SpriteRenderer _selectionPointer;
         private SpriteRenderer _silhouette;
@@ -101,14 +107,37 @@ namespace MyAiWorld.Presentation.Rendering
             // segment is displayed. Keep walking until the feet actually arrive.
             _action = (int)(_motion.Moving ? NpcActionType.Move :
                 snapshot.ActionType == NpcActionType.Move ? NpcActionType.Idle : snapshot.ActionType);
-            FrameIndex = Mathf.FloorToInt((clock + Id.Value * 0.137f) * (_action == 1 ? 8f : 3f)) % 4;
-            _renderer.sprite = _art.Get("npc_" + _role + "_" + _look + "_" + _motion.Direction + "_" + _action + "_" + FrameIndex);
+            AttackSnapshot attack = snapshot.Attack;
+            CombatStage = -1;
+            if (attack != null && attack.Phase != CombatAttackPhase.Cooldown)
+            {
+                _motion.Face(attack.FacingX, attack.FacingY);
+                CombatStage = attack.Kind == CombatAttackKind.Bow ?
+                    (attack.Phase == CombatAttackPhase.Preparing ? 0 : 1) :
+                    (attack.Phase == CombatAttackPhase.Preparing ? 2 : 3);
+            }
+            FacingDirection = _motion.Direction;
+            if (clock < _combatUntil)
+            {
+                CombatStage = _eventStage; FacingDirection = _eventDirection;
+            }
+            if (CombatStage >= 0 && snapshot.Life == LifeState.Active)
+            {
+                // Combat is stationary and has a dedicated atlas; no old action-index insertion.
+                ApplyAlpha(1f);
+            }
+            else { CombatStage = -1; }
+            FrameIndex = Mathf.FloorToInt((clock + Id.Value * 0.137f) * (CombatStage >= 0 ? 12f : _action == 1 ? 8f : 3f)) % 4;
+            SpriteKey = CombatStage >= 0 ? "npc_attack_" + _role + "_" + _look + "_" + FacingDirection + "_" + CombatStage + "_" + FrameIndex :
+                "npc_" + _role + "_" + _look + "_" + FacingDirection + "_" + _action + "_" + FrameIndex;
+            // A missing generated key stays visible to diagnostics (null), not a fake fallback attack.
+            _renderer.sprite = _art.Get(SpriteKey);
             Color tint = clock < _flashUntil ? new Color(1f, 0.6f, 0.5f) : Color.white;
             tint.a = Mathf.Clamp01((clock - _bornAt) / 0.25f);
             _renderer.color = tint;
             UpdateSilhouette(tint);
             UpdateAlert(snapshot, clock);
-            bool working = !_motion.Moving && (snapshot.ActionType == NpcActionType.Work || snapshot.ActionType == NpcActionType.Gather);
+            bool working = CombatStage < 0 && !_motion.Moving && (snapshot.ActionType == NpcActionType.Work || snapshot.ActionType == NpcActionType.Gather);
             _effect.enabled = working && snapshot.Life == LifeState.Active;
             if (_effect.enabled)
             {
@@ -117,6 +146,25 @@ namespace MyAiWorld.Presentation.Rendering
             }
             if (snapshot.Life == LifeState.Dead) { SetSelected(false); }
         }
+        public void ReceiveCombatEvent(CombatVisualEvent combatEvent, CombatAttackKind kind, int facingX, int facingY, float clock)
+        {
+            if (combatEvent.State == CombatEventKind.Contact && combatEvent.HitId == Id && combatEvent.Damage > 0)
+            {
+                _flashUntil = clock + 0.25f; _eventStage = 4; _eventDirection = _motion.Direction;
+            }
+            else if (combatEvent.Shooter == Id && (combatEvent.State == CombatEventKind.Started ||
+                combatEvent.State == CombatEventKind.Released || combatEvent.State == CombatEventKind.Contact && combatEvent.ProjectileId == 0))
+            {
+                if (clock < _combatUntil && _eventStage == 4) { return; }
+                bool preparing = combatEvent.State == CombatEventKind.Started;
+                _eventStage = kind == CombatAttackKind.Bow ? (preparing ? 0 : 1) : (preparing ? 2 : 3);
+                _motion.Face(facingX, facingY);
+                _eventDirection = _motion.Direction;
+            }
+            else { return; }
+            _combatUntil = clock + 0.25f;
+        }
+
         private SpriteRenderer CreateSelectionSprite(string label, string key)
         {
             var child = new GameObject(label, typeof(SpriteRenderer));

@@ -13,6 +13,7 @@ namespace MyAiWorld.App
     public sealed class GameSession : IDisposable
     {
         private readonly Queue<IWorldCommand> _commandQueue = new Queue<IWorldCommand>();
+        private readonly List<TickResult> _combatFrames = new List<TickResult>();
         private readonly SimulationEngine _engine;
         private long _eventSequence;
         private int _loggedTradeCount;
@@ -57,7 +58,7 @@ namespace MyAiWorld.App
         public int WorldRevision { get; private set; }
         public string SaveStatus { get; private set; } = "尚未存档";
         public bool LastSaveSucceeded { get; private set; }
-        public string SaveDirectory { get; set; } = Path.Combine(Application.persistentDataPath, "MyAiWorld", "saves-survival-v3");
+        public string SaveDirectory { get; set; } = Path.Combine(Application.persistentDataPath, "MyAiWorld", "saves-winter-ecology-v4");
         public string ManualSavePath => Path.Combine(SaveDirectory, "manual.json");
         public string AutoSavePath => Path.Combine(SaveDirectory, "auto.json");
         public string ReplayPath => Replay != null ? Replay.FilePath : null;
@@ -75,6 +76,13 @@ namespace MyAiWorld.App
         public void SpawnDebugNpc()
         {
             EnqueueCommand(new SpawnNpcCommand());
+        }
+
+        public IReadOnlyList<TickResult> DrainCombatFrames()
+        {
+            var frames = Array.AsReadOnly(_combatFrames.ToArray());
+            _combatFrames.Clear();
+            return frames;
         }
 
         public TickResult Tick()
@@ -100,6 +108,7 @@ namespace MyAiWorld.App
 
             long firstSocialSequence = World.Social.NextSequence;
             TickResult result = _engine.Tick(World, commands);
+            if (result.CombatTraces.Count > 0 || result.CombatEvents.Count > 0) { _combatFrames.Add(result); }
             for (int i = 0; i < result.Events.Count; i++)
             {
                 SimEvent evt = result.Events[i];
@@ -123,7 +132,11 @@ namespace MyAiWorld.App
             LastStateHash = result.StateHash;
             LastTick = result.Tick;
             ReadModel.Refresh(World, result, PathFailureCount);
-            if (World.Tick % 1440 == 0) { Save(AutoSavePath, true); }
+            if (World.Tick != commandTick &&
+                (World.Tick % GameCalendar.TicksPerDay == 0 || !World.Campaign.CanAdvance))
+            {
+                Save(AutoSavePath, true);
+            }
             return result;
         }
 
@@ -169,6 +182,7 @@ namespace MyAiWorld.App
                 Log.Dispose(); Replay.Complete(World.Tick, LastStateHash); Replay.Dispose();
                 World = candidate; Config = candidate.Config; ReadModel = readModel;
                 _commandQueue.Clear();
+                _combatFrames.Clear();
                 foreach (IWorldCommand command in commands) { _commandQueue.Enqueue(command); }
                 _eventSequence = data.EventSequence; PathFailureCount = data.PathFailures;
                 AppliedCommandCount = data.AppliedCommands; _loggedTradeCount = candidate.Market.Ledger.Count;

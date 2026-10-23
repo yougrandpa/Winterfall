@@ -6,7 +6,8 @@ namespace MyAiWorld.Sim.World
 {
     public enum ItemKind
     {
-        Food, Water, Seed, RawWater, Wood, Stone, Fiber, Herb, Medicine, WheatSeed, BeanSeed, Bow, Spear, Hoe, Bucket, Count
+        Food, Water, Seed, RawWater, Wood, Stone, Fiber, Herb, Medicine, WheatSeed, BeanSeed, Bow, Spear, Hoe, Bucket,
+        Arrow, RawMeat, Hide, WinterCoat, Count
     }
     public enum CropType
     {

@@ -37,6 +37,8 @@ namespace MyAiWorld.Sim.World
             WorldMap map = GenerateMap(config);
             ulong rootSeed = DeterministicRng.Mix((ulong)(uint)config.Seed ^ 0xD1B54A32D192ED03UL);
             var world = new WorldState(config, map, new DeterministicRng(rootSeed));
+            EnvironmentSystem.Update(world);
+            InitializeShelters(world);
 
             GridPos center = world.Center;
             List<GridPos> reachable = map.CollectReachable(center);
@@ -69,6 +71,7 @@ namespace MyAiWorld.Sim.World
             world.Market.Inventory.TryAdd(ItemKind.Water, 30);
             world.Market.Inventory.TryAdd(ItemKind.Seed, 30);
             world.Ecology.Initialize(world, reachable);
+            world.Campaign.Initialize(world);
             world.Materials.Initialize(world);
             return world;
         }
@@ -95,6 +98,12 @@ namespace MyAiWorld.Sim.World
                 }
             }
             else if (!TryChooseFreeCell(world, out cell))
+            {
+                return null;
+            }
+
+            ShelterState shelter = ChooseShelter(world, cell);
+            if (shelter == null)
             {
                 return null;
             }
@@ -126,9 +135,23 @@ namespace MyAiWorld.Sim.World
                 id,
                 new NpcIdentity(name, role, age),
                 personality,
-                cell,
-                npcSeed);
+                shelter.Entrance,
+                npcSeed)
+            {
+                Position = cell
+            };
+            npc.Survival.ShelterId = shelter.Id;
             npc.HasHuntingTool = role == "Hunter";
+            if (role == "Hunter")
+            {
+                npc.Inventory.TryAdd(ItemKind.Arrow, 4);
+                world.Materials.Produce(ItemKind.Arrow, 4);
+            }
+            if (world.Date.Season == Season.Winter && (role == "Hunter" || role == "Gatherer"))
+            {
+                npc.Survival.CoatDurability = SurvivalRules.ToolDurability;
+                world.Materials.Produce(ItemKind.WinterCoat, 1);
+            }
             if (role == "Farmer") { npc.Survival.SetTool(ItemKind.Hoe, SurvivalRules.ToolDurability); }
             if (role == "Trader") { npc.Survival.SetTool(ItemKind.Bucket, SurvivalRules.ToolDurability); }
             for (int i = (int)ItemKind.Bow; i <= (int)ItemKind.Bucket; i++) { if (npc.Survival.EquipmentCount((ItemKind)i) > 0) { world.Materials.Produce((ItemKind)i, 1); } }
@@ -145,6 +168,145 @@ namespace MyAiWorld.Sim.World
             }
 
             return npc;
+        }
+
+        private static void InitializeShelters(WorldState world)
+        {
+            var reachable = new HashSet<GridPos>(world.Map.CollectReachable(world.Center));
+            for (int y = 0; y < world.Map.Height; y++)
+            {
+                for (int x = 0; x < world.Map.Width; x++)
+                {
+                    var position = new GridPos(x, y);
+                    if (world.Map.GetTile(position) == TileType.House && TryShelterEntrance(world, position, reachable, out GridPos entrance))
+                    {
+                        AddShelter(world, position, entrance);
+                    }
+                }
+            }
+
+            int capacity = world.Survival.Shelters.Count * SurvivalRules.ShelterCapacity;
+            if (capacity >= world.Config.NpcCount)
+            {
+                return;
+            }
+
+            var candidates = new List<GridPos>(reachable);
+            candidates.Sort((a, b) =>
+            {
+                int order = a.ManhattanDistance(world.Center).CompareTo(b.ManhattanDistance(world.Center));
+                return order != 0 ? order : (a.Y * world.Map.Width + a.X).CompareTo(b.Y * world.Map.Width + b.X);
+            });
+            foreach (GridPos position in candidates)
+            {
+                TileType previous = world.Map.GetTile(position);
+                if (position.ManhattanDistance(world.Center) < 4 ||
+                    (previous != TileType.Grass && previous != TileType.Dirt && previous != TileType.Forest))
+                {
+                    continue;
+                }
+
+                bool crowded = false;
+                foreach (ShelterState shelter in world.Survival.Shelters)
+                {
+                    if (shelter.Position.ManhattanDistance(position) < 3)
+                    {
+                        crowded = true;
+                        break;
+                    }
+                }
+                if (crowded)
+                {
+                    continue;
+                }
+
+                world.Map.SetTile(position, TileType.House);
+                var remaining = new HashSet<GridPos>(world.Map.CollectReachable(world.Center));
+                if (remaining.Count != reachable.Count - 1 || !TryShelterEntrance(world, position, remaining, out GridPos entrance))
+                {
+                    world.Map.SetTile(position, previous);
+                    continue;
+                }
+
+                AddShelter(world, position, entrance);
+                reachable = remaining;
+                capacity += SurvivalRules.ShelterCapacity;
+                if (capacity >= world.Config.NpcCount)
+                {
+                    break;
+                }
+            }
+        }
+
+        private static void AddShelter(WorldState world, GridPos position, GridPos entrance)
+        {
+            var shelter = new ShelterState(world.Survival.NextId++, position, entrance, SurvivalRules.ShelterCapacity);
+            shelter.Inventory.TryAdd(ItemKind.Wood, SurvivalRules.FirstNightWood);
+            world.Survival.MutableShelters.Add(shelter);
+        }
+
+        private static bool TryShelterEntrance(WorldState world, GridPos position, HashSet<GridPos> reachable, out GridPos entrance)
+        {
+            int[] dx = { 0, -1, 0, 1 };
+            int[] dy = { -1, 0, 1, 0 };
+            for (int direction = 0; direction < 4; direction++)
+            {
+                GridPos candidate = position.Offset(dx[direction], dy[direction]);
+                if (!reachable.Contains(candidate))
+                {
+                    continue;
+                }
+
+                bool shared = false;
+                foreach (ShelterState shelter in world.Survival.Shelters)
+                {
+                    if (shelter.Entrance == candidate)
+                    {
+                        shared = true;
+                        break;
+                    }
+                }
+                if (!shared)
+                {
+                    entrance = candidate;
+                    return true;
+                }
+            }
+
+            entrance = GridPos.Invalid;
+            return false;
+        }
+
+        private static ShelterState ChooseShelter(WorldState world, GridPos cell)
+        {
+            ShelterState best = null;
+            int bestDistance = int.MaxValue;
+            foreach (ShelterState shelter in world.Survival.Shelters)
+            {
+                int residents = 0;
+                foreach (NpcState npc in world.Entities.Npcs)
+                {
+                    if (npc.Survival.Life != LifeState.Dead && npc.Survival.ShelterId == shelter.Id)
+                    {
+                        residents++;
+                    }
+                }
+
+                if (residents >= shelter.Capacity || world.Map.GetTile(shelter.Position) != TileType.House ||
+                    !world.Map.IsReachable(cell, shelter.Entrance))
+                {
+                    continue;
+                }
+
+                int distance = cell.ManhattanDistance(shelter.Entrance);
+                if (distance < bestDistance || distance == bestDistance && (best == null || shelter.Id < best.Id))
+                {
+                    best = shelter;
+                    bestDistance = distance;
+                }
+            }
+
+            return best;
         }
 
         private static void PopulateResources(WorldState world, List<GridPos> reachable, ulong rootSeed)

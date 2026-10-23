@@ -11,12 +11,23 @@ namespace MyAiWorld.Presentation.UI
     {
         private static readonly string[] Roles = { "农夫", "采集者", "猎人", "商人", "建造者" };
         private static readonly string[] Actions = { "休息", "行走", "进食", "饮水", "睡眠", "采集", "工作" };
-        private static readonly string[] Steps = { "前往", "领取库存", "进食", "饮水", "回家睡眠", "采集", "存放", "播种", "浇水", "收获", "等待", "狩猎", "购买", "出售", "问候", "赠送食物", "运输材料", "领取产物", "建造", "加工", "维护", "装备工具", "回收物资", "救援", "饮用生水", "服药" };
-        private static readonly string[] Goals = { "休息", "漫步", "补充食物", "补充饮水", "恢复精力", "采集食物", "采集饮水", "照料农田", "村庄生产", "救援村民", "治疗疾病", "狩猎", "交易", "问候邻居", "帮助邻居" };
-        private static readonly string[] Events = { "重伤倒地", "救援完成", "村民逝世", "世界已建立", "动物出生", "动物自然死亡", "猎获动物", "猎人受伤", "交易成交", "交易未成交", "居民抵达", "选择目标", "开始行动", "完成行动", "道路无法到达", "指令被拒绝", "新的一天", "季节更替", "开始计划", "计划失败", "计划中断", "采集资源", "播种作物", "农田浇水", "收获作物", "需求告急", "友好问候", "赠送食物" };
+        private static readonly string[] Steps = { "前往", "领取库存", "进食", "饮水", "回家睡眠", "采集", "存放", "播种", "浇水", "收获", "等待", "狩猎", "购买", "出售", "问候", "赠送食物", "运输材料", "领取产物", "建造", "加工", "维护", "装备工具", "回收物资", "救援", "饮用生水", "服药", "回家取暖", "补充燃料", "融雪取水" };
+        private static readonly string[] Goals = { "休息", "漫步", "补充食物", "补充饮水", "恢复精力", "采集食物", "采集饮水", "照料农田", "村庄生产", "救援村民", "治疗疾病", "狩猎", "交易", "问候邻居", "帮助邻居", "回家取暖" };
+        private static readonly string[] Events = { "重伤倒地", "救援完成", "村民逝世", "世界已建立", "动物出生", "动物自然死亡", "猎获动物", "猎人受伤", "交易成交", "交易未成交", "居民抵达", "选择目标", "开始行动", "完成行动", "道路无法到达", "指令被拒绝", "新的一天", "季节更替", "开始计划", "计划失败", "计划中断", "采集资源", "播种作物", "农田浇水", "收获作物", "需求告急", "友好问候", "赠送食物", "寒冬挑战结束" };
         private static readonly Dictionary<string, string> Reasons = new Dictionary<string, string>
         {
-            { "village_production_shortage", "补充村庄物资、建造或维护设施" },
+            { "seek_warmth", "体温下降或衣物湿冷，回到住所取暖" },
+            { "return_before_cold_night", "寒冷夜晚将至，提前返家避寒" },
+            { "critical_cold_interrupt", "失温风险优先，中断工作并返家取暖" },
+            { "shelter_unavailable", "住所、入口或居住容量不可用" },
+            { "melt_snow", "水源结冰，利用住所余热融雪取得生水，仍需净化" },
+            { "deliver_fuel", "住所燃料不足，运送木材以持续供暖" },
+            { "deadline_reached", "完成全部挑战时间" },
+            { "all_initial_npcs_dead", "原始名单已全部逝世" },
+            { "hunt_retrieval_changed", "猎获物资状态发生变化" },
+            { "hunt_retrieval_unreachable", "无法到达猎获掉落处" },
+            { "hunt_retrieval_bag_full", "背包已满，猎获保留在地面" },
+            { "village_production_shortage", "补充村庄物资、补燃料、融雪、建造或维护设施" },
             { "treat_waterborne_illness", "领取药品治疗水源性疾病" },
             { "urgent_rescue", "优先救助重伤村民" },
             { "recovery_needs", "恢复期补充食水并休养" },
@@ -33,7 +44,7 @@ namespace MyAiWorld.Presentation.UI
             { "critical_need_interrupt", "紧急需求优先" }, { "deposit_items_missing_or_stock_full", "背包无物品或库存已满" },
             { "effect_transfer_failed", "资源转移失败" }, { "food_missing", "缺少食物" }, { "water_missing", "缺少饮水" },
             { "harvest_requires_reserved_mature_crop_and_space", "需要成熟作物预留与背包空间" }, { "home_unavailable", "住所不可用" },
-            { "hunt_prey_quota_tool_energy_health_or_capacity", "猎物保护数量、工具、体力或空间条件不足" },
+            { "hunt_prey_quota_tool_energy_health_or_capacity", "猎物状态、武器、弹药、体力、健康或空间条件不足" },
             { "hunt_prey_unreachable", "无法接近猎物" }, { "hunt_pursuit_timeout", "追逐超时" }, { "hunt_strike_rejected", "攻击条件不足" },
             { "not_at_market", "尚未到达市场" }, { "not_at_work_location", "尚未到达工作位置" },
             { "path_blocked", "道路被阻挡" }, { "path_unreachable", "目标无法到达" }, { "target_unwalkable", "目标无法通行" },
@@ -50,10 +61,18 @@ namespace MyAiWorld.Presentation.UI
         public static string Action(NpcActionType action) => Actions[(int)action];
         public static string Step(PlanStepType step) => Steps[(int)step];
         public static string Goal(NpcGoalType goal) => Goals[(int)goal];
-        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "萝卜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "小麦种子", "豆种", "弓", "矛", "锄头", "水桶" }[(int)item];
+        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "萝卜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "小麦种子", "豆种", "弓", "矛", "锄头", "水桶", "箭矢", "生肉", "兽皮", "冬衣" }[(int)item];
         public static string Crop(CropType crop) => new[] { "休耕", "萝卜", "小麦", "豆类" }[(int)crop];
         public static string Facility(FacilityKind kind) => new[] { "工作台", "净水炉", "蓄水池", "水井", "灌溉设施" }[(int)kind];
         public static string Life(LifeState life) => new[] { "健康活动", "倒地待援", "卧床恢复", "已逝世" }[(int)life];
+        public static string Weather(WeatherKind weather) => new[] { "晴", "降雪", "暴风雪", "寒潮" }[(int)weather];
+        public static string Supply(SupplyStatus status) => new[] { "", "耗尽", "紧张", "充足" }[(int)status];
+        public static string Species(AnimalSpecies species) => new[] { "野兔", "野猪", "鹿", "田鼠", "狐狸", "狼", "渡鸦" }[(int)species];
+        public static string AnimalAge(AnimalLifeStage stage) => new[] { "哺育期", "幼年", "成年", "老年" }[(int)stage];
+        public static string AnimalActivity(AnimalBehavior behavior) => new[] { "休息", "觅食", "饮水", "躲避风寒", "逃跑", "捕猎", "保卫领地", "食腐", "哺育", "迁徙", "死亡" }[(int)behavior];
+        public static string AnimalDeath(AnimalDeathCause cause) => new[] { "未记录", "衰老", "饥饿", "脱水", "失温", "被捕食", "被狩猎", "受伤" }[(int)cause];
+        public static string AnimalSexName(AnimalSex sex) => sex == AnimalSex.Female ? "雌性" : "雄性";
+        public static string Region(int region) => region < 0 ? "本地" : "外部区域 #" + region;
         public static string Activity(string label)
         {
             if (label == null) { return ""; }
@@ -64,6 +83,9 @@ namespace MyAiWorld.Presentation.UI
             if (label == "Rescue") { return "救治与转运"; }
             if (label == "Recovering") { return "卧床恢复"; }
             if (label == "Awaiting transport") { return "等待转运"; }
+            if (label == "WarmUp") { return "住所取暖"; }
+            if (label == "DeliverFuel") { return "补充住所木材"; }
+            if (label == "MeltSnow") { return "利用热量融雪"; }
             return "";
         }
         public static string Reason(string code)
@@ -77,6 +99,9 @@ namespace MyAiWorld.Presentation.UI
         {
             switch (type)
             {
+                case PlanStepType.WarmUp: return "返家且住所可用 → 逐分钟取暖；湿冷、缺柴仍有失温风险";
+                case PlanStepType.DeliverFuel: return "到达住所入口且携带木材 → 补充真实燃料库存";
+                case PlanStepType.MeltSnow: return "积雪、住所燃烧余热与空间可用 → 消耗热量融雪为生水，仍需净化";
                 case PlanStepType.Deliver: return "携带材料且设施有空间 → 运入设施库存";
                 case PlanStepType.TakeFacility: return "设施已产出且背包有空间 → 领取产物";
                 case PlanStepType.Build: return "材料齐备且工地已预留 → 建成设施";
@@ -97,7 +122,7 @@ namespace MyAiWorld.Presentation.UI
                 case PlanStepType.Plant: return "空田、种子与肥力 → 播种萝卜";
                 case PlanStepType.Water: return "作物与饮水 → 补充土壤水分";
                 case PlanStepType.Harvest: return "成熟作物且背包有空间 → 获得食物与种子";
-                case PlanStepType.Hunt: return "工具、体力、猎物预留及保护数量 → 追逐与攻击";
+                case PlanStepType.Hunt: return "武器、弹药、体力与猎物预留 → 追逐攻击；命中并非保证，猎获需回收和加工";
                 case PlanStepType.Buy: return "报价、货币与市场库存 → 物品入包";
                 case PlanStepType.Sell: return "报价、背包物品与国库 → 获得货币";
                 case PlanStepType.Deposit: return "背包有物品且库存有空间 → 存入公共库存";

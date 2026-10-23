@@ -10,18 +10,23 @@ namespace MyAiWorld.Sim.Systems
 {
     public sealed class TickResult
     {
-        public TickResult(long tick, ulong stateHash, int appliedCommands, List<SimEvent> events)
+        public TickResult(long tick, ulong stateHash, int appliedCommands, List<SimEvent> events,
+            IReadOnlyList<CombatTraceSegment> traces = null, IReadOnlyList<CombatVisualEvent> combatEvents = null)
         {
             Tick = tick;
             StateHash = stateHash;
             AppliedCommands = appliedCommands;
             Events = events ?? new List<SimEvent>();
+            CombatTraces = Array.AsReadOnly(traces == null ? Array.Empty<CombatTraceSegment>() : new List<CombatTraceSegment>(traces).ToArray());
+            CombatEvents = Array.AsReadOnly(combatEvents == null ? Array.Empty<CombatVisualEvent>() : new List<CombatVisualEvent>(combatEvents).ToArray());
         }
 
         public long Tick { get; }
         public ulong StateHash { get; }
         public int AppliedCommands { get; }
         public List<SimEvent> Events { get; }
+        public IReadOnlyList<CombatTraceSegment> CombatTraces { get; }
+        public IReadOnlyList<CombatVisualEvent> CombatEvents { get; }
     }
 
     public sealed class SimulationEngine
@@ -29,6 +34,7 @@ namespace MyAiWorld.Sim.Systems
         private readonly INpcDecisionPolicy _decisionPolicy;
         private readonly GridPathfinder _pathfinder;
         private readonly SurvivalPlanner _planner;
+        private readonly List<KeyValuePair<NpcState, PlanStep>> _pendingCompletions = new List<KeyValuePair<NpcState, PlanStep>>();
 
         public SimulationEngine()
             : this(new RuleBasedNpcPolicy(), new GridPathfinder())
@@ -50,9 +56,18 @@ namespace MyAiWorld.Sim.Systems
             }
 
             var events = new List<SimEvent>();
+            bool wasLocked = !world.Campaign.CanAdvance;
             int appliedCommands = ApplyCommands(world, commands, events);
+            if (wasLocked)
+            {
+                return new TickResult(world.Tick, StateHasher.Compute(world), appliedCommands, events);
+            }
+            _pendingCompletions.Clear();
+            CombatSystem.RecordPositions(world);
             EmitCalendarEvents(world, events);
-            world.Resources.Update(world.Materials, world.Date.Season, world.Tick);
+            EnvironmentSystem.Update(world);
+            ThermalSystem.UpdateWorld(world);
+            world.Ecology.UpdateResources(world);
             AgricultureSystem.Update(world);
             WaterSystem.Update(world);
             world.Ecology.Update(world, events);
@@ -67,10 +82,68 @@ namespace MyAiWorld.Sim.Systems
                 UpdateNpc(world, npcs[i], events);
             }
 
+            CombatSystem.Update(world, events);
+            for (int i = 0; i < npcs.Count; i++)
+            {
+                if (npcs[i].Needs.Health <= 0 && npcs[i].Survival.Life != LifeState.Dead && npcs[i].Survival.Life != LifeState.Downed)
+                {
+                    HealthSystem.Update(world, npcs[i], events);
+                }
+            }
+            world.Ecology.ResolveDeaths(world, events);
+            foreach (KeyValuePair<NpcState, PlanStep> completion in _pendingCompletions)
+            {
+                NpcState npc = completion.Key;
+                if (npc.Survival.Life != LifeState.Active || !npc.Plan.IsActive || npc.Plan.CurrentStep != completion.Value) { continue; }
+                if (completion.Value.Type == PlanStepType.Rescue)
+                {
+                    if (!HealthSystem.CommitRescue(world, npc, completion.Value, events, out bool complete))
+                    {
+                        FailPlan(world, npc, "rescue_target_route_or_supplies_changed", events);
+                    }
+                    else if (complete) { CompleteStep(world, npc); }
+                    continue;
+                }
+                if (completion.Value.Type == PlanStepType.Hunt)
+                {
+                    CarcassState carcass = world.Ecology.FindCarcass(npc.Survival.HuntDropId);
+                    if (carcass == null || carcass.ReservedBy != npc.Id ||
+                        !world.Ecology.HarvestCarcass(world, npc, carcass, events))
+                    {
+                        FailPlan(world, npc, "hunt_retrieval_changed", events);
+                    }
+                    else
+                    {
+                        CombatSystem.RecoverArrows(world, npc, carcass.Position);
+                        npc.Survival.HuntDropId = 0;
+                        CompleteStep(world, npc);
+                    }
+                    continue;
+                }
+                string reason;
+                if (!CheckPreconditions(world, npc, completion.Value, out reason) || !ApplyEffects(world, npc, completion.Value, events))
+                {
+                    if (completion.Value.Type == PlanStepType.Greet || completion.Value.Type == PlanStepType.GiveFood)
+                    {
+                        npc.Social.NextInteractionTick = world.Tick + 30;
+                    }
+                    FailPlan(world, npc, reason == "none" ? "effect_transfer_failed" : reason, events);
+                    continue;
+                }
+                events.Add(new SimEvent(SimEventKind.NpcActionCompleted, world.Tick, npc.Id,
+                    npc.Name + " completed " + completion.Value.Type + "."));
+                CompleteStep(world, npc);
+            }
             world.Survival.MutableGround.RemoveAll(g => g.Empty && g.ReservedBy.IsNone);
             world.Tick++;
+            if (world.Campaign.Evaluate(world))
+            {
+                events.Add(new SimEvent(SimEventKind.CampaignEnded, world.Tick, EntityId.None,
+                    "Winter survival ended: " + world.Campaign.Result.Grade + "; survivors " + world.Campaign.Result.Survivors + "."));
+            }
             ulong stateHash = StateHasher.Compute(world);
-            return new TickResult(world.Tick, stateHash, appliedCommands, events);
+            return new TickResult(world.Tick, stateHash, appliedCommands, events,
+                world.Combat.TraceSegments, world.Combat.CombatEvents);
         }
 
         private static int ApplyCommands(
@@ -93,8 +166,14 @@ namespace MyAiWorld.Sim.Systems
                     continue;
                 }
 
+                if (!world.Campaign.CanAdvance && !(command is ContinueObservationCommand))
+                {
+                    events.Add(new SimEvent(SimEventKind.CommandRejected, world.Tick, EntityId.None, "The settlement is locked."));
+                    continue;
+                }
                 if (command.Apply(world, context))
                 {
+                    if (command is SpawnNpcCommand && world.Campaign.Result == null) { world.Campaign.Assisted = true; }
                     applied++;
                 }
             }
@@ -127,13 +206,18 @@ namespace MyAiWorld.Sim.Systems
         private void UpdateNpc(WorldState world, NpcState npc, List<SimEvent> events)
         {
             if (npc.Survival.Life == LifeState.Dead) { return; }
+            ThermalSystem.UpdateNpc(world, npc);
             if (npc.Needs.Health <= 0 && npc.Survival.Life != LifeState.Downed) { HealthSystem.Update(world, npc, events); return; }
             if (npc.Survival.Life != LifeState.Downed) { UpdateNeeds(world, npc, events); }
             if (!HealthSystem.Update(world, npc, events)) { return; }
             if (npc.Survival.Life == LifeState.Recovering && !npc.Survival.Rescuer.IsNone) { return; }
-            if (npc.Plan.IsActive && ShouldInterrupt(npc))
+            if (npc.Plan.IsActive && (ShouldInterrupt(npc) ||
+                ThermalSystem.ShouldSeekWarmth(world, npc) && npc.Plan.Goal != NpcGoalType.WarmUp &&
+                npc.Plan.Goal != NpcGoalType.Eat && npc.Plan.Goal != NpcGoalType.Drink &&
+                !(npc.Plan.Goal == NpcGoalType.Produce && ThermalSystem.IsAtShelter(world, npc) &&
+                  (npc.Inventory.Count(ItemKind.Wood) > 0 || npc.Inventory.Count(ItemKind.WinterCoat) > 0))))
             {
-                FailPlan(world, npc, "critical_need_interrupt", events, true);
+                FailPlan(world, npc, npc.Survival.IsCold ? "critical_cold_interrupt" : "critical_need_interrupt", events, true);
             }
             if (!npc.Plan.IsActive)
             {
@@ -151,9 +235,11 @@ namespace MyAiWorld.Sim.Systems
             }
             if (step.Type == PlanStepType.Rescue)
             {
-                bool complete;
-                if (!HealthSystem.Rescue(world, npc, step, _pathfinder, events, out complete)) { FailPlan(world, npc, "rescue_target_route_or_supplies_changed", events); }
-                else if (complete) { CompleteStep(world, npc); }
+                if (!HealthSystem.PrepareRescue(world, npc, step, _pathfinder, out bool ready))
+                {
+                    FailPlan(world, npc, "rescue_target_route_or_supplies_changed", events);
+                }
+                else if (ready) { _pendingCompletions.Add(new KeyValuePair<NpcState, PlanStep>(npc, step)); }
                 return;
             }
             if (step.Type == PlanStepType.Hunt)
@@ -194,12 +280,14 @@ namespace MyAiWorld.Sim.Systems
                 }
                 else
                 {
-                    NpcActionType type = step.Type == PlanStepType.Sleep ? NpcActionType.Sleep :
+                    NpcActionType type = step.Type == PlanStepType.Sleep || step.Type == PlanStepType.WarmUp ? NpcActionType.Sleep :
                         step.Type == PlanStepType.Eat ? NpcActionType.Eat :
                         step.Type == PlanStepType.Drink ? NpcActionType.Drink :
                         step.Type == PlanStepType.Gather ? NpcActionType.Gather :
                         step.Type == PlanStepType.Wait ? NpcActionType.Idle : NpcActionType.Work;
-                    npc.Action.SetTimed(type, step.Type.ToString(), step.Target, world.Tick + Math.Max(1, step.DurationTicks));
+                    int duration = Math.Max(1, step.DurationTicks);
+                    if (npc.Survival.IsCold && type == NpcActionType.Work) { duration += Math.Max(1, duration / 2); }
+                    npc.Action.SetTimed(type, step.Type.ToString(), step.Target, world.Tick + duration);
                 }
                 npc.Plan.StepStarted = true;
                 events.Add(new SimEvent(SimEventKind.NpcActionStarted, world.Tick, npc.Id,
@@ -227,15 +315,7 @@ namespace MyAiWorld.Sim.Systems
                 if (step.Type == PlanStepType.Build) { var site = world.Survival.FindFacility(step.ResourceId); if (site != null) { site.Progress = Math.Min(SurvivalRules.ConstructionTicks - 1, site.Progress + 1); } }
                 return;
             }
-            string reason;
-            if (!CheckPreconditions(world, npc, step, out reason) || !ApplyEffects(world, npc, step, events))
-            {
-                FailPlan(world, npc, reason == "none" ? ((step.Type == PlanStepType.Buy || step.Type == PlanStepType.Sell) ? npc.LastDecision.ReasonCode : "effect_transfer_failed") : reason, events);
-                return;
-            }
-            events.Add(new SimEvent(SimEventKind.NpcActionCompleted, world.Tick, npc.Id,
-                npc.Name + " completed " + step.Type + "."));
-            CompleteStep(world, npc);
+            _pendingCompletions.Add(new KeyValuePair<NpcState, PlanStep>(npc, step));
         }
 
         private void UpdateSocial(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events)
@@ -265,45 +345,14 @@ namespace MyAiWorld.Sim.Systems
                 npc.Position = path.Path[0];
                 return;
             }
-            if (!SocialSystem.Interact(world, npc, target, step.Type == PlanStepType.Greet ? SocialKind.Greeting : SocialKind.FoodGift, events))
-            {
-                npc.Social.NextInteractionTick = world.Tick + 30;
-                FailPlan(world, npc, "social_target_or_needs_changed", events);
-                return;
-            }
-            CompleteStep(world, npc);
+            _pendingCompletions.Add(new KeyValuePair<NpcState, PlanStep>(npc, step));
         }
 
         private void UpdateHunt(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events)
         {
-            if (npc.Survival.HuntDropId > 0)
-            {
-                var ground = world.Survival.FindGround(npc.Survival.HuntDropId);
-                if (ground == null || ground.ReservedBy != npc.Id || world.Tick >= npc.Action.EndTick)
-                { FailPlan(world, npc, "hunt_retrieval_changed", events); return; }
-                npc.Action.Label = "Hunt: retrieve"; npc.Action.Target = ground.Position;
-                if (npc.Position != ground.Position)
-                {
-                    var path = _pathfinder.FindPath(world.Map, npc.Position, ground.Position);
-                    if (!path.Found || path.Path.Count == 0) { FailPlan(world, npc, "hunt_retrieval_unreachable", events); return; }
-                    npc.Position = path.Path[0]; return;
-                }
-                if (npc.Inventory.Capacity - npc.Inventory.TotalCount < ground.Inventory.Food)
-                { FailPlan(world, npc, "hunt_retrieval_bag_full", events); return; }
-                ProductionSystem.Apply(world, npc, new PlanStep(PlanStepType.Pickup, ground.Position, ground.Id));
-                npc.Survival.HuntDropId = 0; CompleteStep(world, npc); return;
-            }
-            AnimalState animal = world.Ecology.Find(step.ResourceId);
-            if (!world.Ecology.CanHunt(animal) || animal.ReservedBy != npc.Id || !npc.HasHuntingTool ||
-                npc.Needs.Energy < 1800 || npc.Needs.Health < 3000)
-            {
-                FailPlan(world, npc, "hunt_prey_quota_tool_energy_health_or_capacity", events);
-                return;
-            }
             if (!npc.Plan.StepStarted)
             {
-                npc.Action.SetTimed(NpcActionType.Work, "Hunt: pursue " + animal.Species, animal.Position,
-                    world.Tick + step.DurationTicks);
+                npc.Action.SetTimed(NpcActionType.Work, "Hunt: track", step.Target, world.Tick + step.DurationTicks);
                 npc.Plan.StepStarted = true;
             }
             if (world.Tick >= npc.Action.EndTick)
@@ -311,31 +360,62 @@ namespace MyAiWorld.Sim.Systems
                 FailPlan(world, npc, "hunt_pursuit_timeout", events);
                 return;
             }
-            if (!HuntingSystem.CanStrike(world, npc, animal))
+            CarcassState carcass = world.Ecology.FindCarcass(step.ResourceId);
+            if (carcass != null)
             {
-                PathResult path = _pathfinder.FindPath(world.Map, npc.Position, animal.Position);
+                if (carcass.Region != -1 || !carcass.ReservedBy.IsNone && carcass.ReservedBy != npc.Id ||
+                    npc.Inventory.TotalCount == npc.Inventory.Capacity)
+                {
+                    FailPlan(world, npc, "hunt_retrieval_changed_or_bag_full", events);
+                    return;
+                }
+                carcass.ReservedBy = npc.Id;
+                npc.Survival.HuntDropId = carcass.Id.Value;
+                npc.Action.Label = "Hunt: retrieve";
+                npc.Action.Target = carcass.Position;
+                if (npc.Position.ManhattanDistance(carcass.Position) > 1)
+                {
+                    PathResult retrieval = _pathfinder.FindPath(world.Map, npc.Position, carcass.Position);
+                    if (!retrieval.Found || retrieval.Path.Count == 0)
+                    {
+                        FailPlan(world, npc, "hunt_retrieval_unreachable", events);
+                        return;
+                    }
+                    npc.Position = retrieval.Path[0];
+                    return;
+                }
+                _pendingCompletions.Add(new KeyValuePair<NpcState, PlanStep>(npc, step));
+                return;
+            }
+            AnimalState animal = world.Ecology.Find(step.ResourceId);
+            if (!world.Ecology.CanHunt(animal) || animal.ReservedBy != npc.Id || !npc.HasHuntingTool ||
+                npc.Survival.Durability(HuntingSystem.Weapon(npc)) <= 0 || npc.Needs.Energy < 1800 || npc.Needs.Health < 3000)
+            {
+                FailPlan(world, npc, "hunt_prey_tool_energy_or_health_changed", events);
+                return;
+            }
+            bool perceived = HuntingSystem.Perceived(world, npc, animal);
+            if (perceived) { npc.Action.Target = animal.Position; }
+            if (!perceived || !HuntingSystem.CanStrike(world, npc, animal))
+            {
+                if (npc.Position == npc.Action.Target)
+                {
+                    FailPlan(world, npc, "hunt_prey_lost", events);
+                    return;
+                }
+                PathResult path = _pathfinder.FindPath(world.Map, npc.Position, npc.Action.Target);
                 if (!path.Found || path.Path.Count == 0)
                 {
                     FailPlan(world, npc, "hunt_prey_unreachable", events);
                     return;
                 }
-                npc.Action.Label = "Hunt: track"; npc.Action.Target = animal.Position;
-                npc.Position = path.Path[0]; npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - 4);
+                npc.Action.Label = "Hunt: track";
+                npc.Position = path.Path[0];
+                npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - 4);
                 return;
             }
-            npc.Action.Label = "Hunt: attack"; npc.Action.Target = animal.Position;
-            if ((world.Tick + npc.Id.Value) % 6 != 0)
-            {
-                return;
-            }
-            if (!world.Ecology.Strike(world, npc, animal, events))
-            {
-                FailPlan(world, npc, "hunt_strike_rejected", events);
-            }
-            else if (animal.Health == 0)
-            {
-                npc.Action.Label = "Hunt: retrieve";
-            }
+            npc.Action.Label = "Hunt: attack";
+            CombatSystem.TryStartHunt(world, npc, animal, events);
         }
 
         private static void UpdateNeeds(WorldState world, NpcState npc, List<SimEvent> events)
@@ -343,13 +423,21 @@ namespace MyAiWorld.Sim.Systems
             int previousFood = npc.Needs.Hunger;
             int previousWater = npc.Needs.Thirst;
             int previousEnergy = npc.Needs.Fatigue;
-            npc.Needs.Hunger = Clamp(npc.Needs.Hunger - 6);
+            int coldCost = npc.Survival.BodyTemperature < 3600 ? 4 : 0;
+            npc.Needs.Hunger = Clamp(npc.Needs.Hunger - 6 - coldCost);
             npc.Needs.Thirst = Clamp(npc.Needs.Thirst - 9);
-            npc.Needs.Fatigue = Clamp(npc.Needs.Fatigue + (npc.Action.Type == NpcActionType.Sleep ? 45 : -7));
+            npc.Needs.Fatigue = Clamp(npc.Needs.Fatigue + (npc.Action.Type == NpcActionType.Sleep ? 45 : -7 - coldCost));
             bool deprived = npc.Needs.Hunger == 0 || npc.Needs.Thirst == 0 || npc.Needs.Fatigue == 0;
-            bool comfortable = npc.Needs.Hunger >= 2500 && npc.Needs.Thirst >= 2500 && npc.Needs.Fatigue >= 2500;
-            npc.Needs.Health = Clamp(npc.Needs.Health + (deprived ? -12 : comfortable ? 2 : 0));
-            bool night = world.Date.MinuteOfDay < 360 || world.Date.MinuteOfDay >= 1200;
+            bool comfortable = npc.Needs.Hunger >= 2500 && npc.Needs.Thirst >= 2500 && npc.Needs.Fatigue >= 2500 &&
+                ThermalSystem.IsSafe(world, npc);
+            int previousHealth = npc.Needs.Health;
+            npc.Needs.Health = Clamp(previousHealth + (deprived ? -12 : comfortable ? 2 : 0));
+            if (previousHealth > 0 && npc.Needs.Health == 0)
+            {
+                npc.Survival.DeathCause = npc.Needs.Thirst == 0 ? NpcDeathCause.Thirst :
+                    npc.Needs.Hunger == 0 ? NpcDeathCause.Starvation : NpcDeathCause.Exhaustion;
+            }
+            bool night = !world.Environment.IsDaytime;
             int targetSafety = deprived ? 2500 : night && npc.Position.ManhattanDistance(npc.Home) > 10 ? 5500 : 9500;
             npc.Needs.Safety = Clamp(npc.Needs.Safety + Math.Sign(targetSafety - npc.Needs.Safety) *
                 Math.Min(25, Math.Abs(targetSafety - npc.Needs.Safety)));
@@ -372,7 +460,7 @@ namespace MyAiWorld.Sim.Systems
             {
                 return true;
             }
-            return npc.Needs.Fatigue < 1200 && npc.Plan.Goal != NpcGoalType.Sleep &&
+            return npc.Needs.Fatigue < 1200 && npc.Plan.Goal != NpcGoalType.Sleep && npc.Plan.Goal != NpcGoalType.WarmUp &&
                 npc.Plan.Goal != NpcGoalType.Eat && npc.Plan.Goal != NpcGoalType.Drink;
         }
 
@@ -438,6 +526,13 @@ namespace MyAiWorld.Sim.Systems
                 }
                 return true;
             }
+            if (step.Type == PlanStepType.Greet || step.Type == PlanStepType.GiveFood)
+            {
+                bool socialValid = SocialSystem.Comfortable(npc) && world.Entities.TryGetNpc(new EntityId(step.ResourceId), out NpcState partner) &&
+                    partner.Survival.Life == LifeState.Active && partner.Needs.Health > 0 && npc.Position.ManhattanDistance(partner.Position) <= 1;
+                reason = socialValid ? "none" : "social_target_or_needs_changed";
+                return socialValid;
+            }
             if (step.Type != PlanStepType.Eat && step.Type != PlanStepType.Drink && step.Type != PlanStepType.Wait && npc.Position != step.Target)
             {
                 reason = "not_at_work_location";
@@ -447,7 +542,7 @@ namespace MyAiWorld.Sim.Systems
             ResourceNodeState node = world.Resources.FindNode(step.ResourceId);
             FarmPlotState plot = world.Resources.FindPlot(step.ResourceId);
             bool valid = true;
-            if (step.Type >= PlanStepType.Deliver) { valid = ProductionSystem.Check(world, npc, step); reason = valid ? "none" : "production_precondition_changed"; return valid; }
+            if (ProductionSystem.IsProductionStep(step.Type)) { valid = ProductionSystem.Check(world, npc, step); reason = valid ? "none" : "production_precondition_changed"; return valid; }
             switch (step.Type)
             {
                 case PlanStepType.Buy:
@@ -466,6 +561,10 @@ namespace MyAiWorld.Sim.Systems
                 case PlanStepType.Sleep:
                     valid = npc.Position == npc.Home;
                     reason = "home_unavailable";
+                    break;
+                case PlanStepType.WarmUp:
+                    valid = ThermalSystem.IsAtShelter(world, npc);
+                    reason = "shelter_unavailable";
                     break;
                 case PlanStepType.TakeFromStock:
                     valid = step.Quantity > 0 && step.Target == world.Resources.StockpilePosition && world.Resources.Stockpile.Count(step.Item) >= step.Quantity && free >= step.Quantity &&
@@ -518,10 +617,14 @@ namespace MyAiWorld.Sim.Systems
 
         private static bool ApplyEffects(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events)
         {
-            if (step.Type >= PlanStepType.Deliver) { return ProductionSystem.Apply(world, npc, step); }
+            if (ProductionSystem.IsProductionStep(step.Type)) { return ProductionSystem.Apply(world, npc, step); }
             FarmPlotState plot = world.Resources.FindPlot(step.ResourceId);
             switch (step.Type)
             {
+                case PlanStepType.Greet:
+                case PlanStepType.GiveFood:
+                    return world.Entities.TryGetNpc(new EntityId(step.ResourceId), out NpcState partner) &&
+                        SocialSystem.Interact(world, npc, partner, step.Type == PlanStepType.Greet ? SocialKind.Greeting : SocialKind.FoodGift, events);
                 case PlanStepType.Buy:
                 case PlanStepType.Sell:
                     bool traded = world.Market.Execute(world, new TradeOrder(world.Market.NextOrderId, npc.Id,

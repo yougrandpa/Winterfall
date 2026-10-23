@@ -68,6 +68,8 @@ namespace MyAiWorld.Sim.World
         public const int SeasonsPerYear = 4;
         public const int DaysPerYear = DaysPerSeason * SeasonsPerYear;
         public const long StartTick = 6 * MinutesPerHour;
+        public const long WinterStartTick = (long)Season.Winter * DaysPerSeason * TicksPerDay + StartTick;
+        public const int DefaultChallengeDays = 14;
 
         public static GameDateTime FromTick(long tick)
         {

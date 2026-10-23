@@ -30,6 +30,7 @@ namespace MyAiWorld.Presentation.UI
             BuildSaveMenu(root);
             BuildDebug(root);
             BuildToast(root);
+            BuildCampaignModal(root);
             SelectInspectorTab(0);
             RefreshNavigation();
         }
@@ -37,7 +38,7 @@ namespace MyAiWorld.Presentation.UI
         private void BuildTopBar(Transform root)
         {
             var bar = HudLayout.Surface(root, "TopBar", Vector2.up, Vector2.one, Vector2.up,
-                new Vector2(16, -16), new Vector2(-32, 72));
+                new Vector2(16, -16), new Vector2(-32, 102));
             HudTheme.Icon(bar, "CalendarIcon", "clock", new Vector2(18, -22), new Vector2(28, 28), HudTheme.Gold);
             _clockText = HudLayout.FixedLabel(bar, "Date", "", new Vector2(56, -10), new Vector2(220, 18), 12);
             _clockText.color = HudTheme.Gold;
@@ -82,8 +83,9 @@ namespace MyAiWorld.Presentation.UI
                     delegate { _runner.SetSpeed(speed); RefreshTopBar(); });
                 _speedButtons[i].GetComponentInChildren<Text>().fontSize = 13;
             }
-            HudLayout.IconButton(controls, "StepButton", "step", "单步", new Vector2(272, -6),
+            _stepButton = HudLayout.IconButton(controls, "StepButton", "step", "单步", new Vector2(272, -6),
                 new Vector2(70, 40), delegate { _runner.StepOnce(); RefreshAll(); }, out _);
+            BuildCampaignTopBar(bar);
         }
 
         private void BuildNavigation(Transform root)
@@ -136,7 +138,7 @@ namespace MyAiWorld.Presentation.UI
 
         private RectTransform Detail(Transform root, string name, string title, string icon, int index, int top = 64)
         {
-            var panel = HudLayout.Surface(root, name, Vector2.up, new Vector2(16, -100), new Vector2(400, -192));
+            var panel = HudLayout.Surface(root, name, Vector2.up, new Vector2(16, -130), new Vector2(400, -222));
             panel.anchorMin = Vector2.zero;
             panel.anchorMax = Vector2.up;
             panel.pivot = Vector2.up;
@@ -158,7 +160,7 @@ namespace MyAiWorld.Presentation.UI
 
         private void BuildInspector(Transform root)
         {
-            var panel = HudLayout.Surface(root, "NpcInspector", Vector2.one, new Vector2(-16, -100), new Vector2(360, -192));
+            var panel = HudLayout.Surface(root, "NpcInspector", Vector2.one, new Vector2(-16, -130), new Vector2(360, -222));
             panel.anchorMin = Vector2.right;
             panel.anchorMax = Vector2.one;
             panel.pivot = Vector2.one;
@@ -321,6 +323,8 @@ namespace MyAiWorld.Presentation.UI
             _inspectionSection = HudLayout.Section(content, "选中对象").gameObject;
             _inspection = new HudEntries(content, "WorldInspection");
             _inspectionSection.SetActive(false);
+            HudLayout.Section(content, "环境与供给估算");
+            _supplyGuide = HudLayout.Label(content, "SupplyEstimateGuide", "", 12);
         }
 
         private void BuildMarket(Transform root)
@@ -333,6 +337,8 @@ namespace MyAiWorld.Presentation.UI
             _birthValue = HudLayout.StatCard(births, "BirthStat", "出生", "health", HudTheme.Positive, out _);
             _deathValue = HudLayout.StatCard(births, "DeathStat", "自然死亡", "arrow-down", HudTheme.Muted, out _);
             _huntValue = HudLayout.StatCard(births, "HuntStat", "猎获", "target", HudTheme.Gold, out _);
+            HudLayout.Section(content, "种群、栖地与迁徙");
+            _ecology = new HudEntries(content, "EcologyObservation");
 
             HudLayout.Section(content, "今日行情");
             _marketCells = HudLayout.Grid(content, "MarketTable", new[] { "物品", "单价", "库存", "买入", "卖出" }, 3);
@@ -349,16 +355,13 @@ namespace MyAiWorld.Presentation.UI
         private Text AddPopulationRow(Transform parent, string name, string label, out Image fill)
         {
             var row = HudLayout.Rect(parent, name);
-            HudLayout.Height(row, 42);
+            HudLayout.Height(row, 26);
             HudTheme.Icon(row, "Icon", "paw", new Vector2(0, -2), new Vector2(16, 16), HudTheme.Gold);
             var caption = HudLayout.FixedLabel(row, "Label", label, new Vector2(22, -1), new Vector2(100, 18), 12);
             caption.fontStyle = FontStyle.Bold;
             var value = HudLayout.FixedLabel(row, "Value", "", new Vector2(180, -1), new Vector2(140, 18), 12);
             value.alignment = TextAnchor.MiddleRight;
-            fill = HudLayout.Meter(row, "Track", 6, HudTheme.LineSoft, HudTheme.Positive);
-            var mark = UiFactory.CreatePanel(row, "ProtectionMark", new Vector2(4f / 24f, 0), new Vector2(4f / 24f, 0),
-                new Vector2(0.5f, 0), new Vector2(0, 0), new Vector2(1, 9), HudTheme.Gold);
-            mark.GetComponent<Image>().raycastTarget = false;
+            fill = null;
             return value;
         }
 
@@ -446,7 +449,7 @@ namespace MyAiWorld.Presentation.UI
 
         private void BuildDebug(Transform root)
         {
-            var panel = HudLayout.Surface(root, "DebugPanel", new Vector2(0.5f, 1), new Vector2(0, -100), new Vector2(560, -184));
+            var panel = HudLayout.Surface(root, "DebugPanel", new Vector2(0.5f, 1), new Vector2(0, -130), new Vector2(560, -214));
             panel.anchorMin = new Vector2(0.5f, 0);
             panel.anchorMax = new Vector2(0.5f, 1);
             Header(panel, "世界观察", "eye");

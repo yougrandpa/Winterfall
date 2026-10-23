@@ -13,7 +13,8 @@ namespace MyAiWorld.Sim.World
             int npcCount,
             long startTick,
             int ticksPerSecondAt1x,
-            int[] speedMultipliers)
+            int[] speedMultipliers,
+            int challengeDays = 0)
         {
             if (width < 16 || height < 16)
             {
@@ -28,6 +29,16 @@ namespace MyAiWorld.Sim.World
             if (startTick < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(startTick));
+            }
+
+            if (challengeDays < 0 || startTick > long.MaxValue - (long)challengeDays * GameCalendar.TicksPerDay)
+            {
+                throw new ArgumentOutOfRangeException(nameof(challengeDays), "The challenge deadline must fit in the simulation clock.");
+            }
+
+            if (challengeDays > 0 && npcCount == 0)
+            {
+                throw new ArgumentException("A survival challenge requires at least one initial NPC.", nameof(npcCount));
             }
 
             if (ticksPerSecondAt1x <= 0)
@@ -45,6 +56,7 @@ namespace MyAiWorld.Sim.World
             Height = height;
             NpcCount = npcCount;
             StartTick = startTick;
+            ChallengeDays = challengeDays;
             TicksPerSecondAt1x = ticksPerSecondAt1x;
             _speedMultipliers = (int[])speedMultipliers.Clone();
             for (int i = 0; i < _speedMultipliers.Length; i++)
@@ -61,10 +73,24 @@ namespace MyAiWorld.Sim.World
         public int Height { get; }
         public int NpcCount { get; }
         public long StartTick { get; }
+        public int ChallengeDays { get; }
         public int TicksPerSecondAt1x { get; }
         public int[] SpeedMultipliers => (int[])_speedMultipliers.Clone();
 
         public static WorldConfigData CreateDefault()
+        {
+            return new WorldConfigData(
+                20261020,
+                64,
+                64,
+                20,
+                GameCalendar.WinterStartTick,
+                2,
+                new[] { 1, 2, 4, 8 },
+                GameCalendar.DefaultChallengeDays);
+        }
+
+        public static WorldConfigData CreateObservationDefault()
         {
             return new WorldConfigData(
                 20261020,

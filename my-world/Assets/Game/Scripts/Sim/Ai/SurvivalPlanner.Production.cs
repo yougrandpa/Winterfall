@@ -25,6 +25,25 @@ namespace MyAiWorld.Sim.Ai
             return Gather(world, npc, item, steps, needed) && steps[steps.Count - 1].Quantity == needed;
         }
 
+        private bool AcquireBatch(WorldState world, NpcState npc, ItemKind item, int desired, List<PlanStep> steps, out int amount)
+        {
+            amount = Math.Min(desired, npc.Inventory.Count(item));
+            if (amount > 0) { return true; }
+            desired = Math.Min(desired, npc.Inventory.Capacity - npc.Inventory.TotalCount);
+            if (desired <= 0) { return false; }
+            int stored = world.Resources.AvailableStock(item);
+            if (stored > 0) { desired = Math.Min(desired, stored); }
+            if (Acquire(world, npc, item, desired, steps)) { amount = desired; return true; }
+            // A small finite node may supply less than the requested batch.
+            // Preserve its real reservation and deliver only what will be collected.
+            if (steps.Count > 0 && steps[steps.Count - 1].Type == PlanStepType.Gather && steps[steps.Count - 1].Item == item)
+            {
+                amount = steps[steps.Count - 1].Quantity;
+                return amount > 0;
+            }
+            return false;
+        }
+
         private bool BuildRescue(WorldState world, NpcState npc, List<PlanStep> steps)
         {
             var targets = new List<NpcState>();
@@ -50,6 +69,13 @@ namespace MyAiWorld.Sim.Ai
 
         private bool BuildProduction(WorldState world, NpcState npc, List<PlanStep> steps)
         {
+            if (SupplyShelter(world, npc, steps)) { return true; }
+            if (npc.Survival.CoatDurability == 0 &&
+                (npc.Inventory.Count(ItemKind.WinterCoat) > 0 || world.Resources.AvailableStock(ItemKind.WinterCoat) > 0) &&
+                Acquire(world, npc, ItemKind.WinterCoat, 1, steps))
+            {
+                steps.Add(new PlanStep(PlanStepType.Equip, steps.Count == 0 ? npc.Position : steps[steps.Count - 1].Target, item: ItemKind.WinterCoat)); return true;
+            }
             ItemKind preferred = npc.Role == "Hunter" ? (npc.Personality.Caution >= 50 ? ItemKind.Bow : ItemKind.Spear) :
                 npc.Role == "Farmer" ? ItemKind.Hoe : ItemKind.Bucket;
             if (npc.Survival.Durability(preferred) == 0 && (npc.Inventory.Count(preferred) > 0 || world.Resources.AvailableStock(preferred) > 0) &&
@@ -64,7 +90,9 @@ namespace MyAiWorld.Sim.Ai
                 for (int i = 0; i < (int)ItemKind.Count; i++)
                 {
                     ItemKind item = (ItemKind)i;
-                    if (item == ItemKind.RawWater || item == ItemKind.Wood || item == ItemKind.Stone || item == ItemKind.Fiber || item == ItemKind.Herb) { continue; }
+                    // Only finished goods leave the production buffer. In particular,
+                    // meat and hides must stay staged until a real recipe consumes them.
+                    if (ProductionRecipe.For(item) == null && !SurvivalRules.IsSeed(item)) { continue; }
                     int amount = Math.Min(facility.Inventory.Count(item), npc.Inventory.Capacity - npc.Inventory.TotalCount);
                     if (amount <= 0 || world.Resources.Stockpile.TotalCount + amount > world.Resources.Stockpile.Capacity) { continue; }
                     if (!ClaimFacility(world, npc, facility)) { continue; }
@@ -74,6 +102,15 @@ namespace MyAiWorld.Sim.Ai
             }
             if (world.Survival.RefillWater && world.Survival.Facility(FacilityKind.Purifier) != null &&
                 Recipe(world, npc, ProductionRecipe.For(ItemKind.Water), steps)) { return true; }
+            if (ProductionSystem.CookingNeeded(world) && Recipe(world, npc, ProductionRecipe.For(ItemKind.Food), steps)) { return true; }
+            if (ProductionSystem.CoatShortage(world) && Recipe(world, npc, ProductionRecipe.For(ItemKind.WinterCoat), steps)) { return true; }
+            if (ProductionSystem.NeedsArrows(npc))
+            {
+                // Keep ammunition in the hunter's bag, not in a take/deposit loop.
+                int amount = Math.Min(3, Math.Min(world.Resources.AvailableStock(ItemKind.Arrow), npc.Inventory.Capacity - npc.Inventory.TotalCount));
+                if (amount > 0 && Acquire(world, npc, ItemKind.Arrow, amount, steps)) { return true; }
+            }
+            if (ProductionSystem.ArrowShortage(world) && Recipe(world, npc, ProductionRecipe.For(ItemKind.Arrow), steps)) { return true; }
             if (world.Resources.Stockpile.Count(ItemKind.Medicine) < Math.Max(4, world.LivingCount / 2) &&
                 Recipe(world, npc, ProductionRecipe.For(ItemKind.Medicine), steps)) { return true; }
             foreach (var target in world.Entities.Npcs)
@@ -87,7 +124,8 @@ namespace MyAiWorld.Sim.Ai
             {
                 FacilityState facility = null;
                 foreach (var existing in world.Survival.Facilities) { if (existing.Kind == kind) { facility = existing; break; } }
-                if (facility == null) { facility = ProductionSystem.CreateSite(world, kind, _pathfinder); }
+                if (facility == null && ProductionSystem.CanSupply(world, npc, ProductionRecipe.ConstructionCost(kind)))
+                { facility = ProductionSystem.CreateSite(world, kind, _pathfinder); }
                 if (facility == null || !facility.ReservedBy.IsNone || !CanReach(world, npc.Position, facility.WorkCell)) { continue; }
                 if (!facility.Complete && StageOrWork(world, npc, facility, ProductionRecipe.ConstructionCost(kind), PlanStepType.Build, ItemKind.Food, steps)) { return true; }
                 if (facility.Complete && facility.Condition <= 30 && StageOrWork(world, npc, facility, new[] { (int)ItemKind.Wood, 1 }, PlanStepType.Maintain, ItemKind.Wood, steps)) { return true; }
@@ -110,27 +148,96 @@ namespace MyAiWorld.Sim.Ai
             return false;
         }
 
+        private bool SupplyShelter(WorldState world, NpcState npc, List<PlanStep> steps)
+        {
+            if (!ThermalSystem.NeedsFuel(world)) { return false; }
+            var shelters = new List<ShelterState>(world.Survival.Shelters);
+            shelters.Sort((a, b) =>
+            {
+                if (ThermalSystem.ShouldSeekWarmth(world, npc) && (a.Id == npc.Survival.ShelterId || b.Id == npc.Survival.ShelterId))
+                {
+                    return a.Id == b.Id ? 0 : a.Id == npc.Survival.ShelterId ? -1 : 1;
+                }
+                int order = (a.FuelTicks + a.Inventory.Count(ItemKind.Wood) * SurvivalRules.FuelTicksPerWood).CompareTo(b.FuelTicks + b.Inventory.Count(ItemKind.Wood) * SurvivalRules.FuelTicksPerWood);
+                return order != 0 ? order : a.Id.CompareTo(b.Id);
+            });
+            foreach (ShelterState shelter in shelters)
+            {
+                if (shelter.Inventory.Count(ItemKind.Wood) >= 8 || !CanReach(world, npc.Position, shelter.Entrance) ||
+                    !world.Resources.IsWorkCellAvailable(npc.Id, shelter.Entrance)) { continue; }
+                int desired = Math.Min(4, Math.Min(8 - shelter.Inventory.Count(ItemKind.Wood), shelter.Inventory.Capacity - shelter.Inventory.TotalCount));
+                if (!AcquireBatch(world, npc, ItemKind.Wood, desired, steps, out int amount))
+                {
+                    world.Resources.Release(npc.Id);
+                    steps.Clear();
+                    continue;
+                }
+                if (!world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.WorkCell, shelter.Id,
+                    ItemKind.Wood, 0, shelter.Entrance)))
+                {
+                    world.Resources.Release(npc.Id);
+                    steps.Clear();
+                    continue;
+                }
+                Move(steps, shelter.Entrance);
+                steps.Add(new PlanStep(PlanStepType.DeliverFuel, shelter.Entrance, shelter.Id, ItemKind.Wood, amount, 2));
+                return true;
+            }
+            return false;
+        }
+
+        private bool MeltSnow(WorldState world, NpcState npc, List<PlanStep> steps)
+        {
+            int desired = Math.Min(6, Math.Min(world.Environment.SnowDepth, npc.Inventory.Capacity - npc.Inventory.TotalCount));
+            if (desired <= 0) { return false; }
+            foreach (ShelterState shelter in world.Survival.Shelters)
+            {
+                int amount = Math.Min(desired, shelter.HeatBudget / SurvivalRules.SnowMeltHeatPerWater);
+                if (shelter.FuelTicks <= 0 || amount <= 0 || !CanReach(world, npc.Position, shelter.Entrance) ||
+                    !world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.WorkCell, shelter.Id, ItemKind.RawWater, 0, shelter.Entrance))) { continue; }
+                Move(steps, shelter.Entrance);
+                steps.Add(new PlanStep(PlanStepType.MeltSnow, shelter.Entrance, shelter.Id, ItemKind.RawWater, amount, 8));
+                return true;
+            }
+            return false;
+        }
+
         private bool Recipe(WorldState world, NpcState npc, ProductionRecipe recipe, List<PlanStep> steps)
         {
             var facility = world.Survival.Facility(recipe.Facility);
-            return facility != null && facility.ReservedBy.IsNone && CanReach(world, npc.Position, facility.WorkCell) &&
+            if (facility == null || !facility.ReservedBy.IsNone || !CanReach(world, npc.Position, facility.WorkCell)) { return false; }
+            int missing = 0, consumed = 0;
+            for (int i = 0; i < recipe.Inputs.Length; i += 2)
+            {
+                missing += Math.Max(0, recipe.Inputs[i + 1] - facility.Inventory.Count((ItemKind)recipe.Inputs[i]));
+                consumed += recipe.Inputs[i + 1];
+            }
+            // Do not stage a batch that cannot fit either its inputs or its output.
+            int stagedTotal = facility.Inventory.TotalCount + missing;
+            return stagedTotal <= facility.Inventory.Capacity && stagedTotal - consumed + recipe.Quantity <= facility.Inventory.Capacity &&
                 StageOrWork(world, npc, facility, recipe.Inputs, PlanStepType.Craft, recipe.Output, steps);
         }
 
         private bool StageOrWork(WorldState world, NpcState npc, FacilityState facility, int[] inputs, PlanStepType work, ItemKind output, List<PlanStep> steps)
         {
-            for (int i = 0; i < inputs.Length; i += 2)
+            // Use carried ingredients first, even when an earlier ingredient is absent.
+            // Each trip stages at most the missing part of one bounded recipe batch.
+            for (int pass = 0; pass < 2; pass++)
             {
-                ItemKind item = (ItemKind)inputs[i]; int missing = inputs[i + 1] - facility.Inventory.Count(item);
-                if (missing <= 0) { continue; }
-                int amount = Math.Min(missing, npc.Survival.Durability(ItemKind.Bucket) > 0 ? 10 : 6);
-                amount = Math.Min(amount, npc.Inventory.Capacity - npc.Inventory.TotalCount + npc.Inventory.Count(item));
-                if (amount <= 0 || !Acquire(world, npc, item, amount, steps))
-                { world.Resources.Release(npc.Id); steps.Clear(); return false; }
-                if (!ClaimFacility(world, npc, facility)) { world.Resources.Release(npc.Id); steps.Clear(); return false; }
-                Move(steps, facility.WorkCell); steps.Add(new PlanStep(PlanStepType.Deliver, facility.WorkCell, facility.Id, item, amount, 2)); return true;
+                for (int i = 0; i < inputs.Length; i += 2)
+                {
+                    ItemKind item = (ItemKind)inputs[i];
+                    int missing = inputs[i + 1] - facility.Inventory.Count(item);
+                    if (missing <= 0 || (npc.Inventory.Count(item) > 0) != (pass == 0)) { continue; }
+                    int desired = Math.Min(missing, npc.Survival.Durability(ItemKind.Bucket) > 0 ? 10 : 6);
+                    desired = Math.Min(desired, facility.Inventory.Capacity - facility.Inventory.TotalCount);
+                    if (!AcquireBatch(world, npc, item, desired, steps, out int amount))
+                    { world.Resources.Release(npc.Id); steps.Clear(); continue; }
+                    if (!ClaimFacility(world, npc, facility)) { world.Resources.Release(npc.Id); steps.Clear(); return false; }
+                    Move(steps, facility.WorkCell); steps.Add(new PlanStep(PlanStepType.Deliver, facility.WorkCell, facility.Id, item, amount, 2)); return true;
+                }
             }
-            if (work == PlanStepType.Wait || !ClaimFacility(world, npc, facility)) { return false; }
+            if (!ProductionSystem.HasInputs(facility.Inventory, inputs) || work == PlanStepType.Wait || !ClaimFacility(world, npc, facility)) { return false; }
             Move(steps, facility.WorkCell);
             steps.Add(new PlanStep(work, facility.WorkCell, facility.Id, output, durationTicks: work == PlanStepType.Build ? SurvivalRules.ConstructionTicks - facility.Progress : work == PlanStepType.Craft ? ProductionRecipe.For(output).Ticks : 8));
             return true;

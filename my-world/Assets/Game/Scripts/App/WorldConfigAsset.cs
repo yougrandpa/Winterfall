@@ -18,6 +18,13 @@ namespace MyAiWorld.App
         [Range(0, 100)]
         public int npcCount = 20;
 
+        [Header("Campaign")]
+        [Min(0)]
+        public long startTick = GameCalendar.WinterStartTick;
+
+        [Min(0)]
+        public int challengeDays = GameCalendar.DefaultChallengeDays;
+
         [Header("Simulation")]
         [Range(1, 30)]
         public int ticksPerSecondAt1x = 2;
@@ -37,9 +44,10 @@ namespace MyAiWorld.App
                 Mathf.Clamp(width, 16, 256),
                 Mathf.Clamp(height, 16, 256),
                 Mathf.Clamp(npcCount, 0, 100),
-                GameCalendar.StartTick,
+                startTick,
                 Mathf.Clamp(ticksPerSecondAt1x, 1, 30),
-                speeds);
+                speeds,
+                challengeDays);
         }
 
         private void OnValidate()

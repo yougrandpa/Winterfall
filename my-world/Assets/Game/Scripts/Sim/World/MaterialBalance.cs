@@ -42,6 +42,7 @@ namespace MyAiWorld.Sim.World
                 }
             }
             total += world.Survival.Count(item);
+            total += world.Combat.Count(item);
             foreach (var npc in world.Entities.Npcs) { total += npc.Survival.EquipmentCount(item); }
             return total;
         }

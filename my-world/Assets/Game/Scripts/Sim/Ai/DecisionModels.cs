@@ -23,7 +23,8 @@ namespace MyAiWorld.Sim.Ai
         Hunt,
         Trade,
         Greet,
-        GiveFood
+        GiveFood,
+        WarmUp
     }
 
     public sealed class NpcDecisionOption

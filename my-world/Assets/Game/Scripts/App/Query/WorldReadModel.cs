@@ -13,7 +13,15 @@ namespace MyAiWorld.App.Query
     public sealed class NpcSnapshot
     {
         public NpcSnapshot(EntityId id, string name, string role, GridPos cell, string actionLabel, NpcActionType actionType = NpcActionType.Idle, int health = 10000, LifeState life = LifeState.Active)
+            : this(id, name, role, cell, actionLabel, actionType, health, life, 3700, 0, 0, 0, 0, 0, null)
         {
+        }
+
+        public NpcSnapshot(EntityId id, string name, string role, GridPos cell, string actionLabel,
+            NpcActionType actionType, int health, LifeState life, int bodyTemperature, int wetness,
+            int coldTicks, int shelterId, int coatDurability, int arrows, AttackSnapshot attack = null, GridPos? home = null)
+        {
+            Home = home ?? cell;
             Id = id;
             Name = name;
             Role = role;
@@ -21,12 +29,24 @@ namespace MyAiWorld.App.Query
             ActionLabel = actionLabel;
             ActionType = actionType;
             Health = health; Life = life;
+            BodyTemperature = bodyTemperature; Wetness = wetness; ColdTicks = coldTicks;
+            ShelterId = shelterId; CoatDurability = coatDurability; Arrows = arrows; Attack = attack;
         }
 
+        public int BodyTemperature { get; }
+        public int Wetness { get; }
+        public int ColdTicks { get; }
+        public bool IsCold => BodyTemperature < 3500;
+        public int ShelterId { get; }
+        public int CoatDurability { get; }
+        public bool HasWinterCoat => CoatDurability > 0;
+        public int Arrows { get; }
+        public AttackSnapshot Attack { get; }
         public EntityId Id { get; }
         public string Name { get; }
         public string Role { get; }
         public GridPos Cell { get; }
+        public GridPos Home { get; }
         public string ActionLabel { get; }
         public NpcActionType ActionType { get; }
         public LifeState Life { get; }
@@ -70,8 +90,11 @@ namespace MyAiWorld.App.Query
 
     public sealed class NpcDetails
     {
-        internal NpcDetails(NpcState npc, long tick, IReadOnlyList<NeedsSample> history)
+        internal NpcDetails(NpcState npc, long tick, IReadOnlyList<NeedsSample> history, AttackSnapshot attack = null)
         {
+            BodyTemperature = npc.Survival.BodyTemperature; Wetness = npc.Survival.Wetness;
+            ColdTicks = npc.Survival.ColdTicks; ShelterId = npc.Survival.ShelterId;
+            CoatDurability = npc.Survival.CoatDurability; Arrows = npc.Inventory.Count(ItemKind.Arrow); Attack = attack;
             var relations = new List<TrustSnapshot>();
             foreach (var relation in npc.Social.Relations) { relations.Add(new TrustSnapshot(relation.Other, relation.Trust)); }
             Relations = relations.AsReadOnly();
@@ -155,6 +178,15 @@ namespace MyAiWorld.App.Query
             PlanConditions = step != null ? step.Preconditions + "\nEffect: " + step.Effects : "";
         }
 
+        public int BodyTemperature { get; }
+        public int Wetness { get; }
+        public int ColdTicks { get; }
+        public bool IsCold => BodyTemperature < 3500;
+        public int ShelterId { get; }
+        public int CoatDurability { get; }
+        public bool HasWinterCoat => CoatDurability > 0;
+        public int Arrows { get; }
+        public AttackSnapshot Attack { get; }
         public LifeState Life { get; }
         public int DiseaseTicks { get; }
         public long RescueRemaining { get; }
@@ -294,6 +326,7 @@ namespace MyAiWorld.App.Query
         private readonly List<EventSnapshot> _recentEvents = new List<EventSnapshot>();
         private readonly List<ResourceNodeSnapshot> _resourceNodes = new List<ResourceNodeSnapshot>();
         private readonly List<FarmPlotSnapshot> _farmPlots = new List<FarmPlotSnapshot>();
+        private readonly HashSet<EntityId> _nonLocalAnimals = new HashSet<EntityId>();
 
         public WorldReadModel(WorldConfigData config)
         {
@@ -340,6 +373,9 @@ namespace MyAiWorld.App.Query
             return result.AsReadOnly();
         }
         public EcologyEconomySnapshot EcologyEconomy { get; private set; }
+        public CombatReadModel Combat { get; private set; }
+        // Missing locally does not imply death: regional residents have no renderable cell.
+        public bool IsAnimalNonLocal(EntityId id) => _nonLocalAnimals.Contains(id);
         public int ReservationCount { get; private set; }
         public int CriticalNpcCount { get; private set; }
         public GameDateTime Date { get; private set; }
@@ -347,6 +383,8 @@ namespace MyAiWorld.App.Query
         public ulong StateHash { get; private set; }
         public int PathFailureCount { get; private set; }
         public SurvivalReadModel Survival { get; private set; }
+        public CampaignSnapshot Campaign { get; private set; }
+        public EnvironmentSnapshot Environment { get; private set; }
         public int NpcCount => _npcs.Count;
 
         public void Initialize(WorldState world, List<SimEvent> initialEvents)
@@ -418,7 +456,15 @@ namespace MyAiWorld.App.Query
         {
             SocialTimeline = Array.AsReadOnly(new List<MyAiWorld.Sim.Agents.SocialEvent>(world.Social.Timeline).ToArray());
             EcologyEconomy = new EcologyEconomySnapshot(world);
+            Combat = new CombatReadModel(world.Combat);
+            _nonLocalAnimals.Clear();
+            foreach (AnimalState animal in world.Ecology.Animals)
+            {
+                if (animal.Region != -1) { _nonLocalAnimals.Add(animal.Id); }
+            }
             Survival = new SurvivalReadModel(world);
+            Campaign = new CampaignSnapshot(world);
+            Environment = new EnvironmentSnapshot(world);
             _npcs.Clear();
             _details.Clear();
             CriticalNpcCount = 0;
@@ -427,7 +473,11 @@ namespace MyAiWorld.App.Query
             {
                 NpcState npc = source[i];
                 string label = npc.Action.Label + (npc.Action.Type == NpcActionType.Move ? " -> " + npc.Action.Target : "");
-                _npcs.Add(new NpcSnapshot(npc.Id, npc.Name, npc.Role, npc.Position, label, npc.Action.Type, npc.Needs.Health, npc.Survival.Life));
+                AttackSnapshot attack = Combat.GetAttack(npc.Id);
+                _npcs.Add(new NpcSnapshot(npc.Id, npc.Name, npc.Role, npc.Position, label, npc.Action.Type,
+                    npc.Needs.Health, npc.Survival.Life, npc.Survival.BodyTemperature, npc.Survival.Wetness,
+                    npc.Survival.ColdTicks, npc.Survival.ShelterId, npc.Survival.CoatDurability,
+                    npc.Inventory.Count(ItemKind.Arrow), attack, npc.Home));
                 List<NeedsSample> history;
                 if (!_history.TryGetValue(npc.Id, out history))
                 {
@@ -444,7 +494,7 @@ namespace MyAiWorld.App.Query
                     }
                 }
 
-                _details[npc.Id] = new NpcDetails(npc, Tick, Array.AsReadOnly(history.ToArray()));
+                _details[npc.Id] = new NpcDetails(npc, Tick, Array.AsReadOnly(history.ToArray()), attack);
                 if (npc.Needs.Food < 2000 || npc.Needs.Water < 2000 || npc.Needs.Energy < 2000)
                 {
                     CriticalNpcCount++;

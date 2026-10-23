@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using MyAiWorld.Sim.Ai;
 using MyAiWorld.Sim.Core;
 using MyAiWorld.Sim.World;
 
@@ -28,11 +29,20 @@ namespace MyAiWorld.Sim.Systems
                 w.Write(g.Id); WorldSnapshot.WritePos(w, g.Position); w.Write(g.Coins); w.Write(g.ReservedBy.Value);
                 WorldSnapshot.WriteInventory(w, g.Inventory); foreach (int durability in g.Tools) { w.Write(durability); }
             }
+            w.Write(state.Shelters.Count);
+            foreach (ShelterState shelter in state.Shelters)
+            {
+                w.Write(shelter.Id); WorldSnapshot.WritePos(w, shelter.Position); WorldSnapshot.WritePos(w, shelter.Entrance);
+                w.Write(shelter.Capacity); WorldSnapshot.WriteInventory(w, shelter.Inventory);
+                w.Write(shelter.Temperature); w.Write(shelter.FuelTicks); w.Write(shelter.HeatBudget);
+            }
             foreach (var npc in world.Entities.Npcs)
             {
                 var n = npc.Survival;
                 w.Write((int)n.Life); w.Write(n.RescueDeadline); w.Write(n.Rescuer.Value); w.Write(n.DiseaseTicks); w.Write(n.WorkRetryTick);
                 w.Write(n.HuntDropId); w.Write(n.Rescues); w.Write(n.Crafted); w.Write(n.Built); w.Write(n.WaterProduced);
+                w.Write(n.ShelterId); w.Write(n.BodyTemperature); w.Write(n.Wetness); w.Write(n.ColdTicks); w.Write(n.CoatDurability);
+                w.Write((int)n.DeathCause);
                 foreach (int durability in n.Tools) { w.Write(durability); }
             }
             foreach (var p in world.Resources.FarmPlots) { w.Write((int)p.PreviousCrop); w.Write(p.Damage); }
@@ -62,20 +72,55 @@ namespace MyAiWorld.Sim.Systems
                 WorldSnapshot.Require(g.Id > 0 && state.FindFacility(g.Id) == null && state.FindGround(g.Id) == null && g.Coins >= 0 && world.Map.IsWalkable(g.Position) && Owner(world, g.ReservedBy));
                 state.MutableGround.Add(g);
             }
+            count = WorldSnapshot.ReadCount(r, 10000);
+            var entrances = new System.Collections.Generic.HashSet<GridPos>();
+            for (int i = 0; i < count; i++)
+            {
+                var shelter = new ShelterState(r.ReadInt32(), WorldSnapshot.ReadPos(r), WorldSnapshot.ReadPos(r), r.ReadInt32());
+                WorldSnapshot.ReadInventory(r, shelter.Inventory);
+                shelter.Temperature = r.ReadInt32(); shelter.FuelTicks = r.ReadInt32(); shelter.HeatBudget = r.ReadInt32();
+                WorldSnapshot.Require(state.FindShelter(shelter.Id) == null && state.FindFacility(shelter.Id) == null &&
+                    state.FindGround(shelter.Id) == null && shelter.Capacity <= 10000 && entrances.Add(shelter.Entrance) &&
+                    world.Map.IsInside(shelter.Position) && world.Map.GetTile(shelter.Position) == TileType.House && world.Map.IsWalkable(shelter.Entrance) &&
+                    shelter.Temperature >= EnvironmentState.MinTemperature && shelter.Temperature <= EnvironmentState.MaxTemperature &&
+                    shelter.FuelTicks >= 0 && shelter.FuelTicks <= SurvivalRules.FuelTicksPerWood &&
+                    shelter.HeatBudget >= 0 && shelter.HeatBudget <= shelter.FuelTicks * SurvivalRules.HeatPerTick);
+                state.MutableShelters.Add(shelter);
+            }
             foreach (var npc in world.Entities.Npcs)
             {
                 var n = npc.Survival;
                 n.Life = (LifeState)r.ReadInt32(); n.RescueDeadline = r.ReadInt64(); n.Rescuer = new EntityId(r.ReadInt32()); n.DiseaseTicks = r.ReadInt32(); n.WorkRetryTick = r.ReadInt64();
                 n.HuntDropId = r.ReadInt32(); n.Rescues = r.ReadInt32(); n.Crafted = r.ReadInt32(); n.Built = r.ReadInt32(); n.WaterProduced = r.ReadInt32();
+                n.ShelterId = r.ReadInt32(); n.BodyTemperature = r.ReadInt32(); n.Wetness = r.ReadInt32();
+                n.ColdTicks = r.ReadInt32(); n.CoatDurability = ReadDurability(r);
+                n.DeathCause = (NpcDeathCause)r.ReadInt32();
+                WorldSnapshot.Require(Enum.IsDefined(typeof(NpcDeathCause), n.DeathCause) && n.ShelterId >= 0 && (n.ShelterId == 0 || state.FindShelter(n.ShelterId) != null &&
+                    npc.Home == state.FindShelter(n.ShelterId).Entrance) && n.BodyTemperature >= 2000 && n.BodyTemperature <= 3700 &&
+                    n.Wetness >= 0 && n.Wetness <= 10000 && n.ColdTicks >= 0 && n.ColdTicks <= SurvivalRules.MaxColdTicks &&
+                    (n.Life != LifeState.Dead || n.CoatDurability == 0));
                 for (int j = 0; j < 4; j++) { n.Tools[j] = ReadDurability(r); }
+                CarcassState carcass = world.Ecology.FindCarcass(n.HuntDropId);
                 WorldSnapshot.Require(Enum.IsDefined(typeof(LifeState), n.Life) && n.DiseaseTicks >= 0 && n.DiseaseTicks <= SurvivalRules.DiseaseDuration && Owner(world, n.Rescuer) &&
-                    (n.HuntDropId == 0 || state.FindGround(n.HuntDropId) != null) && n.Rescues >= 0 && n.Crafted >= 0 && n.Built >= 0 && n.WaterProduced >= 0);
+                    (n.HuntDropId == 0 || carcass != null && carcass.Region == -1 && carcass.ReservedBy == npc.Id &&
+                        npc.Plan.CurrentStep?.Type == PlanStepType.Hunt && npc.Plan.CurrentStep.ResourceId == n.HuntDropId) &&
+                    n.Rescues >= 0 && n.Crafted >= 0 && n.Built >= 0 && n.WaterProduced >= 0);
             }
             foreach (var p in world.Resources.FarmPlots)
             { p.PreviousCrop = (CropType)r.ReadInt32(); p.Damage = r.ReadInt32(); WorldSnapshot.Require(Enum.IsDefined(typeof(CropType), p.PreviousCrop) && p.Damage >= 0 && p.Damage < SurvivalRules.CropDeathDamage); }
             int max = 0;
             foreach (var f in state.Facilities) { max = Math.Max(max, f.Id); }
             foreach (var g in state.Ground) { max = Math.Max(max, g.Id); }
+            foreach (ShelterState shelter in state.Shelters)
+            {
+                max = Math.Max(max, shelter.Id);
+                int residents = 0;
+                foreach (var npc in world.Entities.Npcs)
+                {
+                    if (npc.Survival.Life != LifeState.Dead && npc.Survival.ShelterId == shelter.Id) { residents++; }
+                }
+                WorldSnapshot.Require(residents <= shelter.Capacity);
+            }
             WorldSnapshot.Require(state.NextId > max && state.CropsLost >= 0);
         }
         private static int ReadDurability(BinaryReader r) { int value = r.ReadInt32(); WorldSnapshot.Require(value >= 0 && value <= SurvivalRules.ToolDurability); return value; }

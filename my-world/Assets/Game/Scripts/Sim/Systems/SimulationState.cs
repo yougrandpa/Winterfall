@@ -76,8 +76,14 @@ namespace MyAiWorld.Sim.Systems
             Ecology = new EcologyState(DeterministicRng.Mix((ulong)(uint)config.Seed ^ 0xEC0106UL));
             Market = new MarketState();
             Materials = new MaterialBalance();
+            Environment = new EnvironmentState(DeterministicRng.Mix((ulong)(uint)config.Seed ^ 0x57454154484552UL));
+            Campaign = new CampaignState(config);
+            Combat = new CombatState(DeterministicRng.Mix((ulong)(uint)config.Seed ^ 0x434F4D424154UL));
         }
 
+        public EnvironmentState Environment { get; }
+        public CampaignState Campaign { get; }
+        public CombatState Combat { get; }
         public SurvivalWorldState Survival { get; } = new SurvivalWorldState();
         public int LivingCount { get { int count = 0; foreach (NpcState npc in Entities.Npcs) { if (npc.Survival.Life != LifeState.Dead) { count++; } } return count; } }
         public WorldConfigData Config { get; }

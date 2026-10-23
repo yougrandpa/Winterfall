@@ -35,6 +35,7 @@ namespace MyAiWorld.Presentation.UI
             {
                 HudTheme.Select(_speedButtons[i], _runner.SpeedMultiplier == (1 << i));
             }
+            RefreshCampaignTopBar();
         }
 
         private string NpcName(EntityId id)
@@ -188,6 +189,7 @@ namespace MyAiWorld.Presentation.UI
 
         private void RefreshResources()
         {
+            RefreshSupplyGuide();
             var model = _session.ReadModel;
             var economy = model.EcologyEconomy;
             int[] stock = { model.StockFood, model.StockWater, model.StockSeeds };
@@ -210,13 +212,14 @@ namespace MyAiWorld.Presentation.UI
             SetMetric("reservations", model.ReservationCount);
             SetMetric("critical", model.CriticalNpcCount);
             _metrics["critical"].color = model.CriticalNpcCount > 0 ? HudTheme.Danger : HudTheme.Ink;
-            SetPopulation(_rabbitValue, _rabbitFill, economy.Rabbits);
-            SetPopulation(_boarValue, _boarFill, economy.Boars);
+            SetPopulation(_rabbitValue, economy.Rabbits);
+            SetPopulation(_boarValue, economy.Boars);
             _birthValue.text = economy.Births.ToString();
             _deathValue.text = economy.NaturalDeaths.ToString();
             _huntValue.text = economy.HuntKills.ToString();
             _tradeValue.text = economy.Filled + " / " + economy.Rejected;
             _treasuryValue.text = economy.Treasury + " / " + economy.Volume;
+            RefreshEcology(economy);
 
             _ledger.Begin();
             for (int i = economy.RecentTrades.Count - 1; i >= 0; i--)
@@ -253,7 +256,22 @@ namespace MyAiWorld.Presentation.UI
             {
                 GridPos cell = _selection.SelectedCell.Value;
                 foreach (var plot in model.FarmPlots) { if (plot.Cell == cell) { _inspection.Add("选中农田 #" + plot.Id + " · " + ChineseText.Crop(plot.Crop), "生长 " + plot.GrowthTicks + "/" + plot.GrowthRequired + " · 水分 " + plot.Moisture + "\n肥力 " + plot.Fertility / 100 + "% · 损伤 " + plot.Damage + " · 前茬 " + ChineseText.Crop(plot.PreviousCrop), HudTheme.Positive); } }
-                foreach (var animal in economy.Animals) { if (animal.Cell == cell) { _inspection.Add("选中猎物 #" + animal.Id.Value, (animal.Species == AnimalSpecies.Deer ? "鹿" : animal.Species == AnimalSpecies.Boar ? "野猪" : "兔") + " · 生命 " + animal.Health + (animal.Fleeing ? " · 逃跑中" : " · 游荡") + " · 猎人 " + (animal.ReservedBy.IsNone ? "无" : NpcName(animal.ReservedBy)), HudTheme.Gold); } }
+                foreach (var animal in economy.Animals)
+                {
+                    if (animal.Cell != cell) { continue; }
+                    _inspection.Add("选中动物 #" + animal.Id.Value + " · " + ChineseText.Species(animal.Species),
+                        AnimalDescription(animal) + "\n猎人 " + (animal.ReservedBy.IsNone ? "无" : NpcName(animal.ReservedBy)), HudTheme.Gold);
+                }
+                foreach (var carcass in economy.Carcasses)
+                {
+                    if (carcass.Cell != cell) { continue; }
+                    _inspection.Add("选中尸体 #" + carcass.Id.Value + " · " + ChineseText.Species(carcass.Species),
+                        CarcassDescription(carcass) + "\n回收者 " + (carcass.ReservedBy.IsNone ? "无" : NpcName(carcass.ReservedBy)), HudTheme.Muted);
+                }
+                foreach (var habitat in economy.Habitats)
+                {
+                    if (habitat.Contains(cell)) { _inspection.Add("选中栖地 #" + habitat.Id, HabitatDescription(habitat), HudTheme.Positive); }
+                }
                 foreach (var node in model.ResourceNodes) { if (node.Cell == cell) { _inspection.Add("选中资源 #" + node.Id, ChineseText.Item(node.Item) + " " + node.Amount + "/" + node.Capacity, HudTheme.Gold); } }
                 foreach (var ground in survival.Ground) { if (_selection.SelectedCell == ground.Cell) { _inspection.Add("待回收物资 #" + ground.Id, "物品 " + ground.Count + " · 钱币 " + ground.Coins, HudTheme.Gold); } }
             }
@@ -265,21 +283,104 @@ namespace MyAiWorld.Presentation.UI
                 "\n作物 · 生长 " + model.GrowingCropCount + " / 可收获 " + model.MatureCropCount +
                 "\n农田 · 空闲 " + model.EmptyPlotCount + " / 缺水 " + model.DryCropCount +
                 "\n资源预留 " + model.ReservationCount + " / 需求告急村民 " + model.CriticalNpcCount;
-            _resourceText += "\n" + _inspection.Text + _production.Text;
+            _resourceText += "\n" + _inspection.Text + _production.Text + "\n环境与供给估算\n" + _supplyGuide.text;
             _economyText = "野兔 " + economy.Rabbits + " / 野猪 " + economy.Boars + "\n出生 " + economy.Births + " / 自然死亡 " + economy.NaturalDeaths + " / 猎获 " + economy.HuntKills +
                 "\n单价 · 食物 " + economy.Prices[0] + " / 饮水 " + economy.Prices[1] + " / 种子 " + economy.Prices[2] +
                 "\n市场库存 · 食物 " + economy.Stocks[0] + " / 饮水 " + economy.Stocks[1] + " / 种子 " + economy.Stocks[2] +
                 "\n买入 · 食物 " + economy.Bought[0] + " / 饮水 " + economy.Bought[1] + " / 种子 " + economy.Bought[2] +
                 "\n卖出 · 食物 " + economy.Sold[0] + " / 饮水 " + economy.Sold[1] + " / 种子 " + economy.Sold[2] +
-                "\n成交 " + economy.Filled + " / 拒绝 " + economy.Rejected + "\n国库 " + economy.Treasury + " / 成交额 " + economy.Volume + "\n" + _ledger.Text;
+                "\n成交 " + economy.Filled + " / 拒绝 " + economy.Rejected + "\n国库 " + economy.Treasury + " / 成交额 " + economy.Volume + "\n" + _ledger.Text + _ecology.Text;
         }
 
-        private static void SetPopulation(Text value, Image fill, int count)
+        private static void SetPopulation(Text value, int count)
         {
-            if (value != null) { value.text = count + " / 24"; }
-            if (fill == null) { return; }
-            HudLayout.SetMeter(fill, count / 24f);
-            fill.color = count <= 4 ? HudTheme.Danger : count >= 20 ? HudTheme.Gold : HudTheme.Positive;
+            if (value != null) { value.text = count.ToString(); }
+        }
+
+        private static string AnimalId(EntityId id) => id.IsNone ? "无" : "#" + id.Value;
+
+        private static string AnimalDescription(AnimalSnapshot animal)
+        {
+            return ChineseText.AnimalActivity(animal.Behavior) + " · 生命 " + animal.Health + (animal.Fleeing ? " · 逃跑中" : "") +
+                "\n能量 " + animal.Energy + "/" + animal.EnergyCapacity + " · 水分 " + animal.Hydration + " · 体温 " + (animal.CoreTemperature / 100f).ToString("0.0") + "℃" +
+                "\n年龄 " + animal.AgeTicks / GameCalendar.TicksPerDay + " 天 · " + ChineseText.AnimalAge(animal.LifeStage) + " · " + ChineseText.AnimalSexName(animal.Sex) +
+                "\n群体 #" + animal.GroupId + " · 领地 #" + animal.TerritoryHabitatId + " · 栖地 #" + animal.HabitatId +
+                "\n母亲 " + AnimalId(animal.MotherId) + " · 父亲 " + AnimalId(animal.FatherId) + " · 配偶 " + AnimalId(animal.MateId) +
+                "\n妊娠 " + animal.PregnancyTicks + " 分 · 胎数 " + animal.PregnancyLitter + " · 胎父 " + AnimalId(animal.PregnancyFatherId) +
+                "\n区域 " + ChineseText.Region(animal.Region) + " · 迁徙目的地 " + ChineseText.Region(animal.MigrationDestination) +
+                " · 路径 " + animal.MigrationPathIndex + "/" + animal.MigrationPath.Count + " · 上次迁徙 " + (animal.LastMigrationTick < 0 ? "无" : "tick " + animal.LastMigrationTick);
+        }
+
+        private static string CarcassDescription(CarcassSnapshot carcass)
+        {
+            var items = new StringBuilder();
+            for (int i = 0; i < carcass.Items.Count; i++)
+            {
+                if (carcass.Items[i] > 0) { items.Append(ChineseText.Item((ItemKind)i)).Append(' ').Append(carcass.Items[i]).Append("  "); }
+            }
+            return "死因 " + ChineseText.AnimalDeath(carcass.DeathCause) + " · 来源 " + AnimalId(carcass.SourceId) +
+                "\n生肉 " + carcass.MeatRemaining + " · 兽皮 " + carcass.HideRemaining + " · 新鲜度 " + carcass.Freshness / 100 + "%" +
+                "\n" + carcass.Cell + " · 栖地 #" + carcass.HabitatId + (items.Length > 0 ? "\n嵌入物资 " + items : "");
+        }
+
+        private static string HabitatDescription(HabitatSnapshot habitat)
+        {
+            return ChineseText.Region(habitat.Region) + " · 陆地 " + habitat.LandCells + " 格" +
+                "\n草本 " + habitat.Herbaceous.Biomass + "/" + habitat.Herbaceous.Capacity +
+                " · 灌木 " + habitat.Shrubs.Biomass + "/" + habitat.Shrubs.Capacity +
+                " · 树木 " + habitat.Trees.Biomass + "/" + habitat.Trees.Capacity +
+                "\n种子库 · 草本 " + habitat.Herbaceous.SeedBank + " / 灌木 " + habitat.Shrubs.SeedBank + " / 树木 " + habitat.Trees.SeedBank +
+                "\n水 " + habitat.Water + "/" + habitat.WaterCapacity + " · 雪水 " + habitat.SnowWater + " · 雪深 " + habitat.SnowDepth / 100 + "%" +
+                "\n遮蔽 " + habitat.Shelter / 100 + "% · 肥力 " + habitat.SoilFertility / 100 + "% · 枯落物 " + habitat.Litter + " · 矿物 " + habitat.MineralRemaining;
+        }
+
+        private void RefreshEcology(EcologyEconomySnapshot economy)
+        {
+            _ecology.Begin();
+            foreach (var species in economy.Species)
+            {
+                var ages = new StringBuilder();
+                for (int i = 0; i < species.AgeCounts.Count; i++)
+                {
+                    if (i > 0) { ages.Append(" · "); }
+                    ages.Append(ChineseText.AnimalAge((AnimalLifeStage)i)).Append(' ').Append(species.AgeCounts[i]);
+                }
+                _ecology.Add(ChineseText.Species(species.Species) + " · 本地 " + species.Count + " · 群体 " + species.GroupCount, ages.ToString(), HudTheme.Positive);
+            }
+            foreach (var group in economy.Groups)
+            {
+                if (group.Region != -1) { continue; }
+                _ecology.Add(ChineseText.Species(group.Species) + "群 #" + group.Id,
+                    "成员 " + group.Members.Count + " · 首领 " + AnimalId(group.LeaderId) + " · 领地 #" + group.TerritoryHabitatId + " · 争夺 " + group.Disputes, HudTheme.Gold);
+            }
+            _ecology.Add("区域往来 · " + (economy.RegionsEnabled ? "开放" : "隔离"),
+                "离境 " + economy.Departures + " · 返回 " + economy.Returns + "\n外部居民不计入本地种群，不显示在地图上", HudTheme.Gold);
+            foreach (var region in economy.Regions)
+            {
+                var counts = new StringBuilder();
+                for (int i = 0; i < region.SpeciesCounts.Count; i++)
+                {
+                    counts.Append(ChineseText.Species((AnimalSpecies)i)).Append(' ').Append(region.SpeciesCounts[i]).Append("  ");
+                }
+                counts.Append("\n入口 ").Append(region.Exit).Append(" · 栖地 #").Append(region.HabitatId)
+                    .Append("\n迁入 ").Append(region.Immigration).Append(" · 迁出 ").Append(region.Emigration)
+                    .Append(" · 出生 ").Append(region.Births).Append(" · 死亡 ").Append(region.Deaths);
+                foreach (var habitat in economy.Habitats)
+                {
+                    if (habitat.Id == region.HabitatId) { counts.Append('\n').Append(HabitatDescription(habitat)); break; }
+                }
+                _ecology.Add(ChineseText.Region(region.Id), counts.ToString(), HudTheme.Muted);
+            }
+            _ecology.Add("本地栖地资源", "草本 " + economy.LocalHerbaceousBiomass + " · 灌木 " + economy.LocalShrubBiomass + " · 树木 " + economy.LocalTreeBiomass +
+                "\n水 " + economy.LocalWater + " · 雪水 " + economy.LocalSnowWater + " · 枯落物 " + economy.LocalLitter + " · 矿物 " + economy.LocalMineral +
+                "\n全域生物量 " + economy.Biomass + " · 全域水 " + economy.Water + " · 本地尸体 " + economy.Carcasses.Count, HudTheme.Positive);
+            var deaths = new StringBuilder("自然死亡 " + economy.NaturalDeaths + " · 捕食死亡 " + economy.PredationDeaths + " · 猎获 " + economy.HuntKills);
+            for (int i = 1; i < economy.DeathCounts.Count; i++)
+            {
+                deaths.Append('\n').Append(ChineseText.AnimalDeath((AnimalDeathCause)i)).Append(' ').Append(economy.DeathCounts[i]);
+            }
+            _ecology.Add("死亡原因 · 全域累计", deaths.ToString(), HudTheme.Muted);
+            _ecology.End();
         }
 
         private void RefreshEventLog()
@@ -364,7 +465,9 @@ namespace MyAiWorld.Presentation.UI
                 .Append("\nPath failures ").Append(_session.PathFailureCount).Append("    Applied commands ").Append(_session.AppliedCommandCount)
                 .Append("    Queued ").Append(_session.QueuedCommandCount)
                 .Append("\nWorld ").Append(model.Width).Append(" × ").Append(model.Height).Append("    Speed ").Append(_runner.SpeedText)
-                .Append("\n守恒误差 · 钱包 ").Append(economy.CurrencyError).Append(" / 物资 ").Append(economy.MaterialError);
+                .Append("\n守恒误差 · 钱包 ").Append(economy.CurrencyError).Append(" / 物资 ").Append(economy.MaterialError)
+                .Append("\n生态误差 · 生物量 ").Append(economy.BiomassError).Append(" / 水 ").Append(economy.WaterError).Append(" / 矿物 ").Append(economy.MineralError)
+                .Append("\n转化误差 · 生物量 ").Append(economy.BiomassConversionError).Append(" / 水 ").Append(economy.WaterConversionError).Append(" / 矿物 ").Append(economy.MineralConversionError);
             AtmospherePresenter atmosphere = _presenter.Atmosphere;
             if (atmosphere != null)
             {

@@ -155,7 +155,8 @@ namespace MyAiWorld.Sim.Core
         CropHarvested,
         NeedCritical,
         Greeting,
-        FoodGift
+        FoodGift,
+        CampaignEnded
     }
 
     public sealed class SimEvent

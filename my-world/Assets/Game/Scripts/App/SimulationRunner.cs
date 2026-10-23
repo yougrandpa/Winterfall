@@ -35,9 +35,9 @@ namespace MyAiWorld.App
             _worldRevision = session.WorldRevision;
             _speedMultipliers = config != null ? config.SpeedMultipliers : new[] { 1, 2, 4, 8 };
             _speedMultiplier = _speedMultipliers.Length > 0 ? _speedMultipliers[0] : 1;
-            IsPaused = false;
+            IsPaused = !session.World.Campaign.CanAdvance;
             _accumulator = 0.0;
-            TickAlpha = 0f;
+            TickAlpha = IsPaused ? 1f : 0f;
             _initialized = true;
         }
 
@@ -64,7 +64,18 @@ namespace MyAiWorld.App
 
         public void Resume()
         {
-            IsPaused = false;
+            IsPaused = _session != null && !_session.World.Campaign.CanAdvance;
+        }
+
+        public bool ContinueObservation()
+        {
+            if (!_initialized || _session.World.Campaign.Phase != CampaignPhase.SettlementLocked) { return false; }
+            _session.EnqueueCommand(new MyAiWorld.Sim.Systems.ContinueObservationCommand());
+            _session.Tick();
+            _accumulator = 0;
+            TickAlpha = 1f;
+            Resume();
+            return !IsPaused;
         }
 
         public void TogglePause()
@@ -86,7 +97,7 @@ namespace MyAiWorld.App
                 if (_speedMultipliers[i] == multiplier)
                 {
                     _speedMultiplier = multiplier;
-                    IsPaused = false;
+                    Resume();
                     return;
                 }
             }
@@ -94,7 +105,7 @@ namespace MyAiWorld.App
 
         public void StepOnce()
         {
-            if (!_initialized)
+            if (!_initialized || !_session.World.Campaign.CanAdvance)
             {
                 return;
             }
@@ -102,6 +113,7 @@ namespace MyAiWorld.App
             _session.Tick();
             TickAlpha = 1f;
             _accumulator = 0.0;
+            if (!_session.World.Campaign.CanAdvance) { Pause(); }
         }
 
         private void Update()
@@ -112,6 +124,7 @@ namespace MyAiWorld.App
             }
 
             if (_worldRevision != _session.WorldRevision) { ResetAfterLoad(); }
+            if (!_session.World.Campaign.CanAdvance) { Pause(); }
             WorldDeltaTime = IsPaused ? 0f : Mathf.Min(Time.unscaledDeltaTime, 0.25f) * _speedMultiplier;
             AnimationTime += WorldDeltaTime;
             if (IsPaused)
@@ -129,6 +142,13 @@ namespace MyAiWorld.App
                 _session.Tick();
                 _accumulator -= 1.0;
                 steps++;
+                if (!_session.World.Campaign.CanAdvance)
+                {
+                    Pause();
+                    _accumulator = 0;
+                    TickAlpha = 1f;
+                    return;
+                }
             }
 
             if (_accumulator > MaxCatchUpTicks)

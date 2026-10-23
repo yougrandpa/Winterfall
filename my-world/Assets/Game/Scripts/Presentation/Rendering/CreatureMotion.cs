@@ -18,7 +18,7 @@ namespace MyAiWorld.Presentation.Rendering
         {
             // Alpha restarts on every simulation tick, even when the cell stays
             // unchanged. Advance both endpoints or the last move will replay.
-            if (tick == _tick && !instant) { return; }
+            if (!cell.IsValid || tick == _tick && !instant) { return; }
             Vector3 target = new Vector3(cell.X + 0.5f, cell.Y + 0.5f, 0f);
             Vector3 delta = target - _to;
             if (!instant && delta.sqrMagnitude > 0f)
@@ -37,6 +37,17 @@ namespace MyAiWorld.Presentation.Rendering
             Position = Vector3.Lerp(_from, _to, Mathf.Clamp01(alpha));
             Moving = (_to - Position).sqrMagnitude > 0.00001f;
             return Position;
+        }
+
+        public void Face(int x, int y)
+        {
+            Direction = FacingDirection(x, y, Direction);
+        }
+
+        public static int FacingDirection(int x, int y, int fallback = 0)
+        {
+            if (x == 0 && y == 0) { return fallback; }
+            return Mathf.Abs((float)x) > Mathf.Abs((float)y) ? (x > 0 ? 1 : 3) : y > 0 ? 2 : 0;
         }
 
         public static int SortOrder(float footY) => Mathf.RoundToInt(-footY * 32f);
