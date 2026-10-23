@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using MyAiWorld.App;
 using MyAiWorld.App.Query;
+using MyAiWorld.Presentation.Atmosphere;
 using MyAiWorld.Presentation.CameraControl;
 using MyAiWorld.Presentation.Rendering;
 using MyAiWorld.Presentation.Selection;
@@ -27,6 +28,7 @@ namespace MyAiWorld.Presentation.UI
         private readonly Button[] _speedButtons = new Button[4];
         private readonly Button[] _tabButtons = new Button[3];
         private readonly Button[] _saveButtons = new Button[5];
+        private readonly Button[] _atmosphereButtons = new Button[5];
         private readonly GameObject[] _tabs = new GameObject[3];
         private readonly ScrollRect[] _tabScrolls = new ScrollRect[3];
         private readonly Text[] _stockTexts = new Text[4];
@@ -157,6 +159,11 @@ namespace MyAiWorld.Presentation.UI
             _inspectorPanel.SetOpen(false);
         }
 
+        public void HideInspectorPanel()
+        {
+            if (_inspectorPanel != null) { _inspectorPanel.SetOpen(false); }
+        }
+
         public void ToggleSaveMenu()
         {
             _savePanel.SetOpen(!SaveMenuOpen);
@@ -195,6 +202,16 @@ namespace MyAiWorld.Presentation.UI
             _debugVisible = !_debugVisible;
             _debugPanel.SetActive(_debugVisible);
             if (_debugVisible) { _debugPanel.transform.SetAsLastSibling(); }
+            RefreshDebug();
+        }
+
+        private void ToggleAtmosphere(AtmosphereLayer layer)
+        {
+            AtmospherePresenter atmosphere = _presenter != null ? _presenter.Atmosphere : null;
+            if (atmosphere == null) { return; }
+            bool enabled = !atmosphere.IsLayerEnabled(layer);
+            atmosphere.SetLayerEnabled(layer, enabled);
+            if (layer == AtmosphereLayer.Canopy && _presenter.Canopy != null) { _presenter.Canopy.SetEnabled(enabled); }
             RefreshDebug();
         }
 

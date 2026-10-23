@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using MyAiWorld.App.Query;
+using MyAiWorld.Presentation.Atmosphere;
 using MyAiWorld.Presentation.Rendering;
 using MyAiWorld.Sim.Agents;
 using MyAiWorld.Sim.Ai;
@@ -363,8 +364,24 @@ namespace MyAiWorld.Presentation.UI
                 .Append("\nPath failures ").Append(_session.PathFailureCount).Append("    Applied commands ").Append(_session.AppliedCommandCount)
                 .Append("    Queued ").Append(_session.QueuedCommandCount)
                 .Append("\nWorld ").Append(model.Width).Append(" × ").Append(model.Height).Append("    Speed ").Append(_runner.SpeedText)
-                .Append("\n守恒误差 · 钱包 ").Append(economy.CurrencyError).Append(" / 物资 ").Append(economy.MaterialError)
-                .Append("\n\nLog: ").Append(_session.LogPath).Append("\nReplay: ").Append(_session.ReplayPath);
+                .Append("\n守恒误差 · 钱包 ").Append(economy.CurrencyError).Append(" / 物资 ").Append(economy.MaterialError);
+            AtmospherePresenter atmosphere = _presenter.Atmosphere;
+            if (atmosphere != null)
+            {
+                builder.Append("\n雾 · 低 ").Append(atmosphere.LowFogCount).Append(" / 高 ").Append(atmosphere.HighFogCount)
+                    .Append("    粒子 ").Append(atmosphere.VisibleParticleCount).Append(" / ").Append(atmosphere.ParticlePoolCount)
+                    .Append("    光束 ").Append(atmosphere.ShaftCount)
+                    .Append(atmosphere.IsSnowing ? "    雪 " : "    晴 ")
+                    .Append(atmosphere.SnowIntensity.ToString("0.00"));
+                if (_atmosphereButtons[0] != null)
+                {
+                    for (int i = 0; i < _atmosphereButtons.Length; i++)
+                    {
+                        HudTheme.Select(_atmosphereButtons[i], atmosphere.IsLayerEnabled((AtmosphereLayer)i));
+                    }
+                }
+            }
+            builder.Append("\n\nLog: ").Append(_session.LogPath).Append("\nReplay: ").Append(_session.ReplayPath);
             if (_selected.HasValue)
             {
                 var details = model.GetDetails(_selected.Value);

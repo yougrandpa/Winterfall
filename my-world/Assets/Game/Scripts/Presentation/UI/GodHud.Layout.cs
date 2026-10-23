@@ -1,3 +1,4 @@
+using MyAiWorld.Presentation.Atmosphere;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -454,6 +455,16 @@ namespace MyAiWorld.Presentation.UI
             var spawn = HudLayout.IconButton(panel, "SpawnButton", "bag", "生成村民", Vector2.zero,
                 new Vector2(120, 36), delegate { _session.SpawnDebugNpc(); }, out _);
             HudLayout.Place(spawn.GetComponent<RectTransform>(), Vector2.zero, new Vector2(16, 16), new Vector2(120, 36));
+            string[] labels = { "雾", "光束", "粒子", "树冠", "夜色" };
+            for (int i = 0; i < labels.Length; i++)
+            {
+                AtmosphereLayer layer = (AtmosphereLayer)i;
+                int index = i;
+                _atmosphereButtons[i] = HudLayout.FixedButton(panel, "AtmosphereLayer" + i, labels[i],
+                    new Vector2(148 + i * 76, 16), new Vector2(72, 36), delegate { ToggleAtmosphere(layer); });
+                _atmosphereButtons[i].GetComponentInChildren<Text>().fontSize = 12;
+                _atmosphereButtons[i].name = "AtmosphereLayer" + index;
+            }
             _debugPanel = panel.gameObject;
             _debugPanel.SetActive(false);
         }

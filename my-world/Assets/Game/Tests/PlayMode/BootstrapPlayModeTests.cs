@@ -32,22 +32,22 @@ namespace MyAiWorld.Tests.PlayMode
                 PastoralArtConfig art = PastoralArtConfig.Load();
                 var view = root.AddComponent<NpcView>();
                 var id = new EntityId(1);
-                view.Initialize(id, art.Get("npc_0_0_0_0"), null);
+                view.Initialize(id, art.Get("npc_0_0_0_0_0"), null);
                 view.Configure(art, "Farmer", 0f);
                 view.SetCell(new GridPos(2, 3), true, 0);
                 // CompleteStep already changed the authoritative action to Idle.
                 var right = new NpcSnapshot(id, "Test", "Farmer", new GridPos(3, 3), "Arrived");
                 view.Present(right, 1, 0.25f, 1f);
-                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_1_1_"));
+                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_0_1_1_"));
                 Sprite first = view.CurrentSprite;
                 view.Present(right, 1, 0.75f, 1.125f);
                 Assert.That(view.CurrentSprite, Is.Not.SameAs(first), "Walking must advance animation frames.");
                 view.Present(right, 2, 0f, 1.25f);
-                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_1_0_"));
+                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_0_1_0_"));
 
                 var left = new NpcSnapshot(id, "Test", "Farmer", new GridPos(2, 3), "Moving", NpcActionType.Move);
                 view.Present(left, 3, 0.5f, 1.5f);
-                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_3_1_"));
+                Assert.That(view.CurrentSprite.name, Does.StartWith("npc_0_0_3_1_"));
             }
             finally
             {

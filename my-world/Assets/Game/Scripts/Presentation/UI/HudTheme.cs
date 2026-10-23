@@ -5,25 +5,25 @@ namespace MyAiWorld.Presentation.UI
 {
     public static class HudTheme
     {
-        public static readonly Color Paper = new Color32(250, 247, 235, 255);
-        public static readonly Color PaperRaised = new Color32(253, 251, 244, 255);
-        public static readonly Color Inset = new Color32(239, 236, 221, 255);
-        public static readonly Color InsetDeep = new Color32(226, 222, 205, 255);
-        public static readonly Color Ink = new Color32(39, 65, 54, 255);
-        public static readonly Color Muted = new Color32(111, 120, 103, 255);
-        public static readonly Color Faint = new Color32(151, 156, 139, 255);
-        public static readonly Color Gold = new Color32(166, 119, 60, 255);
-        public static readonly Color GoldSoft = new Color32(198, 163, 104, 255);
-        public static readonly Color Line = new Color32(215, 214, 193, 255);
-        public static readonly Color LineSoft = new Color32(230, 226, 210, 255);
-        public static readonly Color Danger = new Color32(170, 67, 51, 255);
-        public static readonly Color Positive = new Color32(86, 134, 82, 255);
-        public static readonly Color Shadow = new Color32(38, 58, 43, 46);
+        public static readonly Color Paper = new Color32(233, 236, 231, 255);
+        public static readonly Color PaperRaised = new Color32(242, 244, 239, 255);
+        public static readonly Color Inset = new Color32(215, 221, 219, 255);
+        public static readonly Color InsetDeep = new Color32(197, 205, 204, 255);
+        public static readonly Color Ink = new Color32(36, 48, 53, 255);
+        public static readonly Color Muted = new Color32(103, 117, 121, 255);
+        public static readonly Color Faint = new Color32(142, 153, 155, 255);
+        public static readonly Color Gold = new Color32(166, 122, 68, 255);
+        public static readonly Color GoldSoft = new Color32(196, 162, 110, 255);
+        public static readonly Color Line = new Color32(196, 204, 202, 255);
+        public static readonly Color LineSoft = new Color32(216, 222, 220, 255);
+        public static readonly Color Danger = new Color32(164, 70, 58, 255);
+        public static readonly Color Positive = new Color32(80, 126, 112, 255);
+        public static readonly Color Shadow = new Color32(28, 42, 46, 46);
         public static readonly Color[] Needs =
         {
-            new Color32(183, 137, 57, 255), new Color32(68, 142, 160, 255),
-            new Color32(107, 145, 74, 255), new Color32(176, 93, 77, 255),
-            new Color32(133, 111, 158, 255)
+            new Color32(176, 132, 66, 255), new Color32(72, 131, 147, 255),
+            new Color32(102, 137, 86, 255), new Color32(168, 94, 82, 255),
+            new Color32(124, 108, 146, 255)
         };
         private static Sprite _surface;
 

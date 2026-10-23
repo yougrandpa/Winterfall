@@ -142,6 +142,7 @@ namespace MyAiWorld.EditorTools
 
             if (command.StartsWith("capture-", StringComparison.Ordinal) ||
                 command.StartsWith("timeline-", StringComparison.Ordinal) ||
+                command.StartsWith("scene-", StringComparison.Ordinal) ||
                 command.StartsWith("flee-", StringComparison.Ordinal))
             {
                 CapturePlan plan = BuildPlan(command);
@@ -190,6 +191,11 @@ namespace MyAiWorld.EditorTools
             {
                 body = command.Substring("timeline-".Length);
                 preset = "timeline";
+            }
+            else if (command.StartsWith("scene-", StringComparison.Ordinal))
+            {
+                body = command.Substring("scene-".Length);
+                preset = "scene";
             }
             else
             {
@@ -324,6 +330,9 @@ namespace MyAiWorld.EditorTools
                     break;
                 case "timeline":
                     TickTimeline(bootstrap);
+                    break;
+                case "scene":
+                    TickScene(bootstrap);
                     break;
                 case "flee":
                     TickFlee(bootstrap);
@@ -586,6 +595,151 @@ namespace MyAiWorld.EditorTools
                     Finish();
                     break;
             }
+        }
+
+        private static void TickScene(GameBootstrap bootstrap)
+        {
+            if (_plan.name == "coast") { TickSceneCoast(bootstrap); return; }
+            if (_plan.name == "canopy") { TickSceneCanopy(bootstrap); return; }
+            switch (_stage)
+            {
+                case 0:
+                    bootstrap.Runner.Pause();
+                    bootstrap.Hud.CloseGlobalPanels();
+                    bootstrap.Hud.CloseInspector();
+                    SetPixelScale(bootstrap, 2);
+                    Focus(bootstrap, bootstrap.Session.ReadModel.StockpileCell);
+                    bootstrap.Runner.SetSpeed(8);
+                    Next(0);
+                    break;
+                case 1:
+                    if (AtHour(bootstrap, 12f) || TimedOut(50))
+                    {
+                        bootstrap.Runner.Pause();
+                        Next(0.7);
+                    }
+
+                    break;
+                case 2:
+                    CaptureFile(_plan.name + "-day");
+                    bootstrap.Runner.SetSpeed(8);
+                    Next(0.8);
+                    break;
+                case 3:
+                    if (AtHour(bootstrap, 18.6f) || TimedOut(55))
+                    {
+                        bootstrap.Runner.Pause();
+                        Next(0.7);
+                    }
+
+                    break;
+                case 4:
+                    CaptureFile(_plan.name + "-dusk");
+                    bootstrap.Runner.SetSpeed(8);
+                    Next(0.8);
+                    break;
+                case 5:
+                    if (AtHour(bootstrap, 21.5f) || TimedOut(55))
+                    {
+                        bootstrap.Runner.Pause();
+                        Next(0.7);
+                    }
+
+                    break;
+                case 6:
+                    CaptureAndFinish(_plan.name + "-night");
+                    break;
+                default:
+                    Finish();
+                    break;
+            }
+        }
+
+        private static void TickSceneCoast(GameBootstrap bootstrap)
+        {
+            if (_stage == 0)
+            {
+                bootstrap.Runner.Pause();
+                bootstrap.Hud.CloseGlobalPanels();
+                bootstrap.Hud.CloseInspector();
+                SetPixelScale(bootstrap, 2);
+                bootstrap.Runner.SetSpeed(8);
+                Next(0);
+                return;
+            }
+
+            if (_stage == 1)
+            {
+                if (AtHour(bootstrap, 12f) || TimedOut(50))
+                {
+                    bootstrap.Runner.Pause();
+                    WorldReadModel model = bootstrap.Session.ReadModel;
+                    MyAiWorld.Sim.Core.GridPos origin = model.StockpileCell;
+                    MyAiWorld.Sim.Core.GridPos target = origin;
+                    int best = int.MaxValue;
+                    for (int y = 0; y < model.Height; y++)
+                    for (int x = 0; x < model.Width; x++)
+                    {
+                        if (model.MapTiles[y * model.Width + x] != MyAiWorld.Sim.World.TileType.Water) { continue; }
+                        int dx = x - origin.X, dy = y - origin.Y;
+                        int distance = dx * dx + dy * dy;
+                        if (distance < best) { best = distance; target = new MyAiWorld.Sim.Core.GridPos(x, y); }
+                    }
+                    Focus(bootstrap, target);
+                    Next(0.7);
+                }
+
+                return;
+            }
+
+            CaptureAndFinish(_plan.name);
+        }
+
+        private static void TickSceneCanopy(GameBootstrap bootstrap)
+        {
+            if (_stage == 0)
+            {
+                bootstrap.Runner.Pause();
+                bootstrap.Hud.CloseGlobalPanels();
+                bootstrap.Hud.HideInspectorPanel();
+                SetPixelScale(bootstrap, 2);
+                WorldReadModel model = bootstrap.Session.ReadModel;
+                NpcSnapshot target = FindCanopyNpc(model);
+                if (target != null)
+                {
+                    bootstrap.Selection.Select(target.Id);
+                    bootstrap.Hud.HideInspectorPanel();
+                    Focus(bootstrap, target.Cell);
+                }
+                Next(0.8);
+                return;
+            }
+
+            CaptureAndFinish(_plan.name);
+        }
+
+        private static NpcSnapshot FindCanopyNpc(WorldReadModel model)
+        {
+            NpcSnapshot best = null;
+            int bestScore = int.MaxValue;
+            for (int i = 0; i < model.Npcs.Count; i++)
+            {
+                NpcSnapshot npc = model.Npcs[i];
+                int score = 99;
+                for (int dy = 0; dy <= 2 && score == 99; dy++)
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    int x = npc.Cell.X + dx, y = npc.Cell.Y + dy;
+                    if (x < 0 || y < 0 || x >= model.Width || y >= model.Height) { continue; }
+                    if (model.MapTiles[y * model.Width + x] == MyAiWorld.Sim.World.TileType.Forest)
+                    {
+                        score = dy * 3 + Mathf.Abs(dx);
+                        break;
+                    }
+                }
+                if (score < bestScore) { bestScore = score; best = npc; }
+            }
+            return best;
         }
 
         private static void TickFlee(GameBootstrap bootstrap)

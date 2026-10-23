@@ -2,17 +2,18 @@ using System;
 using System.Collections.Generic;
 using MyAiWorld.App;
 using MyAiWorld.App.Query;
+using MyAiWorld.Presentation.Atmosphere;
 using MyAiWorld.Sim.Core;
 using MyAiWorld.Sim.World;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using UnityEngine.UI;
 
 namespace MyAiWorld.Presentation.Rendering
 {
     public sealed class WorldPresenter : MonoBehaviour
     {
         private readonly Dictionary<EntityId, NpcView> _views = new Dictionary<EntityId, NpcView>();
+        private readonly List<NpcView> _viewList = new List<NpcView>();
 
         private readonly Dictionary<int, SpriteRenderer> _resourceViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<EntityId, AnimalView> _animalViews = new Dictionary<EntityId, AnimalView>();
@@ -35,8 +36,10 @@ namespace MyAiWorld.Presentation.Rendering
         private GameSession _session;
         private SimulationRunner _runner;
         private Transform _npcRoot;
-        private Image _dayNightTint;
         private EntityId? _selected;
+        private AtmospherePresenter _atmosphere;
+        private CanopyFader _canopyFader;
+        private CampDressing _campDressing;
 
         public int NpcViewCount => _views.Count;
         public int AnimalViewCount => _animalViews.Count;
@@ -45,6 +48,9 @@ namespace MyAiWorld.Presentation.Rendering
         public int MapWidth => _session != null ? _session.ReadModel.Width : 0;
         public int MapHeight => _session != null ? _session.ReadModel.Height : 0;
         public EntityId? Selected => _selected;
+        public AtmospherePresenter Atmosphere => _atmosphere;
+        public CanopyFader Canopy => _canopyFader;
+        public CampDressing Camp => _campDressing;
 
         public void Initialize(GameSession session, SimulationRunner runner)
         {
@@ -53,10 +59,24 @@ namespace MyAiWorld.Presentation.Rendering
 
             _worldRevision = session.WorldRevision;
             _art = PastoralArtConfig.Load();
+            BuildAtmosphere();
             BuildMap();
             BuildNpcViews();
             BuildResourceViews();
-            BuildDayNightOverlay();
+        }
+
+        private void BuildAtmosphere()
+        {
+            AtmosphereProfile profile = AtmosphereProfile.Load();
+            var atmosphereObject = new GameObject("Atmosphere");
+            atmosphereObject.transform.SetParent(transform, false);
+            _atmosphere = atmosphereObject.AddComponent<AtmospherePresenter>();
+            _atmosphere.Initialize(_session, _runner, _art, profile);
+
+            var canopyObject = new GameObject("CanopyFader");
+            canopyObject.transform.SetParent(transform, false);
+            _canopyFader = canopyObject.AddComponent<CanopyFader>();
+            _canopyFader.Initialize(profile);
         }
 
         public void SetSelected(EntityId? selected)
@@ -107,7 +127,17 @@ namespace MyAiWorld.Presentation.Rendering
                 }
             }
             UpdateWater();
-            UpdateDayNight(model.Date);
+            if (_atmosphere != null) { _atmosphere.Present(model.Date, _runner.AnimationTime); }
+            if (_canopyFader != null)
+            {
+                _canopyFader.Present(_runner.AnimationTime, _viewList, _selected);
+                bool silhouette = _selected.HasValue && _canopyFader.SelectedOccluded;
+                for (int i = 0; i < _viewList.Count; i++)
+                {
+                    NpcView view = _viewList[i];
+                    view.SetSilhouetteVisible(silhouette && _selected.HasValue && view.Id == _selected.Value);
+                }
+            }
         }
 
         private void ResetWorldViews()
@@ -119,8 +149,11 @@ namespace MyAiWorld.Presentation.Rendering
                 if (child != null) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             }
             foreach (Tile tile in _ownedTiles) { Destroy(tile); }
-            _ownedTiles.Clear(); _views.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear();
+            _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear();
             _resourceTick = -1; _selected = null;
+            if (_canopyFader != null) { _canopyFader.Clear(); }
+            if (_atmosphere != null) { _atmosphere.SetCampfire(null); }
+            _campDressing = null;
             _restoringWorldViews = true;
             BuildMap(); BuildNpcViews(); BuildResourceViews();
             _restoringWorldViews = false;
@@ -134,6 +167,7 @@ namespace MyAiWorld.Presentation.Rendering
             }
 
             WorldReadModel model = _session.ReadModel;
+            if (_canopyFader != null) { _canopyFader.Clear(); }
             var gridObject = new GameObject("WorldGrid");
             gridObject.transform.SetParent(transform, false);
             var grid = gridObject.AddComponent<Grid>();
@@ -186,18 +220,29 @@ namespace MyAiWorld.Presentation.Rendering
                 {
                     edgeTiles[index] = ArtTile("edge_" + (type == TileType.Water ? 2 : type == TileType.Path ? 1 : 0) + "_" + mask, cache);
                 }
-                int treeVariant = _art.Variant(x, y, 3);
-                string prop = type == TileType.Forest ? "tree_" + treeVariant :
+                int treeVariant = _art.Variant(x, y, 6);
+                string prop = type == TileType.Forest ? (_art.Variant(x + 5, y + 93, 17) == 0
+                        ? "snag_" + _art.Variant(x + 2, y + 7, 2) : "tree_" + treeVariant) :
                     type == TileType.Rock ? "rock_" + _art.Variant(x, y, 2) :
                     type == TileType.House ? "cottage_" + _art.Variant(x, y, 3) : null;
                 foreach (var facility in model.Survival.Facilities) { if (facility.Cell == new GridPos(x, y)) { prop = null; break; } }
                 if (prop != null)
                 {
-                    // Thin the canopy with a second visual seed so all three tree
-                    // variants remain in play; every simulated tile stays intact.
+                    // Thin the canopy with a second visual seed so all tree variants
+                    // remain in play; every simulated forest tile stays intact.
                     if (type != TileType.Forest || _art.Variant(x + 73, y + 19, 3) != 0)
                     {
-                        Landmark(objects, prop, new GridPos(x, y));
+                        SpriteRenderer landmark = Landmark(objects, prop, new GridPos(x, y));
+                        if (type == TileType.Forest)
+                        {
+                            TintDepth(landmark, x, y, width, height);
+                            if (_canopyFader != null) { _canopyFader.Register(landmark); }
+                        }
+                    }
+                    else if (type == TileType.Forest)
+                    {
+                        var undergrowth = Landmark(decoration, new[] { "fern", "dead_log", "stump", "heather" }[_art.Variant(x + 41, y + 13, 4)], new GridPos(x, y));
+                        undergrowth.sortingOrder = -9000;
                     }
                 }
                 else if (type == TileType.Water && _art.Variant(x + 31, y, 9) == 0)
@@ -205,14 +250,38 @@ namespace MyAiWorld.Presentation.Rendering
                     var decor = Landmark(decoration, mask != 0 ? "reeds" : "lilies", new GridPos(x, y));
                     decor.sortingOrder = -9000;
                 }
+                else if (type == TileType.Water && mask != 0 && _art.Variant(x + 5, y + 7, 7) == 0)
+                {
+                    var pebbles = Landmark(decoration, "shore_pebbles", new GridPos(x, y));
+                    pebbles.sortingOrder = -9000;
+                }
                 else if (type == TileType.Grass && _art.Variant(x, y, 13) == 0)
                 {
-                    var decor = Landmark(decoration, new[] { "flower", "tuft", "pebbles" }[_art.Variant(x + 17, y, 3)], new GridPos(x, y));
+                    var decor = Landmark(decoration, new[] { "flower", "tuft", "pebbles", "cold_flower", "heather" }[_art.Variant(x + 17, y, 5)], new GridPos(x, y));
                     decor.sortingOrder = -9000;
                 }
             }
             var bounds = new BoundsInt(0, 0, 0, width, height, 1);
             tilemap.SetTilesBlock(bounds, tiles); edges.SetTilesBlock(bounds, edgeTiles);
+            BuildCamp(gridObject.transform);
+        }
+
+        private void TintDepth(SpriteRenderer renderer, int x, int y, int width, int height)
+        {
+            float nx = (x + 0.5f) / width * 2f - 1f;
+            float ny = (y + 0.5f) / height * 2f - 1f;
+            float distance = Mathf.Sqrt(nx * nx + ny * ny);
+            float tint = Mathf.Clamp01((distance - 0.42f) / 0.58f) * 0.55f;
+            renderer.color = Color.Lerp(Color.white, new Color(0.62f, 0.72f, 0.79f, 1f), tint);
+        }
+
+        private void BuildCamp(Transform grid)
+        {
+            var campObject = new GameObject("CampProps");
+            campObject.transform.SetParent(grid, false);
+            _campDressing = campObject.AddComponent<CampDressing>();
+            _campDressing.Initialize(_session, _runner, _art, _canopyFader);
+            if (_atmosphere != null) { _atmosphere.SetCampfire(_campDressing.CampfirePosition); }
         }
 
         private void UpdateWater()
@@ -290,9 +359,12 @@ namespace MyAiWorld.Presentation.Rendering
             var viewObject = new GameObject("Npc_" + snapshot.Id.Value);
             viewObject.transform.SetParent(_npcRoot, false);
             var view = viewObject.AddComponent<NpcView>();
-            view.Initialize(snapshot.Id, _art.Get("npc_" + NpcView.RoleIndex(snapshot.Role) + "_0_0_0"), _npcRoot);
+            int role = NpcView.RoleIndex(snapshot.Role);
+            int look = NpcView.LookIndex(snapshot.Id);
+            view.Initialize(snapshot.Id, _art.Get("npc_" + role + "_" + look + "_0_0_0"), _npcRoot, look);
             view.Configure(_art, snapshot.Role, _runner.AnimationTime - (_restoringWorldViews || _session.ReadModel.Tick == GameCalendar.StartTick ? 1f : 0f), snapshot.Health);
             _views[snapshot.Id] = view;
+            _viewList.Add(view);
             return view;
         }
 
@@ -398,65 +470,5 @@ namespace MyAiWorld.Presentation.Rendering
             }
         }
 
-        private void BuildDayNightOverlay()
-        {
-            var canvasObject = new GameObject("DayNightTintCanvas");
-            canvasObject.transform.SetParent(transform, false);
-            var canvas = canvasObject.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            canvas.sortingOrder = -20;
-
-            var imageObject = new GameObject("Tint");
-            imageObject.transform.SetParent(canvasObject.transform, false);
-            var rect = imageObject.AddComponent<RectTransform>();
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            _dayNightTint = imageObject.AddComponent<Image>();
-            _dayNightTint.color = new Color(0f, 0f, 0f, 0f);
-            _dayNightTint.raycastTarget = false;
-        }
-
-        private void UpdateDayNight(GameDateTime date)
-        {
-            if (_dayNightTint == null)
-            {
-                return;
-            }
-
-            float hour = date.MinuteOfDay / 60f;
-            Color clear = new Color(0f, 0f, 0f, 0f);
-            Color night = new Color(0.02f, 0.04f, 0.14f, 0.6f);
-            Color dusk = new Color(0.42f, 0.18f, 0.08f, 0.22f);
-
-            Color color;
-            if (hour < 5f || hour >= 22f)
-            {
-                color = night;
-            }
-            else if (hour < 7f)
-            {
-                color = Color.Lerp(night, clear, (hour - 5f) / 2f);
-            }
-            else if (hour < 17f)
-            {
-                color = clear;
-            }
-            else if (hour < 19f)
-            {
-                color = Color.Lerp(clear, dusk, (hour - 17f) / 2f);
-            }
-            else if (hour < 21f)
-            {
-                color = Color.Lerp(dusk, night, (hour - 19f) / 2f);
-            }
-            else
-            {
-                color = night;
-            }
-
-            _dayNightTint.color = color;
-        }
     }
 }
