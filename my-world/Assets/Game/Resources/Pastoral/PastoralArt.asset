@@ -1,0 +1,1700 @@
+%YAML 1.1
+%TAG !u! tag:yousandi.cn,2023:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36f33fea0862b4c1eac3e2266d0994de, type: 3}
+  m_Name: PastoralArt
+  m_EditorClassIdentifier: 
+  pixelsPerUnit: 32
+  visualSeed: 741103
+  panel: {r: 0.972549, g: 0.94509804, b: 0.85490197, a: 0.98039216}
+  ink: {r: 0.15686275, g: 0.25490198, b: 0.19215687, a: 1}
+  muted: {r: 0.39215687, g: 0.4509804, b: 0.34509805, a: 1}
+  accent: {r: 0.35686275, g: 0.5058824, b: 0.30980393, a: 1}
+  chineseFont: {fileID: 12800000, guid: 44050205bf9fd415882c45462812b34d, type: 3}
+  sprites:
+  - key: animal_0_0_0_0
+    sprite: {fileID: -3337469329254372558, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_0_1
+    sprite: {fileID: 5214637043889699827, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_0_2
+    sprite: {fileID: 3872575668987596396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_0_3
+    sprite: {fileID: 600874652311592038, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_1_0
+    sprite: {fileID: -6080623153645407424, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_1_1
+    sprite: {fileID: 6349874782375370944, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_1_2
+    sprite: {fileID: -7681092104966514206, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_0_1_3
+    sprite: {fileID: 3160131209595089481, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_0_0
+    sprite: {fileID: 2646386637960484000, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_0_1
+    sprite: {fileID: -2234312090471759329, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_0_2
+    sprite: {fileID: 2770936092994635680, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_0_3
+    sprite: {fileID: -1064775093001746627, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_1_0
+    sprite: {fileID: 3681463422684983137, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_1_1
+    sprite: {fileID: -169605668282732368, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_1_2
+    sprite: {fileID: -1029890353300188694, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_1_1_3
+    sprite: {fileID: 2039618721263470734, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_0_0
+    sprite: {fileID: -8833625436016971789, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_0_1
+    sprite: {fileID: -8626221074724268568, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_0_2
+    sprite: {fileID: 7745639565332783033, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_0_3
+    sprite: {fileID: 8090664343031223039, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_1_0
+    sprite: {fileID: 3588126453198350841, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_1_1
+    sprite: {fileID: -2568332359239904521, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_1_2
+    sprite: {fileID: -9081130629342026368, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_2_1_3
+    sprite: {fileID: -1507777905608621338, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_0_0
+    sprite: {fileID: 2386367910984310219, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_0_1
+    sprite: {fileID: -2805141255115140171, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_0_2
+    sprite: {fileID: 9113935445255004157, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_0_3
+    sprite: {fileID: 2033202182962506314, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_1_0
+    sprite: {fileID: 7142839484533771665, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_1_1
+    sprite: {fileID: 1975711785213915516, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_1_2
+    sprite: {fileID: 2337931621858428755, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_0_3_1_3
+    sprite: {fileID: -9117697780969068954, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_0_0
+    sprite: {fileID: -2650513410291609059, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_0_1
+    sprite: {fileID: -4026783593240555720, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_0_2
+    sprite: {fileID: -4964014988929512391, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_0_3
+    sprite: {fileID: 1680331070601442041, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_1_0
+    sprite: {fileID: -6488121492773813190, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_1_1
+    sprite: {fileID: -7267065206956782838, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_1_2
+    sprite: {fileID: -269630754873808412, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_0_1_3
+    sprite: {fileID: 8725770444495712903, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_0_0
+    sprite: {fileID: 2362909369580548121, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_0_1
+    sprite: {fileID: 7091067559959104006, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_0_2
+    sprite: {fileID: -6032105113977566496, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_0_3
+    sprite: {fileID: 8679037623417487962, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_1_0
+    sprite: {fileID: 6839738672066201473, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_1_1
+    sprite: {fileID: 5901998209270524731, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_1_2
+    sprite: {fileID: 5945070889629033075, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_1_1_3
+    sprite: {fileID: -61957024418585166, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_0_0
+    sprite: {fileID: -2813315619652494258, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_0_1
+    sprite: {fileID: 7941357965118644363, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_0_2
+    sprite: {fileID: 6807328259109472205, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_0_3
+    sprite: {fileID: 3676983540142226416, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_1_0
+    sprite: {fileID: -4984991957425409173, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_1_1
+    sprite: {fileID: -556475618509374022, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_1_2
+    sprite: {fileID: -7385921278334213930, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_2_1_3
+    sprite: {fileID: -5656712493743511663, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_0_0
+    sprite: {fileID: -5301571337397249933, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_0_1
+    sprite: {fileID: -7168750025223534901, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_0_2
+    sprite: {fileID: -1762740179258221646, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_0_3
+    sprite: {fileID: 3246656077873043023, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_1_0
+    sprite: {fileID: 8948154276234934513, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_1_1
+    sprite: {fileID: -6698164907868349995, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_1_2
+    sprite: {fileID: 1132921793428733093, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_1_3_1_3
+    sprite: {fileID: 1965684728330283252, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_0_0
+    sprite: {fileID: -2278368077083767679, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_0_1
+    sprite: {fileID: -4198044535055668399, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_0_2
+    sprite: {fileID: 5928714932231875020, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_0_3
+    sprite: {fileID: 8769055893775316489, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_1_0
+    sprite: {fileID: -5833161940003503186, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_1_1
+    sprite: {fileID: 6706255461076548757, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_1_2
+    sprite: {fileID: -1056504482662672420, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_0_1_3
+    sprite: {fileID: -3641511859155507862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_0_0
+    sprite: {fileID: 5766696610340825638, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_0_1
+    sprite: {fileID: -3617080223977942523, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_0_2
+    sprite: {fileID: 3353988909319685039, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_0_3
+    sprite: {fileID: 7269365604122082095, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_1_0
+    sprite: {fileID: 3767557413098850799, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_1_1
+    sprite: {fileID: -8020686182658155451, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_1_2
+    sprite: {fileID: -6731495517807838553, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_1_1_3
+    sprite: {fileID: -3059612660309585019, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_0_0
+    sprite: {fileID: -1089874090775721362, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_0_1
+    sprite: {fileID: 5295329855387074346, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_0_2
+    sprite: {fileID: 4103342819017480189, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_0_3
+    sprite: {fileID: -1096399956069162216, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_1_0
+    sprite: {fileID: 5820494116059994692, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_1_1
+    sprite: {fileID: -7630453310690083802, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_1_2
+    sprite: {fileID: -3258724881339154755, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_2_1_3
+    sprite: {fileID: 4831792204192976677, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_0_0
+    sprite: {fileID: 2685146703416033107, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_0_1
+    sprite: {fileID: -5791147933543031844, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_0_2
+    sprite: {fileID: -4048107274681248000, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_0_3
+    sprite: {fileID: -911133984629636100, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_1_0
+    sprite: {fileID: 5656472365518384406, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_1_1
+    sprite: {fileID: -7092437409730158447, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_1_2
+    sprite: {fileID: -6864929636783719875, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: animal_2_3_1_3
+    sprite: {fileID: 3918054241079493942, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: berries_0
+    sprite: {fileID: 5924497890750370559, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: berries_1
+    sprite: {fileID: -7531355755250354793, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: berries_empty
+    sprite: {fileID: 5574984294548341033, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: cottage_0
+    sprite: {fileID: 600555255361702067, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: cottage_1
+    sprite: {fileID: 3819447397956179524, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: cottage_2
+    sprite: {fileID: 112739548208044215, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_0_0
+    sprite: {fileID: -1074583801727508863, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_0_1
+    sprite: {fileID: 3748727754358422670, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_1_0
+    sprite: {fileID: 2750437130530728601, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_1_1
+    sprite: {fileID: -1825848554599651598, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_2_0
+    sprite: {fileID: 8876919114384550958, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_2_1
+    sprite: {fileID: 1869980245030128297, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_3_0
+    sprite: {fileID: 1935373926264113159, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_3_1
+    sprite: {fileID: -6732980258059160711, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_0_0
+    sprite: {fileID: 8903192864735776680, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_0_1
+    sprite: {fileID: 1040956560751344701, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_1_0
+    sprite: {fileID: -5831753376705798887, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_1_1
+    sprite: {fileID: 305850317408158429, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_2_0
+    sprite: {fileID: 6599811992094093384, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_2_1
+    sprite: {fileID: -5510035168708192397, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_3_0
+    sprite: {fileID: 6906007783378689684, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_2_3_1
+    sprite: {fileID: 6746542059065200331, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_0_0
+    sprite: {fileID: 1227863546929494623, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_0_1
+    sprite: {fileID: -4437077804659199925, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_1_0
+    sprite: {fileID: -8909187651788857078, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_1_1
+    sprite: {fileID: 6140837523684536886, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_2_0
+    sprite: {fileID: 8722596979303785571, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_2_1
+    sprite: {fileID: -8643304299796184295, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_3_0
+    sprite: {fileID: 5579922813210960076, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: crop_type_3_3_1
+    sprite: {fileID: -7549134799039208315, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_0
+    sprite: {fileID: -4374548631867214307, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_1
+    sprite: {fileID: 140905034937820706, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_10
+    sprite: {fileID: 1238873007058571835, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_11
+    sprite: {fileID: 8071647374736377204, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_12
+    sprite: {fileID: -8122563272010676787, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_13
+    sprite: {fileID: -289356754893056903, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_14
+    sprite: {fileID: -8247451019898099624, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_15
+    sprite: {fileID: -5370423897004729637, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_2
+    sprite: {fileID: 3522157549094635775, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_3
+    sprite: {fileID: 5863684097916350392, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_4
+    sprite: {fileID: 2263380122536721773, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_5
+    sprite: {fileID: 6022865900294608202, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_6
+    sprite: {fileID: 830184312943195978, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_7
+    sprite: {fileID: 1791470620498281683, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_8
+    sprite: {fileID: 2830336999456947614, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_0_9
+    sprite: {fileID: -7676419756749216211, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_0
+    sprite: {fileID: -1429042502238900891, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_1
+    sprite: {fileID: 5530191660282472564, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_10
+    sprite: {fileID: -6821985845363954498, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_11
+    sprite: {fileID: 7948564659043269430, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_12
+    sprite: {fileID: 8897504288486392145, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_13
+    sprite: {fileID: -7992337739643249557, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_14
+    sprite: {fileID: 3855779846983125049, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_15
+    sprite: {fileID: 8148553546139586729, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_2
+    sprite: {fileID: 8950046669674304841, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_3
+    sprite: {fileID: -4466294596633773924, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_4
+    sprite: {fileID: -8663584151524704949, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_5
+    sprite: {fileID: -8931827194307255831, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_6
+    sprite: {fileID: -194990064362287803, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_7
+    sprite: {fileID: -4009598492925816423, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_8
+    sprite: {fileID: 257039867482334738, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_1_9
+    sprite: {fileID: 7955670358123216346, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_0
+    sprite: {fileID: 7219701651889723848, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_1
+    sprite: {fileID: 8811837611737694238, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_10
+    sprite: {fileID: -6033970518034302510, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_11
+    sprite: {fileID: -71543118504849125, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_12
+    sprite: {fileID: -6976173742551532070, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_13
+    sprite: {fileID: -561022935199844566, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_14
+    sprite: {fileID: -9158545740967428954, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_15
+    sprite: {fileID: -6186047029998774364, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_2
+    sprite: {fileID: -8337664434227882634, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_3
+    sprite: {fileID: -3783216477418879984, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_4
+    sprite: {fileID: 4661631399256474839, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_5
+    sprite: {fileID: -1735721269070478885, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_6
+    sprite: {fileID: 2117573788336867578, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_7
+    sprite: {fileID: -7367595623787764165, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_8
+    sprite: {fileID: 7032248556686078126, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: edge_2_9
+    sprite: {fileID: -7712276025758708971, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_0_0
+    sprite: {fileID: 1327454097497663944, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_0_1
+    sprite: {fileID: 3980185723370441494, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_1_0
+    sprite: {fileID: -2687773594419653550, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_1_1
+    sprite: {fileID: 577953314725892153, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_2_0
+    sprite: {fileID: -704828971766955813, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_2_1
+    sprite: {fileID: 8861573697835463005, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_3_0
+    sprite: {fileID: -8133124784751065902, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_3_1
+    sprite: {fileID: 8220946477855862834, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_4_0
+    sprite: {fileID: -6714440153500411272, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: facility_4_1
+    sprite: {fileID: 8826849220489320491, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: flower
+    sprite: {fileID: 1173883757149469839, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_0_0
+    sprite: {fileID: -2913193923744827257, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_0_1
+    sprite: {fileID: 2294708724372289594, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_0_2
+    sprite: {fileID: -7708908695051544659, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_0_3
+    sprite: {fileID: 5641621083002398228, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_1_0
+    sprite: {fileID: 3872770320069629317, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_1_1
+    sprite: {fileID: 5467911981512115185, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_1_2
+    sprite: {fileID: -6782477230340579360, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_1_3
+    sprite: {fileID: 8050527572721069468, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_2_0
+    sprite: {fileID: -1048462272589929829, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_2_1
+    sprite: {fileID: 4566824089095847545, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_2_2
+    sprite: {fileID: 369929719120204555, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_2_3
+    sprite: {fileID: 765144315505674865, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_3_0
+    sprite: {fileID: 5156397875042378664, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_3_1
+    sprite: {fileID: 1760679241223299534, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_3_2
+    sprite: {fileID: 556659679905251218, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_3_3
+    sprite: {fileID: 6877144917652479270, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_4_0
+    sprite: {fileID: -1470048047868520862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_4_1
+    sprite: {fileID: -5194406345150024355, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_4_2
+    sprite: {fileID: 4087709031485237600, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_4_3
+    sprite: {fileID: 6336049047966036764, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_5_0
+    sprite: {fileID: -4842672680031316829, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_5_1
+    sprite: {fileID: -6778128615406354184, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_5_2
+    sprite: {fileID: 5451041658612304831, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_5_3
+    sprite: {fileID: -6276007599943882248, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_6_0
+    sprite: {fileID: -841611088789638836, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_6_1
+    sprite: {fileID: 6506262102204182584, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_6_2
+    sprite: {fileID: -8088070741808874672, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_6_3
+    sprite: {fileID: 8624857437437390453, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_7_0
+    sprite: {fileID: 6074603266602261827, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_7_1
+    sprite: {fileID: 8692033029856067219, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_7_2
+    sprite: {fileID: -740754929191222153, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_7_3
+    sprite: {fileID: 8954334564348031345, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: ground_stock
+    sprite: {fileID: -7464357132650663242, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: house
+    sprite: {fileID: 3886477170696509768, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_0
+    sprite: {fileID: 6934086728263231946, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_1
+    sprite: {fileID: -229256013063241344, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_2
+    sprite: {fileID: -3885610455112514396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_3
+    sprite: {fileID: -7441382367286639308, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_4
+    sprite: {fileID: 1618293649664528702, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: icon_5
+    sprite: {fileID: 8049885976776599914, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: lilies
+    sprite: {fileID: 2904034834845561782, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_0_0
+    sprite: {fileID: 104045495462964172, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_0_1
+    sprite: {fileID: -5934015054781155047, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_0_2
+    sprite: {fileID: 721177396391736961, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_0_3
+    sprite: {fileID: -3657333030443715264, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_1_0
+    sprite: {fileID: 496085157752830624, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_1_1
+    sprite: {fileID: 2797843492992242426, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_1_2
+    sprite: {fileID: 8079623677983332031, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_1_3
+    sprite: {fileID: -2615438569662401838, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_2_0
+    sprite: {fileID: 3272990345422546140, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_2_1
+    sprite: {fileID: -8738607747271075221, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_2_2
+    sprite: {fileID: -2402094915110564553, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_2_3
+    sprite: {fileID: -1313651737070973814, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_3_0
+    sprite: {fileID: -1019240467154926019, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_3_1
+    sprite: {fileID: 5297873955855469864, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_3_2
+    sprite: {fileID: 2619291186292509318, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_3_3
+    sprite: {fileID: 5032337378168492744, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_4_0
+    sprite: {fileID: 3782130618391796830, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_4_1
+    sprite: {fileID: 2517067749944944942, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_4_2
+    sprite: {fileID: -8257043246314459333, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_4_3
+    sprite: {fileID: 6154858362874243714, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_5_0
+    sprite: {fileID: 7696066522622879190, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_5_1
+    sprite: {fileID: 5125067522920616961, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_5_2
+    sprite: {fileID: 6716780952991322437, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_5_3
+    sprite: {fileID: -7590294433734577688, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_6_0
+    sprite: {fileID: -4603387854901042138, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_6_1
+    sprite: {fileID: 6969708245348324345, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_6_2
+    sprite: {fileID: -8846210737274937107, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_0_6_3
+    sprite: {fileID: -6598404423697165573, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_0_0
+    sprite: {fileID: 7143256297047369810, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_0_1
+    sprite: {fileID: -1569885498548122657, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_0_2
+    sprite: {fileID: -5748459138403152921, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_0_3
+    sprite: {fileID: 3566680494337301247, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_1_0
+    sprite: {fileID: -8492368799581677989, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_1_1
+    sprite: {fileID: -7121458145584276745, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_1_2
+    sprite: {fileID: -5280082578355035315, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_1_3
+    sprite: {fileID: 5401435847484481017, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_2_0
+    sprite: {fileID: -7512615597567382574, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_2_1
+    sprite: {fileID: -7912812011012988074, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_2_2
+    sprite: {fileID: 7204213283481088617, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_2_3
+    sprite: {fileID: -5835391659214777507, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_3_0
+    sprite: {fileID: -5455022929452669568, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_3_1
+    sprite: {fileID: -6535835413762789867, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_3_2
+    sprite: {fileID: 5153473009262019463, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_3_3
+    sprite: {fileID: -6958309562574038574, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_4_0
+    sprite: {fileID: -6470083596766705712, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_4_1
+    sprite: {fileID: 699047735327687703, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_4_2
+    sprite: {fileID: 6024474492565806551, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_4_3
+    sprite: {fileID: 748065588537659784, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_5_0
+    sprite: {fileID: 6549540585250308484, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_5_1
+    sprite: {fileID: -4998377633965652872, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_5_2
+    sprite: {fileID: 2013785972913352667, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_5_3
+    sprite: {fileID: 7102450227582973396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_6_0
+    sprite: {fileID: 2511508404016689307, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_6_1
+    sprite: {fileID: -2486517640800997675, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_6_2
+    sprite: {fileID: 634140172902848370, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_1_6_3
+    sprite: {fileID: -8476380118800223061, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_0_0
+    sprite: {fileID: -420788454884285688, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_0_1
+    sprite: {fileID: 574877506716345797, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_0_2
+    sprite: {fileID: 2515893647641435340, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_0_3
+    sprite: {fileID: 4902624390061914121, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_1_0
+    sprite: {fileID: 5138486121917856707, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_1_1
+    sprite: {fileID: -5361850182221816293, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_1_2
+    sprite: {fileID: -2086881000600905435, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_1_3
+    sprite: {fileID: -640940620330555770, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_2_0
+    sprite: {fileID: -6129847909445212626, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_2_1
+    sprite: {fileID: -3450130008321191669, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_2_2
+    sprite: {fileID: -2008765149168461978, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_2_3
+    sprite: {fileID: -4703829704155480892, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_3_0
+    sprite: {fileID: -9037368216687912575, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_3_1
+    sprite: {fileID: 5254603522700562292, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_3_2
+    sprite: {fileID: 7583021956481628235, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_3_3
+    sprite: {fileID: -8853586516385605110, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_4_0
+    sprite: {fileID: -1198677288694828388, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_4_1
+    sprite: {fileID: 4677084581597041711, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_4_2
+    sprite: {fileID: 6621558888216137902, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_4_3
+    sprite: {fileID: 3679258191201731943, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_5_0
+    sprite: {fileID: 8845462906658265805, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_5_1
+    sprite: {fileID: 484387339445111281, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_5_2
+    sprite: {fileID: 1330912776459580821, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_5_3
+    sprite: {fileID: 7118298307891169181, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_6_0
+    sprite: {fileID: 5232599373411433555, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_6_1
+    sprite: {fileID: 8412967968549966812, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_6_2
+    sprite: {fileID: -9014023250448857472, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_2_6_3
+    sprite: {fileID: -8372355195453735851, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_0_0
+    sprite: {fileID: -1194129115099100085, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_0_1
+    sprite: {fileID: -808877094198168938, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_0_2
+    sprite: {fileID: -1477612543185097399, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_0_3
+    sprite: {fileID: 4512503726207264866, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_1_0
+    sprite: {fileID: -2235686761368869392, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_1_1
+    sprite: {fileID: -4789860989826920378, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_1_2
+    sprite: {fileID: 6952548808350304975, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_1_3
+    sprite: {fileID: 6364501489425043882, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_2_0
+    sprite: {fileID: -8092772768678037454, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_2_1
+    sprite: {fileID: -5890955667172545741, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_2_2
+    sprite: {fileID: 364208959133677550, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_2_3
+    sprite: {fileID: -753130772305101792, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_3_0
+    sprite: {fileID: 4435689505199044846, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_3_1
+    sprite: {fileID: 4485692558716160622, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_3_2
+    sprite: {fileID: 6169674414698778259, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_3_3
+    sprite: {fileID: 6703603360447819655, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_4_0
+    sprite: {fileID: -3406855565749147076, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_4_1
+    sprite: {fileID: 4783325723795946775, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_4_2
+    sprite: {fileID: -1275822829843090799, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_4_3
+    sprite: {fileID: 5171374828374893609, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_5_0
+    sprite: {fileID: -6365122540201563839, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_5_1
+    sprite: {fileID: -247328639262197605, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_5_2
+    sprite: {fileID: 7358840746621678262, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_5_3
+    sprite: {fileID: 2325193526484362024, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_6_0
+    sprite: {fileID: -5098973457305670266, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_6_1
+    sprite: {fileID: -7402333235209799417, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_6_2
+    sprite: {fileID: -749823296590876501, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_0_3_6_3
+    sprite: {fileID: 1709095667324739985, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_0_0
+    sprite: {fileID: 7034342673934878743, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_0_1
+    sprite: {fileID: -6181758548642348143, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_0_2
+    sprite: {fileID: 8481330711270691381, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_0_3
+    sprite: {fileID: 1601087111711366094, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_1_0
+    sprite: {fileID: -7341124519205243419, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_1_1
+    sprite: {fileID: -1362847646177652772, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_1_2
+    sprite: {fileID: -5510738499067429550, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_1_3
+    sprite: {fileID: -7606955927930661447, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_2_0
+    sprite: {fileID: -4111048950907743430, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_2_1
+    sprite: {fileID: -6007201604112494208, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_2_2
+    sprite: {fileID: 5595556676237869625, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_2_3
+    sprite: {fileID: 1989301770188638167, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_3_0
+    sprite: {fileID: 4448666616205642917, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_3_1
+    sprite: {fileID: 6001442808486055529, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_3_2
+    sprite: {fileID: -6667107387983306178, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_3_3
+    sprite: {fileID: -2707385640184300882, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_4_0
+    sprite: {fileID: -4255686652465598489, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_4_1
+    sprite: {fileID: -1392100976559694119, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_4_2
+    sprite: {fileID: 4890343136656111445, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_4_3
+    sprite: {fileID: -7502920488695102620, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_5_0
+    sprite: {fileID: 8583530414325944879, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_5_1
+    sprite: {fileID: -2272056838668313595, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_5_2
+    sprite: {fileID: -7357416222251621101, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_5_3
+    sprite: {fileID: 1920033624220218453, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_6_0
+    sprite: {fileID: 3641504942456791586, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_6_1
+    sprite: {fileID: -4370527024641133088, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_6_2
+    sprite: {fileID: -7694699481437487701, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_0_6_3
+    sprite: {fileID: -2290583747595607814, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_0_0
+    sprite: {fileID: 5248059084168242543, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_0_1
+    sprite: {fileID: 4403279218135180162, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_0_2
+    sprite: {fileID: -8685824505952791167, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_0_3
+    sprite: {fileID: -7414013321707447793, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_1_0
+    sprite: {fileID: -2802939314541370773, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_1_1
+    sprite: {fileID: 216675195404003765, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_1_2
+    sprite: {fileID: -3563286740932451907, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_1_3
+    sprite: {fileID: -8201024366674903547, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_2_0
+    sprite: {fileID: 2806289341657089167, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_2_1
+    sprite: {fileID: 7659900238640006815, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_2_2
+    sprite: {fileID: -9000173278813566206, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_2_3
+    sprite: {fileID: -5554941029797148448, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_3_0
+    sprite: {fileID: -1314503227633808209, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_3_1
+    sprite: {fileID: 966689607140023825, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_3_2
+    sprite: {fileID: 6511923159955525424, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_3_3
+    sprite: {fileID: -166007961897974056, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_4_0
+    sprite: {fileID: 8374335576561319656, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_4_1
+    sprite: {fileID: -9031174595890085937, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_4_2
+    sprite: {fileID: -1403820171071461069, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_4_3
+    sprite: {fileID: 5260156744874411557, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_5_0
+    sprite: {fileID: -1657010937186776185, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_5_1
+    sprite: {fileID: -9140071923454100224, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_5_2
+    sprite: {fileID: 2443504250354750020, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_5_3
+    sprite: {fileID: -4360611642100200895, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_6_0
+    sprite: {fileID: 1880684485393468751, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_6_1
+    sprite: {fileID: 2558967099568135012, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_6_2
+    sprite: {fileID: -1113049287574044154, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_1_6_3
+    sprite: {fileID: -2008999995588553924, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_0_0
+    sprite: {fileID: 5389590179043824194, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_0_1
+    sprite: {fileID: -4586072093559800612, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_0_2
+    sprite: {fileID: 4618986410382127414, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_0_3
+    sprite: {fileID: -6903429090145073194, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_1_0
+    sprite: {fileID: -4643577976158107669, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_1_1
+    sprite: {fileID: -7633193905805041652, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_1_2
+    sprite: {fileID: -2961250186180810893, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_1_3
+    sprite: {fileID: 6836094777045187773, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_2_0
+    sprite: {fileID: 784435436648989989, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_2_1
+    sprite: {fileID: -202456218068162322, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_2_2
+    sprite: {fileID: 6337136114512698715, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_2_3
+    sprite: {fileID: 1418226447122811211, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_3_0
+    sprite: {fileID: 4604457962699913985, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_3_1
+    sprite: {fileID: 947682573258908872, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_3_2
+    sprite: {fileID: 7841829830911858812, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_3_3
+    sprite: {fileID: -1270500452700458357, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_4_0
+    sprite: {fileID: 1556147093389594537, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_4_1
+    sprite: {fileID: -4705841037291176011, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_4_2
+    sprite: {fileID: -4591471084847821840, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_4_3
+    sprite: {fileID: 6377363933078212097, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_5_0
+    sprite: {fileID: 8708862999572566877, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_5_1
+    sprite: {fileID: 3460081495802619783, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_5_2
+    sprite: {fileID: -2170050431428127557, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_5_3
+    sprite: {fileID: -3064402224865431300, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_6_0
+    sprite: {fileID: -8512334655838857850, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_6_1
+    sprite: {fileID: 6850902087734821017, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_6_2
+    sprite: {fileID: 1616419826068022477, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_2_6_3
+    sprite: {fileID: -4761386890961450173, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_0_0
+    sprite: {fileID: 5198958305032929174, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_0_1
+    sprite: {fileID: -853694981992049044, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_0_2
+    sprite: {fileID: -6788727862833048439, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_0_3
+    sprite: {fileID: -5658422524949975806, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_1_0
+    sprite: {fileID: -7986652981555676769, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_1_1
+    sprite: {fileID: -4724505102849643704, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_1_2
+    sprite: {fileID: 2957516468331218669, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_1_3
+    sprite: {fileID: 4291467142500733936, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_2_0
+    sprite: {fileID: 3778633535433591952, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_2_1
+    sprite: {fileID: -6348184999345929440, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_2_2
+    sprite: {fileID: 9113408452442807015, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_2_3
+    sprite: {fileID: 6178544235655018228, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_3_0
+    sprite: {fileID: 2285108896308819391, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_3_1
+    sprite: {fileID: 7682219723675631838, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_3_2
+    sprite: {fileID: -6880897072062632643, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_3_3
+    sprite: {fileID: 7430568659412484956, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_4_0
+    sprite: {fileID: -8754632517443062244, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_4_1
+    sprite: {fileID: -7542445033389856912, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_4_2
+    sprite: {fileID: 7150755172177435796, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_4_3
+    sprite: {fileID: 754772592906713671, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_5_0
+    sprite: {fileID: 9043147011018720417, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_5_1
+    sprite: {fileID: -3553432252196497752, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_5_2
+    sprite: {fileID: 7660384028761661858, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_5_3
+    sprite: {fileID: 6796810359226917838, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_6_0
+    sprite: {fileID: 4185702976816503232, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_6_1
+    sprite: {fileID: -4724854870937125368, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_6_2
+    sprite: {fileID: 940954301991762502, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_1_3_6_3
+    sprite: {fileID: -6737207548030922024, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_0_0
+    sprite: {fileID: -497968029602717414, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_0_1
+    sprite: {fileID: 1217580448224800886, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_0_2
+    sprite: {fileID: 4706735420264776676, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_0_3
+    sprite: {fileID: 1340947033603461264, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_1_0
+    sprite: {fileID: -6722295907625740028, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_1_1
+    sprite: {fileID: 8061874760825705800, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_1_2
+    sprite: {fileID: -8440313209505863388, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_1_3
+    sprite: {fileID: -8837316801088143024, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_2_0
+    sprite: {fileID: -6557954180580098075, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_2_1
+    sprite: {fileID: -4570276765884249765, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_2_2
+    sprite: {fileID: 4782231856471621683, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_2_3
+    sprite: {fileID: 2053968184214127545, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_3_0
+    sprite: {fileID: -1013567891999084681, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_3_1
+    sprite: {fileID: -5670308461134478065, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_3_2
+    sprite: {fileID: -4358841402207590578, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_3_3
+    sprite: {fileID: 6844608419504809403, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_4_0
+    sprite: {fileID: 5213006435532805344, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_4_1
+    sprite: {fileID: 2177439005933365172, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_4_2
+    sprite: {fileID: -2444703265954430414, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_4_3
+    sprite: {fileID: -6865278254181447500, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_5_0
+    sprite: {fileID: 191379660495386106, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_5_1
+    sprite: {fileID: 3160879419106472586, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_5_2
+    sprite: {fileID: -7811716475107760899, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_5_3
+    sprite: {fileID: -1191530507950811799, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_6_0
+    sprite: {fileID: 2279856279015117959, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_6_1
+    sprite: {fileID: -537836894353218017, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_6_2
+    sprite: {fileID: -8281390026649097307, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_0_6_3
+    sprite: {fileID: 7078829925836671091, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_0_0
+    sprite: {fileID: 9077770644894175580, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_0_1
+    sprite: {fileID: 7623697241465913857, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_0_2
+    sprite: {fileID: -1921412521702973828, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_0_3
+    sprite: {fileID: 3305725378933678367, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_1_0
+    sprite: {fileID: -5774987250547489763, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_1_1
+    sprite: {fileID: -993462750094547646, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_1_2
+    sprite: {fileID: -5708147138031081356, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_1_3
+    sprite: {fileID: 9066753188766133597, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_2_0
+    sprite: {fileID: 898537949016625863, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_2_1
+    sprite: {fileID: -3475844437112841102, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_2_2
+    sprite: {fileID: 5595355312782933676, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_2_3
+    sprite: {fileID: 1918700066809727353, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_3_0
+    sprite: {fileID: -6467974509881689576, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_3_1
+    sprite: {fileID: -1366368770290677141, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_3_2
+    sprite: {fileID: -4475771678002427627, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_3_3
+    sprite: {fileID: 3191623873912652755, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_4_0
+    sprite: {fileID: 8935123137976212784, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_4_1
+    sprite: {fileID: -6154998701992911453, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_4_2
+    sprite: {fileID: 2223881922073249826, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_4_3
+    sprite: {fileID: 7679088931259041206, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_5_0
+    sprite: {fileID: -6508522432772822856, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_5_1
+    sprite: {fileID: 5444656259217166983, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_5_2
+    sprite: {fileID: -1585034913232779585, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_5_3
+    sprite: {fileID: -5380247960875851505, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_6_0
+    sprite: {fileID: 2390972893092848867, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_6_1
+    sprite: {fileID: -1519066421206252957, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_6_2
+    sprite: {fileID: -3131713483581482670, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_1_6_3
+    sprite: {fileID: -3135038445564022401, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_0_0
+    sprite: {fileID: 2503901156234440621, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_0_1
+    sprite: {fileID: 8852472918474143902, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_0_2
+    sprite: {fileID: 8948620730420017481, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_0_3
+    sprite: {fileID: -3945858451361495639, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_1_0
+    sprite: {fileID: 1406643863220671425, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_1_1
+    sprite: {fileID: -6581826388828752954, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_1_2
+    sprite: {fileID: -1418301136280276870, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_1_3
+    sprite: {fileID: 6045366378080665809, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_2_0
+    sprite: {fileID: -5072718350513758557, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_2_1
+    sprite: {fileID: 5955405864113332162, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_2_2
+    sprite: {fileID: -4144462357492246099, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_2_3
+    sprite: {fileID: 5101529394839654096, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_3_0
+    sprite: {fileID: -2460226352373251645, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_3_1
+    sprite: {fileID: 4293323195593273918, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_3_2
+    sprite: {fileID: 6025596500908045647, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_3_3
+    sprite: {fileID: 5155410761630835861, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_4_0
+    sprite: {fileID: 996893124157828799, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_4_1
+    sprite: {fileID: 8278116162084777362, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_4_2
+    sprite: {fileID: -249748452874405895, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_4_3
+    sprite: {fileID: -3864604446722733786, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_5_0
+    sprite: {fileID: -3623272169215612405, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_5_1
+    sprite: {fileID: 5587440000823618638, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_5_2
+    sprite: {fileID: 7765382425336589737, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_5_3
+    sprite: {fileID: -2117043006252491071, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_6_0
+    sprite: {fileID: 6608894103208946045, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_6_1
+    sprite: {fileID: 7008088441925333446, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_6_2
+    sprite: {fileID: 4429951579148780474, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_2_6_3
+    sprite: {fileID: 7692598243218060428, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_0_0
+    sprite: {fileID: -5996462116467602456, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_0_1
+    sprite: {fileID: -3867171883887312783, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_0_2
+    sprite: {fileID: 1149373904966313782, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_0_3
+    sprite: {fileID: -1201104240713538397, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_1_0
+    sprite: {fileID: 2940238545600401088, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_1_1
+    sprite: {fileID: 5954875956944631485, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_1_2
+    sprite: {fileID: -344705102045036101, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_1_3
+    sprite: {fileID: -8494978802502806269, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_2_0
+    sprite: {fileID: -5617578171460156336, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_2_1
+    sprite: {fileID: 7891728233604176869, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_2_2
+    sprite: {fileID: 837715364720966574, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_2_3
+    sprite: {fileID: 7429145491452307834, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_3_0
+    sprite: {fileID: 6094829229075078253, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_3_1
+    sprite: {fileID: -1155166712982166972, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_3_2
+    sprite: {fileID: -2128265729079895390, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_3_3
+    sprite: {fileID: -1026513248704819261, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_4_0
+    sprite: {fileID: -1270372382711937516, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_4_1
+    sprite: {fileID: -9215958248210230416, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_4_2
+    sprite: {fileID: 5140515836784998881, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_4_3
+    sprite: {fileID: 2729704147128985182, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_5_0
+    sprite: {fileID: -2759121410936355256, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_5_1
+    sprite: {fileID: 1177416076013600637, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_5_2
+    sprite: {fileID: -5379317881090724811, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_5_3
+    sprite: {fileID: -3505930639725912526, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_6_0
+    sprite: {fileID: -1038166148209721595, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_6_1
+    sprite: {fileID: -542158377405605648, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_6_2
+    sprite: {fileID: -1774774534688240424, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_2_3_6_3
+    sprite: {fileID: 5150708522388277591, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_0_0
+    sprite: {fileID: -3424807843137540993, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_0_1
+    sprite: {fileID: -9150572188304032322, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_0_2
+    sprite: {fileID: 2532700595934401141, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_0_3
+    sprite: {fileID: 635142671696843661, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_1_0
+    sprite: {fileID: -2985609114841297884, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_1_1
+    sprite: {fileID: -7245056264647624265, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_1_2
+    sprite: {fileID: -684582457046712087, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_1_3
+    sprite: {fileID: 7907005157424435140, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_2_0
+    sprite: {fileID: -3757725947975414364, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_2_1
+    sprite: {fileID: -8754271135548213949, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_2_2
+    sprite: {fileID: 5384670143251289654, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_2_3
+    sprite: {fileID: 7711440757586730680, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_3_0
+    sprite: {fileID: 8333533588215065176, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_3_1
+    sprite: {fileID: -8932528619464723997, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_3_2
+    sprite: {fileID: -4115851615078301669, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_3_3
+    sprite: {fileID: 3926914388982079142, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_4_0
+    sprite: {fileID: 2458614885284938410, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_4_1
+    sprite: {fileID: -6390083913648205266, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_4_2
+    sprite: {fileID: 6947578158714175077, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_4_3
+    sprite: {fileID: -4410124351457977187, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_5_0
+    sprite: {fileID: 5291612490241956283, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_5_1
+    sprite: {fileID: -1080024231835782094, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_5_2
+    sprite: {fileID: -9088454530254865447, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_5_3
+    sprite: {fileID: 8900783808664246345, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_6_0
+    sprite: {fileID: 4096821728822206635, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_6_1
+    sprite: {fileID: -163716591988266357, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_6_2
+    sprite: {fileID: 6988522551454628819, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_0_6_3
+    sprite: {fileID: -5093242933087835563, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_0_0
+    sprite: {fileID: -2605129149072948465, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_0_1
+    sprite: {fileID: -2780615887021307287, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_0_2
+    sprite: {fileID: -8378037561842663491, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_0_3
+    sprite: {fileID: 3911711650785700888, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_1_0
+    sprite: {fileID: 1640608993417377603, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_1_1
+    sprite: {fileID: -2922180161190924869, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_1_2
+    sprite: {fileID: 5096955328561685912, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_1_3
+    sprite: {fileID: 5329593032859292125, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_2_0
+    sprite: {fileID: -7214247283673101386, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_2_1
+    sprite: {fileID: -3906030043028665816, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_2_2
+    sprite: {fileID: 7232698659078005918, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_2_3
+    sprite: {fileID: 7428358779471479232, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_3_0
+    sprite: {fileID: 1416139443527732905, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_3_1
+    sprite: {fileID: -979862949277517813, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_3_2
+    sprite: {fileID: -2560205494415359981, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_3_3
+    sprite: {fileID: 41455639239777418, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_4_0
+    sprite: {fileID: -8727648494324007617, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_4_1
+    sprite: {fileID: 7324474629671378931, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_4_2
+    sprite: {fileID: -6750078270689981682, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_4_3
+    sprite: {fileID: 2523886232553676136, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_5_0
+    sprite: {fileID: 5012272233475106746, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_5_1
+    sprite: {fileID: 1312241531990678384, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_5_2
+    sprite: {fileID: -1643059456402548977, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_5_3
+    sprite: {fileID: -6027798843776127104, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_6_0
+    sprite: {fileID: -4733096034019165448, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_6_1
+    sprite: {fileID: 3862416627049719659, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_6_2
+    sprite: {fileID: -5888164024870887191, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_1_6_3
+    sprite: {fileID: 2538805511106674527, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_0_0
+    sprite: {fileID: 933426836791220772, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_0_1
+    sprite: {fileID: -8479775109618694825, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_0_2
+    sprite: {fileID: -200795771397030422, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_0_3
+    sprite: {fileID: 3179912908737339862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_1_0
+    sprite: {fileID: 1595482574995610827, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_1_1
+    sprite: {fileID: 6842548133339840596, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_1_2
+    sprite: {fileID: -2415289124625672401, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_1_3
+    sprite: {fileID: 679096783375150439, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_2_0
+    sprite: {fileID: 8588792970935721499, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_2_1
+    sprite: {fileID: 4274613612692700877, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_2_2
+    sprite: {fileID: 4904403405610852679, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_2_3
+    sprite: {fileID: 7946621886327124721, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_3_0
+    sprite: {fileID: -3958021604566058572, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_3_1
+    sprite: {fileID: -796106463473570862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_3_2
+    sprite: {fileID: -6992704753841323269, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_3_3
+    sprite: {fileID: 6993620499030834952, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_4_0
+    sprite: {fileID: 501241650836196323, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_4_1
+    sprite: {fileID: -2900990826809555223, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_4_2
+    sprite: {fileID: 1448446500716314510, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_4_3
+    sprite: {fileID: 4115917728902610374, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_5_0
+    sprite: {fileID: 4527180691100199515, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_5_1
+    sprite: {fileID: 2159535773115694415, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_5_2
+    sprite: {fileID: -2982474420721070597, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_5_3
+    sprite: {fileID: 6533798953585296567, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_6_0
+    sprite: {fileID: 712122123504221814, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_6_1
+    sprite: {fileID: -5495621487244230862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_6_2
+    sprite: {fileID: -8606106637971968167, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_2_6_3
+    sprite: {fileID: -4803693957137821871, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_0_0
+    sprite: {fileID: 2761886121612594634, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_0_1
+    sprite: {fileID: -6514026176549761063, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_0_2
+    sprite: {fileID: -882769136065841271, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_0_3
+    sprite: {fileID: -4801528731469225211, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_1_0
+    sprite: {fileID: -4239806474190808178, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_1_1
+    sprite: {fileID: -5489181735159530533, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_1_2
+    sprite: {fileID: -3927713273760023306, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_1_3
+    sprite: {fileID: 3377906100371938072, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_2_0
+    sprite: {fileID: 9133241091015557111, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_2_1
+    sprite: {fileID: 71766596878880453, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_2_2
+    sprite: {fileID: 9076466822464295840, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_2_3
+    sprite: {fileID: -4897992324173396623, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_3_0
+    sprite: {fileID: 6837683979091884134, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_3_1
+    sprite: {fileID: 2570153819096280323, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_3_2
+    sprite: {fileID: -3350475193554764838, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_3_3
+    sprite: {fileID: -8391039561365784649, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_4_0
+    sprite: {fileID: -7636427609913407330, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_4_1
+    sprite: {fileID: 8737884110655285635, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_4_2
+    sprite: {fileID: -482369204724029186, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_4_3
+    sprite: {fileID: 2077939940684057313, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_5_0
+    sprite: {fileID: 4207486819089095413, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_5_1
+    sprite: {fileID: -4539170106203526839, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_5_2
+    sprite: {fileID: -9182666385268907050, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_5_3
+    sprite: {fileID: -8773789807836676939, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_6_0
+    sprite: {fileID: 560231064084241328, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_6_1
+    sprite: {fileID: 8576172427381787151, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_6_2
+    sprite: {fileID: -4159408818025365304, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_3_3_6_3
+    sprite: {fileID: 5374596737730216718, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_0_0
+    sprite: {fileID: 5646406025803406514, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_0_1
+    sprite: {fileID: -6485877086968133373, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_0_2
+    sprite: {fileID: 4440507975436175636, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_0_3
+    sprite: {fileID: -1154214514633192865, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_1_0
+    sprite: {fileID: 7297623271944275008, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_1_1
+    sprite: {fileID: -386395707315890537, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_1_2
+    sprite: {fileID: 3805103082456968862, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_1_3
+    sprite: {fileID: -4330535080302625751, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_2_0
+    sprite: {fileID: -5896175537151103009, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_2_1
+    sprite: {fileID: -9022568172652423278, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_2_2
+    sprite: {fileID: 4035366800671971803, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_2_3
+    sprite: {fileID: -9163187323124527931, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_3_0
+    sprite: {fileID: -4968717268303738, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_3_1
+    sprite: {fileID: 4664949070182777549, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_3_2
+    sprite: {fileID: 7425560944942815969, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_3_3
+    sprite: {fileID: 4686494461597003070, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_4_0
+    sprite: {fileID: 6828165445362884102, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_4_1
+    sprite: {fileID: -1633330089974938348, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_4_2
+    sprite: {fileID: -7924340654139360580, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_4_3
+    sprite: {fileID: -7794012230722620544, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_5_0
+    sprite: {fileID: 774854001250848930, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_5_1
+    sprite: {fileID: 5634239042473909158, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_5_2
+    sprite: {fileID: -3298268358163893940, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_5_3
+    sprite: {fileID: 3206197190010622889, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_6_0
+    sprite: {fileID: -625608655623137532, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_6_1
+    sprite: {fileID: -6483939821278755307, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_6_2
+    sprite: {fileID: 7423267765280306163, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_0_6_3
+    sprite: {fileID: 4705033112757356567, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_0_0
+    sprite: {fileID: -2998617191702242946, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_0_1
+    sprite: {fileID: 3697415185483446648, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_0_2
+    sprite: {fileID: 8795401110008414991, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_0_3
+    sprite: {fileID: -5773836249967245619, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_1_0
+    sprite: {fileID: 8035425609714528721, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_1_1
+    sprite: {fileID: 2086994685216199049, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_1_2
+    sprite: {fileID: 5522795268042876773, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_1_3
+    sprite: {fileID: -1183528959570257184, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_2_0
+    sprite: {fileID: 7911524911227966516, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_2_1
+    sprite: {fileID: 2006667291299843310, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_2_2
+    sprite: {fileID: -8391698730476928815, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_2_3
+    sprite: {fileID: 1671566304017434861, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_3_0
+    sprite: {fileID: 5215630686903941033, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_3_1
+    sprite: {fileID: 5065677924770358151, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_3_2
+    sprite: {fileID: -8510307651253898476, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_3_3
+    sprite: {fileID: 1504879764892953020, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_4_0
+    sprite: {fileID: -1694597254106085413, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_4_1
+    sprite: {fileID: 4015132084413908004, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_4_2
+    sprite: {fileID: 832596693131750310, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_4_3
+    sprite: {fileID: 3154495020517103673, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_5_0
+    sprite: {fileID: -2971463712995266995, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_5_1
+    sprite: {fileID: 8329494469124124855, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_5_2
+    sprite: {fileID: 5914154932084019055, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_5_3
+    sprite: {fileID: -212017646874943344, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_6_0
+    sprite: {fileID: 4185155743044213755, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_6_1
+    sprite: {fileID: 3499339909682658379, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_6_2
+    sprite: {fileID: 3765330441804991944, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_1_6_3
+    sprite: {fileID: 7642867340210666959, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_0_0
+    sprite: {fileID: 8403462539465752612, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_0_1
+    sprite: {fileID: -6022579223399617339, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_0_2
+    sprite: {fileID: 5626684012802134942, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_0_3
+    sprite: {fileID: -6047110708615952923, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_1_0
+    sprite: {fileID: 413914295472284543, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_1_1
+    sprite: {fileID: -3789172140947341817, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_1_2
+    sprite: {fileID: -879586691729017830, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_1_3
+    sprite: {fileID: 3688810751836263614, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_2_0
+    sprite: {fileID: -4815645001188977788, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_2_1
+    sprite: {fileID: -1225990189172447473, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_2_2
+    sprite: {fileID: 1959621801267337330, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_2_3
+    sprite: {fileID: 9192240083857038607, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_3_0
+    sprite: {fileID: 6685711638610476499, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_3_1
+    sprite: {fileID: -2709201567430072291, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_3_2
+    sprite: {fileID: -474497480931462851, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_3_3
+    sprite: {fileID: 5008812610286833960, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_4_0
+    sprite: {fileID: 3326069312143322280, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_4_1
+    sprite: {fileID: -5075070998878857166, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_4_2
+    sprite: {fileID: 8667115967130832891, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_4_3
+    sprite: {fileID: 1330632057510779305, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_5_0
+    sprite: {fileID: -6382336481959552348, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_5_1
+    sprite: {fileID: -405996732889374984, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_5_2
+    sprite: {fileID: -997998395382840711, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_5_3
+    sprite: {fileID: -5224272373548828947, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_6_0
+    sprite: {fileID: 3646407531926028112, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_6_1
+    sprite: {fileID: 429479475632498346, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_6_2
+    sprite: {fileID: 4056816205168431581, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_2_6_3
+    sprite: {fileID: 4602772415919342151, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_0_0
+    sprite: {fileID: 6983417349821835607, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_0_1
+    sprite: {fileID: -3779035634717178676, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_0_2
+    sprite: {fileID: 2869698790431401185, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_0_3
+    sprite: {fileID: 2316988745480828209, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_1_0
+    sprite: {fileID: -3223681256448002090, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_1_1
+    sprite: {fileID: 7219233914226539361, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_1_2
+    sprite: {fileID: -2878206338485949184, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_1_3
+    sprite: {fileID: 1985249016446604570, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_2_0
+    sprite: {fileID: -7585928381678011837, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_2_1
+    sprite: {fileID: -3178200339599650557, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_2_2
+    sprite: {fileID: -3090656633126807590, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_2_3
+    sprite: {fileID: 5197481053121969178, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_3_0
+    sprite: {fileID: -1658014815619092243, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_3_1
+    sprite: {fileID: 811509099602788422, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_3_2
+    sprite: {fileID: 2629094098646551676, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_3_3
+    sprite: {fileID: -9027617522706941396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_4_0
+    sprite: {fileID: -1794674941683744802, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_4_1
+    sprite: {fileID: 4779460353907849401, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_4_2
+    sprite: {fileID: 8887340060217845963, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_4_3
+    sprite: {fileID: 6276788791357542131, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_5_0
+    sprite: {fileID: -1193101653494350410, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_5_1
+    sprite: {fileID: 8936349023067935305, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_5_2
+    sprite: {fileID: -188277732948709951, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_5_3
+    sprite: {fileID: 880403262541667510, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_6_0
+    sprite: {fileID: -7691881745748080201, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_6_1
+    sprite: {fileID: 2589979969167649440, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_6_2
+    sprite: {fileID: 1638748575861329510, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: npc_4_3_6_3
+    sprite: {fileID: 2322957043387362560, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: pebbles
+    sprite: {fileID: -3718488143199095907, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: reeds
+    sprite: {fileID: -1089801430077241573, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: resource_3
+    sprite: {fileID: -8760316946631128474, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: resource_4
+    sprite: {fileID: 8926766858658009868, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: resource_5
+    sprite: {fileID: -7355169653536436502, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: resource_6
+    sprite: {fileID: -1686063485931806688, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: resource_7
+    sprite: {fileID: 8351317563821811958, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: rock_0
+    sprite: {fileID: -98921278041806192, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: rock_1
+    sprite: {fileID: -2782464365380177077, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: selection_pointer
+    sprite: {fileID: 1163188670513690689, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: selection_ring
+    sprite: {fileID: 5820838144163275183, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: stock
+    sprite: {fileID: -6844497393226813065, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: tree_0
+    sprite: {fileID: 0, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: tree_1
+    sprite: {fileID: -7452697074025317216, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: tree_2
+    sprite: {fileID: 2759580907771446516, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: tuft
+    sprite: {fileID: -7365925039803673295, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_0_0
+    sprite: {fileID: 7010377542904115296, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_0_1
+    sprite: {fileID: -2002842808807750635, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_0_2
+    sprite: {fileID: -6947097050977352788, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_0_3
+    sprite: {fileID: 5563846911181203538, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_1_0
+    sprite: {fileID: 680452211376936388, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_1_1
+    sprite: {fileID: 8298750158145195700, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_1_2
+    sprite: {fileID: 977316071155233378, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_1_3
+    sprite: {fileID: -7483990388241494098, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_2_0
+    sprite: {fileID: -4492791131867682330, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_2_1
+    sprite: {fileID: 1057307672735657852, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_2_2
+    sprite: {fileID: 2834610376172629288, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_2_3
+    sprite: {fileID: 299076276935173494, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_3_0
+    sprite: {fileID: 6219995069185876170, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_3_1
+    sprite: {fileID: 5535366627877714184, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_3_2
+    sprite: {fileID: 6794075760683729761, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: water_3_3
+    sprite: {fileID: 3759094810387999955, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: well
+    sprite: {fileID: 7032131227818722396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_0_0
+    sprite: {fileID: -5341112528794375113, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_0_1
+    sprite: {fileID: 6230891888438945738, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_0_2
+    sprite: {fileID: 8408626762911133224, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_0_3
+    sprite: {fileID: -3870163207341846332, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_1_0
+    sprite: {fileID: -3673104002223945260, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_1_1
+    sprite: {fileID: -3531422623908873416, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_1_2
+    sprite: {fileID: -7758787849772053360, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_1_3
+    sprite: {fileID: 1020328978959274055, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_2_0
+    sprite: {fileID: -4310558487329132622, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_2_1
+    sprite: {fileID: -1285810198899577095, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_2_2
+    sprite: {fileID: -3928010450806959880, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_2_3
+    sprite: {fileID: 8040888823725081328, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_3_0
+    sprite: {fileID: -4614320123629085656, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_3_1
+    sprite: {fileID: 846110373241940503, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_3_2
+    sprite: {fileID: 3218113908749444667, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_3_3
+    sprite: {fileID: 7620806650817655729, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_4_0
+    sprite: {fileID: -3836331871158465079, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_4_1
+    sprite: {fileID: 449813670326861798, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_4_2
+    sprite: {fileID: -131313916572047712, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: work_effect_4_3
+    sprite: {fileID: 6510150845228429337, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}

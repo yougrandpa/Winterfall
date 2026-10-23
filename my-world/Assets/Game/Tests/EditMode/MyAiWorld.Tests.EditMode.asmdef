@@ -1,0 +1,22 @@
+{
+  "name": "MyAiWorld.Tests.EditMode",
+  "rootNamespace": "MyAiWorld.Tests.EditMode",
+  "references": [
+    "MyAiWorld.Sim",
+    "MyAiWorld.App"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": false,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false,
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "MyAiWorld.App",
+  "rootNamespace": "MyAiWorld.App",
+  "references": [
+    "MyAiWorld.Sim"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

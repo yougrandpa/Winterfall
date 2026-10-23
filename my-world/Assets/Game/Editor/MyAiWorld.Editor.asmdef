@@ -1,0 +1,22 @@
+{
+  "name": "MyAiWorld.Editor",
+  "rootNamespace": "MyAiWorld.EditorTools",
+  "references": [
+    "MyAiWorld.App",
+    "MyAiWorld.Presentation",
+    "MyAiWorld.Sim",
+    "UnityEditor.TestRunner",
+    "UnityEngine.TestRunner"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

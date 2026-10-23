@@ -1,0 +1,61 @@
+# macOS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Tuanjie / Unity generated
+my-world/Library/
+my-world/Temp/
+my-world/Obj/
+my-world/obj/
+my-world/Build/
+my-world/Builds/
+my-world/Logs/
+my-world/UserSettings/
+my-world/MemoryCaptures/
+my-world/Recordings/
+my-world/*.csproj
+my-world/*.sln
+my-world/*.unityproj
+my-world/*.suo
+my-world/*.user
+my-world/*.userprefs
+my-world/*.pidb
+my-world/*.booproj
+my-world/*.svd
+my-world/*.pdb
+my-world/*.mdb
+my-world/*.opendb
+my-world/*.VC.db
+my-world/sysinfo.txt
+my-world/crashlytics-build.properties
+
+# Generated build artifacts
+*.apk
+*.aab
+*.app
+*.unitypackage
+*.tmp
+
+# IDE
+my-world/.vs/
+my-world/.vscode/
+my-world/.idea/
+my-world/.gradle/
+my-world/.consulo/
+my-world/ExportedObj/
+
+# Plastic SCM metadata (migrating to Git)
+my-world/.plastic/
+my-world/*.private
+my-world/*.private.meta
+my-world/Assets/Plugins/PlasticSCM*
+my-world/Assets/AssetStoreTools/
+
+# Codely / Tuanjie local tooling
+my-world/.codely-cli/
+
+# Addressables / StreamingAssets generated data
+my-world/Assets/AddressableAssetsData/*/*.bin*
+my-world/Assets/StreamingAssets/aa.meta
+my-world/Assets/StreamingAssets/*/aa/
