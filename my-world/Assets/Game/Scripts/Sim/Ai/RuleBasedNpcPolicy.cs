@@ -262,6 +262,7 @@ namespace MyAiWorld.Sim.Ai
 
         private static bool HasPrey(NpcDecisionContext context)
         {
+            if (context.World.Tick < context.World.Hunting.RetryAt(context.Npc.Id)) { return false; }
             foreach (CarcassState carcass in context.World.Ecology.Carcasses)
             {
                 if (carcass.Region == -1 && carcass.ReservedBy.IsNone &&

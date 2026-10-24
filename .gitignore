@@ -38,6 +38,7 @@ my-world/crashlytics-build.properties
 *.tmp
 
 # IDE
+tools/**/__pycache__/
 my-world/.vs/
 my-world/.vscode/
 my-world/.idea/

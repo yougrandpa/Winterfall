@@ -96,13 +96,14 @@ namespace MyAiWorld.Presentation.UI
             BuildUi();
             _selection.SelectionChanged += OnSelectionChanged;
             _selection.CellSelected += OnCellSelected;
+            _selection.AnimalSelected += OnAnimalSelected;
             _initialized = true;
             RefreshAll();
         }
 
         private void OnDestroy()
         {
-            if (_selection != null) { _selection.SelectionChanged -= OnSelectionChanged; _selection.CellSelected -= OnCellSelected; }
+            if (_selection != null) { _selection.SelectionChanged -= OnSelectionChanged; _selection.CellSelected -= OnCellSelected; _selection.AnimalSelected -= OnAnimalSelected; }
         }
 
         private void Update()
@@ -114,6 +115,7 @@ namespace MyAiWorld.Presentation.UI
                 _worldRevision = _session.WorldRevision;
                 _selection.Select(null);
                 _timelinePage = 0;
+                _huntCommandTick = -1; _chosenHunters.Clear(); _choosingHunters = false;
             }
             RefreshCampaign();
             HandleShortcuts();
@@ -367,6 +369,7 @@ namespace MyAiWorld.Presentation.UI
             RefreshTopBar();
             RefreshInspector();
             RefreshResources();
+            RefreshHunting();
             RefreshEventLog();
             RefreshSaveStatus();
             RefreshDebug();

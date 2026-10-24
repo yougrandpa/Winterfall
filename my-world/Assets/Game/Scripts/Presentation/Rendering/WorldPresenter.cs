@@ -136,6 +136,7 @@ namespace MyAiWorld.Presentation.Rendering
             _combatClock += elapsed;
             ConsumeCombatFrames(_session.DrainCombatFrames(), model, tickDuration);
             DispatchCombatEvents();
+            PresentSelectedHunt(model);
             IReadOnlyList<NpcSnapshot> npcs = model.Npcs;
             for (int i = 0; i < npcs.Count; i++)
             {
@@ -532,6 +533,56 @@ namespace MyAiWorld.Presentation.Rendering
         public NpcView FindNpcView(EntityId id)
         {
             return _views.TryGetValue(id, out NpcView view) ? view : null;
+        }
+
+        private readonly List<SpriteRenderer> _chargeWarnings = new List<SpriteRenderer>();
+        private void PresentSelectedHunt(WorldReadModel model)
+        {
+            HuntTaskSnapshot task = _selectedAnimal.HasValue ? model.Hunting.ForTarget(_selectedAnimal.Value) :
+                _selected.HasValue ? model.Hunting.ForNpc(_selected.Value) : null;
+            foreach (NpcView view in _views.Values)
+            {
+                HuntRole? role = null;
+                if (task != null) { foreach (var member in task.Members) { if (member.NpcId == view.Id) { role = member.Role; break; } } }
+                view.SetHuntRole(role);
+            }
+            EntityId? target = _selectedAnimal ?? task?.TargetId;
+            foreach (AnimalView animal in _animalViews.Values) { animal.SetSelected(target.HasValue && target.Value == animal.Id); }
+            foreach (SpriteRenderer warning in _chargeWarnings) { if (warning != null) { warning.enabled = false; } }
+            if (!target.HasValue) { return; }
+            AttackSnapshot attack = model.Combat.GetAttack(target.Value);
+            AnimalView source = FindAnimalView(target.Value);
+            if (source == null || attack == null || attack.Kind != CombatAttackKind.Charge || attack.Phase != CombatAttackPhase.Preparing) { return; }
+            while (_chargeWarnings.Count < 3)
+            {
+                var go = new GameObject("ChargeWarning"); go.transform.SetParent(transform, false);
+                var sprite = go.AddComponent<SpriteRenderer>(); sprite.sprite = _art.Get("hunt_charge_warning");
+                sprite.color = new Color(1f, 0.55f, 0.2f, 0.8f); sprite.sortingOrder = -7997; _chargeWarnings.Add(sprite);
+            }
+            for (int i = 0; i < 3; i++)
+            {
+                GridPos cell = source.Cell.Offset(Math.Sign(attack.FacingX) * (i + 1), Math.Sign(attack.FacingY) * (i + 1));
+                _chargeWarnings[i].enabled = _session.World.Map.IsWalkable(cell);
+                _chargeWarnings[i].transform.position = CellCenter(cell);
+                _chargeWarnings[i].transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(attack.FacingY, attack.FacingX) * Mathf.Rad2Deg - 90f);
+            }
+        }
+
+        private EntityId? _selectedAnimal;
+        public void SetSelectedAnimal(EntityId? id)
+        {
+            _selectedAnimal = id;
+            foreach (AnimalView view in _animalViews.Values) { view.SetSelected(id.HasValue && view.Id == id.Value); }
+        }
+        public AnimalView PickAnimal(Vector2 point)
+        {
+            AnimalView best = null;
+            foreach (AnimalView view in _animalViews.Values)
+            {
+                if (view.IsDying || view.IsDespawning || !view.HitBounds.Contains(point)) { continue; }
+                if (best == null || view.SortingOrder > best.SortingOrder || view.SortingOrder == best.SortingOrder && view.Id.Value < best.Id.Value) { best = view; }
+            }
+            return best;
         }
 
         public NpcView PickNpc(Vector2 worldPoint)

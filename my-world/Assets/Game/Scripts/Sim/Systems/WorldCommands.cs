@@ -23,6 +23,41 @@ namespace MyAiWorld.Sim.Systems
         public List<SimEvent> Events { get; }
     }
 
+    public sealed class RequestHuntCommand : IWorldCommand
+    {
+        public RequestHuntCommand(EntityId targetId, IReadOnlyList<EntityId> participantIds = null)
+        {
+            TargetId = targetId;
+            ParticipantIds = Array.AsReadOnly(participantIds == null ? Array.Empty<EntityId>() : new List<EntityId>(participantIds).ToArray());
+        }
+        public EntityId TargetId { get; }
+        public IReadOnlyList<EntityId> ParticipantIds { get; }
+        public string Describe() => "Request hunt " + TargetId.Value + " members " + string.Join(",", ParticipantIds);
+        public bool Apply(WorldState world, CommandContext context)
+        {
+            if (!world.Campaign.CanAdvance) { return false; }
+            bool result = HuntingCoordinator.TryRequest(world, TargetId, ParticipantIds, true, context.Events, out string reason);
+            if (result && world.Campaign.Result == null) { world.Campaign.Assisted = true; }
+            if (!result) { context.Events.Add(new SimEvent(SimEventKind.CommandRejected, context.Tick, TargetId, reason)); }
+            return result;
+        }
+    }
+
+    public sealed class CancelHuntCommand : IWorldCommand
+    {
+        public CancelHuntCommand(int taskId) { TaskId = taskId; }
+        public int TaskId { get; }
+        public string Describe() => "Cancel hunt " + TaskId;
+        public bool Apply(WorldState world, CommandContext context)
+        {
+            HuntTaskState task = world.Hunting.Find(TaskId);
+            if (!world.Campaign.CanAdvance || task == null || task.Stage == HuntStage.Retreating) { return false; }
+            HuntingCoordinator.Retreat(world, task, "玩家取消狩猎", context.Events);
+            if (world.Campaign.Result == null) { world.Campaign.Assisted = true; }
+            return true;
+        }
+    }
+
     public sealed class TradeCommand : IWorldCommand
     {
         public TradeCommand(TradeOrder order)

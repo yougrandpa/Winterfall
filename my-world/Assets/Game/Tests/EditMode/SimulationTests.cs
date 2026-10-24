@@ -195,6 +195,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void Simulation_LongRunKeepsEntitiesOnWalkableCells()
         {
             WorldConfigData config = new WorldConfigData(

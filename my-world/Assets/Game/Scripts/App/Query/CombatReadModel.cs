@@ -16,6 +16,7 @@ namespace MyAiWorld.App.Query
             ReleaseTick = attack.ReleaseTick; ReleasedTick = attack.ReleasedTick;
             RecoveryUntilTick = attack.RecoveryUntilTick; CooldownUntilTick = attack.CooldownUntilTick;
             FacingX = attack.FacingX; FacingY = attack.FacingY; IsCounterattack = attack.IsCounterattack;
+            ChargeRemaining = attack.ChargeRemaining;
         }
 
         public long Id { get; }
@@ -33,6 +34,7 @@ namespace MyAiWorld.App.Query
         public int FacingX { get; }
         public int FacingY { get; }
         public bool IsCounterattack { get; }
+        public int ChargeRemaining { get; }
     }
 
     public sealed class ProjectileSnapshot

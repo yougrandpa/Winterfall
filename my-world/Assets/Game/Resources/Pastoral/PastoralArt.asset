@@ -696,6 +696,326 @@ MonoBehaviour:
     sprite: {fileID: 8601372025980350180, guid: 0e7bdaff4adb74b199db75d08ccefc5d, type: 3}
   - key: animal_attack_6_3_3
     sprite: {fileID: 6902792222557587890, guid: 0e7bdaff4adb74b199db75d08ccefc5d, type: 3}
+  - key: animal_charge_0_0_0
+    sprite: {fileID: 7407075558564234404, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_0_1
+    sprite: {fileID: 3756228517948172258, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_0_2
+    sprite: {fileID: 2739756181860782420, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_0_3
+    sprite: {fileID: 7685417098757039242, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_1_0
+    sprite: {fileID: 913772380797903817, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_1_1
+    sprite: {fileID: -4919975695944341988, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_1_2
+    sprite: {fileID: 8652224748336678010, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_1_3
+    sprite: {fileID: 4659174541057206740, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_2_0
+    sprite: {fileID: -5633462026122231403, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_2_1
+    sprite: {fileID: 5727485278014242372, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_2_2
+    sprite: {fileID: 5175032152294738682, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_0_2_3
+    sprite: {fileID: -6679566154008954001, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_0_0
+    sprite: {fileID: 7795479948256560935, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_0_1
+    sprite: {fileID: -2892987767858608060, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_0_2
+    sprite: {fileID: 6295182823211263063, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_0_3
+    sprite: {fileID: 8973601198342207323, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_1_0
+    sprite: {fileID: 4971471995380083, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_1_1
+    sprite: {fileID: -4272979692611529280, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_1_2
+    sprite: {fileID: -7084295923383515423, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_1_3
+    sprite: {fileID: 7758401537735931538, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_2_0
+    sprite: {fileID: 7993100312944652883, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_2_1
+    sprite: {fileID: -4181762347141429060, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_2_2
+    sprite: {fileID: 2564458286332218450, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_1_2_3
+    sprite: {fileID: -9127995333339082574, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_0_0
+    sprite: {fileID: -8321520669340079038, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_0_1
+    sprite: {fileID: 512471632835239133, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_0_2
+    sprite: {fileID: 8521669719200920623, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_0_3
+    sprite: {fileID: -8509473262794252644, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_1_0
+    sprite: {fileID: -9072647861720113892, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_1_1
+    sprite: {fileID: -4740450177718546659, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_1_2
+    sprite: {fileID: 8786459595534718190, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_1_3
+    sprite: {fileID: 4594910260001826046, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_2_0
+    sprite: {fileID: 7820026368898531150, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_2_1
+    sprite: {fileID: 5700740045021037324, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_2_2
+    sprite: {fileID: -2903800187575243252, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_2_2_3
+    sprite: {fileID: 688596190582752948, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_0_0
+    sprite: {fileID: -3392550730657742084, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_0_1
+    sprite: {fileID: 903940569125046730, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_0_2
+    sprite: {fileID: -1947973297178513409, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_0_3
+    sprite: {fileID: 8488204757932782785, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_1_0
+    sprite: {fileID: 5570653742456629518, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_1_1
+    sprite: {fileID: -121183960618062437, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_1_2
+    sprite: {fileID: 6813595485055839367, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_1_3
+    sprite: {fileID: 61891217726225077, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_2_0
+    sprite: {fileID: -1415882423081873004, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_2_1
+    sprite: {fileID: 9182311892961423269, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_2_2
+    sprite: {fileID: -2238100076370834687, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_charge_3_2_3
+    sprite: {fileID: -7389204779192705426, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_0_0
+    sprite: {fileID: -1423041239299232087, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_0_1
+    sprite: {fileID: -5362185392992161505, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_0_2
+    sprite: {fileID: 5286156753899149816, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_0_3
+    sprite: {fileID: -541416848249259819, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_1_0
+    sprite: {fileID: -1503068678411112441, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_1_1
+    sprite: {fileID: 7122615333359940618, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_1_2
+    sprite: {fileID: 6455689806361734299, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_1_3
+    sprite: {fileID: 1208636113721076671, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_2_0
+    sprite: {fileID: 7894901236597250529, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_2_1
+    sprite: {fileID: -852955289486123372, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_2_2
+    sprite: {fileID: -8542076837222907116, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_2_3
+    sprite: {fileID: 2603806438785782674, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_3_0
+    sprite: {fileID: 8009881079072229784, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_3_1
+    sprite: {fileID: -5525039622783664820, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_3_2
+    sprite: {fileID: -8241947050457876206, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_0_3_3
+    sprite: {fileID: -4335482888883174637, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_0_0
+    sprite: {fileID: 501382344943802018, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_0_1
+    sprite: {fileID: 35828896495082233, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_0_2
+    sprite: {fileID: -3300533068178634243, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_0_3
+    sprite: {fileID: -5025100724809179564, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_1_0
+    sprite: {fileID: -3029025396587419677, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_1_1
+    sprite: {fileID: 334730094627797183, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_1_2
+    sprite: {fileID: 7353671558905245691, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_1_3
+    sprite: {fileID: 8082907616306301867, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_2_0
+    sprite: {fileID: 1101829422845749720, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_2_1
+    sprite: {fileID: -3123147462330762084, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_2_2
+    sprite: {fileID: -6476992665218738863, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_2_3
+    sprite: {fileID: 6855166373624490535, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_3_0
+    sprite: {fileID: 7264535338016506987, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_3_1
+    sprite: {fileID: -4685092591177132478, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_3_2
+    sprite: {fileID: 3417858431960732749, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_1_3_3
+    sprite: {fileID: -4742574591752882356, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_0_0
+    sprite: {fileID: 5133930246263938601, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_0_1
+    sprite: {fileID: 6423277808054372784, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_0_2
+    sprite: {fileID: -700837639897413971, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_0_3
+    sprite: {fileID: 6196376595474406376, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_1_0
+    sprite: {fileID: 4918673192444746231, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_1_1
+    sprite: {fileID: -474527896869114275, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_1_2
+    sprite: {fileID: -331420787628391702, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_1_3
+    sprite: {fileID: -4155921504363355940, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_2_0
+    sprite: {fileID: -7789243771135633816, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_2_1
+    sprite: {fileID: 6367748662692012198, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_2_2
+    sprite: {fileID: -1856042833601127331, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_2_3
+    sprite: {fileID: 1973373169748421787, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_3_0
+    sprite: {fileID: -3466684856140388008, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_3_1
+    sprite: {fileID: -7096829704134196148, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_3_2
+    sprite: {fileID: -60003153791778229, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_2_3_3
+    sprite: {fileID: 4055945386723768730, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_0_0
+    sprite: {fileID: 1068878612124780587, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_0_1
+    sprite: {fileID: -5678071346234835293, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_0_2
+    sprite: {fileID: -5119535696303814298, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_0_3
+    sprite: {fileID: -2096082205082760234, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_1_0
+    sprite: {fileID: 4343746289933018156, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_1_1
+    sprite: {fileID: -6176682675461953102, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_1_2
+    sprite: {fileID: 1528984567281470787, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_1_3
+    sprite: {fileID: 3251324059096898563, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_2_0
+    sprite: {fileID: -7132101903787364408, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_2_1
+    sprite: {fileID: -6330913474849004272, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_2_2
+    sprite: {fileID: 4462053886167892795, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_2_3
+    sprite: {fileID: 4290180240882531522, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_3_0
+    sprite: {fileID: 8896329441151113318, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_3_1
+    sprite: {fileID: 7837093224377713711, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_3_2
+    sprite: {fileID: -864753965073510842, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_3_3_3
+    sprite: {fileID: 865231991936696209, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_0_0
+    sprite: {fileID: 6480958426802753237, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_0_1
+    sprite: {fileID: 6478231623560191615, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_0_2
+    sprite: {fileID: 5440805726862535354, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_0_3
+    sprite: {fileID: 4703950252436604725, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_1_0
+    sprite: {fileID: 154021257622452566, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_1_1
+    sprite: {fileID: -6866008138433639615, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_1_2
+    sprite: {fileID: -141624753320363276, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_1_3
+    sprite: {fileID: -1858601104313768005, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_2_0
+    sprite: {fileID: 9203833459348142458, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_2_1
+    sprite: {fileID: -4061914797625233580, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_2_2
+    sprite: {fileID: 5260747093635141951, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_2_3
+    sprite: {fileID: 4585894271034857174, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_3_0
+    sprite: {fileID: 7191203384634979638, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_3_1
+    sprite: {fileID: 6528250010121254290, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_3_2
+    sprite: {fileID: -8778123279646306588, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_4_3_3
+    sprite: {fileID: -7997419132297038285, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_0_0
+    sprite: {fileID: -4775052438725192255, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_0_1
+    sprite: {fileID: 2519516815349302093, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_0_2
+    sprite: {fileID: 7769314547541730557, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_0_3
+    sprite: {fileID: 1736346656276466466, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_1_0
+    sprite: {fileID: -310190611580699065, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_1_1
+    sprite: {fileID: -3789062677081093610, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_1_2
+    sprite: {fileID: 6335381992551368125, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_1_3
+    sprite: {fileID: -6072679667570851301, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_2_0
+    sprite: {fileID: 7464729173237697414, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_2_1
+    sprite: {fileID: 4502044039098025241, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_2_2
+    sprite: {fileID: -2299825836597791573, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_2_3
+    sprite: {fileID: -256192354259199786, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_3_0
+    sprite: {fileID: -4268866066394825196, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_3_1
+    sprite: {fileID: -6012816613678949632, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_3_2
+    sprite: {fileID: 5339243907546501215, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_5_3_3
+    sprite: {fileID: -770629906092262275, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_0_0
+    sprite: {fileID: -4027569284734726500, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_0_1
+    sprite: {fileID: 1493447688830990119, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_0_2
+    sprite: {fileID: 1794003357844297420, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_0_3
+    sprite: {fileID: -848776710641988450, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_1_0
+    sprite: {fileID: 7952985010689973570, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_1_1
+    sprite: {fileID: 1628547238519313004, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_1_2
+    sprite: {fileID: 7916607448270617953, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_1_3
+    sprite: {fileID: 725530443740884737, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_2_0
+    sprite: {fileID: -664289891242232839, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_2_1
+    sprite: {fileID: -8300205324189950763, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_2_2
+    sprite: {fileID: 725074899962842488, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_2_3
+    sprite: {fileID: 4647155371609500633, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_3_0
+    sprite: {fileID: -8422744713607402956, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_3_1
+    sprite: {fileID: -2145640285376356381, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_3_2
+    sprite: {fileID: -8859313505349908757, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: animal_hurt_6_3_3
+    sprite: {fileID: -1158032636585961453, guid: 3715e885563d04109886550ee311376d, type: 3}
   - key: barrel
     sprite: {fileID: 9220127594923207396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
   - key: berries_0
@@ -1006,6 +1326,14 @@ MonoBehaviour:
     sprite: {fileID: 6469189170784554467, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
   - key: house
     sprite: {fileID: 3886477170696509768, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: hunt_charge_warning
+    sprite: {fileID: 3191217376636244687, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: hunt_role_0
+    sprite: {fileID: -7040615561728560899, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: hunt_role_1
+    sprite: {fileID: -1322410694428582159, guid: 3715e885563d04109886550ee311376d, type: 3}
+  - key: hunt_role_2
+    sprite: {fileID: -4870897120859718066, guid: 3715e885563d04109886550ee311376d, type: 3}
   - key: icon_0
     sprite: {fileID: 6934086728263231946, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
   - key: icon_1

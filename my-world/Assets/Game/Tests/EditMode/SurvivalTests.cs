@@ -546,6 +546,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void DefaultWorld_SevenDays_UsesResourceLoopAndKeepsEveryNpcHealthy()
         {
             WorldState world = WorldFactory.Create(WarmObservationConfig());

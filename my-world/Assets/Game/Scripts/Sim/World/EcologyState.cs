@@ -26,6 +26,7 @@ namespace MyAiWorld.Sim.World
 
         public EntityId Id { get; }
         public AnimalSpecies Species { get; }
+        public AnimalEncounterState Encounter { get; } = new AnimalEncounterState();
         public AnimalDefinition Definition => AnimalDefinition.For(Species);
         public GridPos Position { get; internal set; }
         public int Health { get; internal set; }
@@ -525,7 +526,7 @@ namespace MyAiWorld.Sim.World
 
         internal bool Strike(WorldState world, NpcState npc, AnimalState animal, List<SimEvent> events)
         {
-            return CanHunt(animal) && animal.ReservedBy == npc.Id &&
+            return CanHunt(animal) && HuntingCoordinator.Authorized(world, npc, animal) &&
                 CombatSystem.TryStartHunt(world, npc, animal, events);
         }
 

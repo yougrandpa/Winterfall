@@ -337,6 +337,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void ExternalResidents_AgeFeedReproduceAndDie_InIsolation_WithoutPhantomRecolonization()
         {
             WorldState world = Create(connected: true);
@@ -424,6 +425,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void Snapshot_RoundTripAllEcologyState_ResumeEveryMinute_RejectDanglingTargetAndWrongAccounting()
         {
             WorldState world = Create();

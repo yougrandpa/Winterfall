@@ -365,9 +365,11 @@ namespace MyAiWorld.Sim.Ai
                 {
                     continue;
                 }
-                animal.ReservedBy = npc.Id;
-                steps.Add(new PlanStep(PlanStepType.Hunt, animal.Position, animal.Id.Value, durationTicks: 120));
-                return true;
+                if (HuntingCoordinator.TryRequest(world, animal.Id, null, false, new List<SimEvent>(), out string reason, npc.Id))
+                {
+                    steps.Add(new PlanStep(PlanStepType.Hunt, animal.Position, animal.Id.Value, durationTicks: HuntingRules.PursuitTicks));
+                    return true;
+                }
             }
             return false;
         }

@@ -12,7 +12,7 @@ namespace MyAiWorld.Sim.Systems
     // Explicit wire format. Never serialize engine objects, backing fields or CLR type names.
     public static partial class WorldSnapshot
     {
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
 
         public static byte[] Capture(WorldState world, int version = CurrentVersion)
         {
@@ -57,6 +57,7 @@ namespace MyAiWorld.Sim.Systems
                 WriteEnvironment(w, world);
                 world.Campaign.Write(w);
                 CombatSnapshot.Write(w, world);
+                HuntingSnapshot.Write(w, world);
                 return stream.ToArray();
             }
         }
@@ -126,6 +127,7 @@ namespace MyAiWorld.Sim.Systems
                 ReadEnvironment(r, world);
                 world.Campaign.Read(r, world);
                 CombatSnapshot.Read(r, world);
+                HuntingSnapshot.Read(r, world);
                 Require(stream.Position == stream.Length);
                 Validate(world);
                 return world;
@@ -253,6 +255,7 @@ namespace MyAiWorld.Sim.Systems
             world.Ecology.Validate(world);
             world.Campaign.Validate(world);
             CombatSnapshot.Validate(world);
+            HuntingSnapshot.Validate(world);
             Require(world.NextEntityId > largest && world.Market.CurrencyError(world) == 0);
             for (int i = 0; i < (int)ItemKind.Count; i++) { Require(world.Materials.Error(world, (ItemKind)i) == 0); }
         }

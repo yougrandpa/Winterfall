@@ -17,7 +17,18 @@ Read `my-world/Docs/Architecture.md` before architectural changes; consult `Docs
 
 Use Tuanjie 1.8.2, editor `2022.3.62t4`. Open `my-world/` in Tuanjie Hub, load `Assets/Game/Scenes/Bootstrap.unity`, and press Play. Create player builds through File → Build Settings with Bootstrap enabled.
 
-Editor tests: stop Play Mode, then use Tools → My AI World → Verification. Reports: `my-world/Logs/TestResults/*-CurrentProject.json`.
+Default validation runs directly from code, without starting or connecting to the editor:
+
+```bash
+python3 tools/test.py                         # Fast NUnit tests; incremental compilation is cached
+python3 tools/test.py --filter HuntingGameplayTests
+python3 tools/test.py full                    # All portable tests, including long simulations
+python3 tools/test.py --no-build              # Require an up-to-date cache; never compile
+```
+
+Use `python3 -m unittest discover -s tools/tests` when changing the test launcher/cache. Code reports: `my-world/Logs/TestResults/Code-*.json` and `.xml`. The launcher reuses the installed editor's Mono runtime and restored NUnit/Newtonsoft packages, but does not launch the editor or require a bridge. See `my-world/Docs/Testing.md` for prerequisites and suite boundaries.
+
+For engine integration changes, stop Play Mode and use Tools → My AI World → Verification → Run PlayMode Smoke Tests. Full editor suites are optional broader checks for relevant changes or release validation. Reports: `my-world/Logs/TestResults/*-CurrentProject.json`.
 
 Run CLI tests from the workspace root:
 
@@ -40,7 +51,7 @@ Follow `my-world/.editorconfig`: UTF-8, LF, four-space C# indentation, Allman br
 
 ## Testing Guidelines
 
-Use Unity Test Framework with NUnit `[Test]` and coroutine `[UnityTest]`. Name files `*Tests.cs` and methods descriptively, e.g. `Simulation_SameSeedAndCommands_ProducesSameHash`. Add invariant and fixed-seed regression tests for simulation changes; use PlayMode tests for scene/UI integration. Run both suites and manually inspect visual changes. No numeric coverage threshold is specified.
+Use NUnit `[Test]` for simulation, persistence, commands and immutable read models; run these through the standalone code launcher first. Keep engine-dependent tests in PlayMode (or `EditorConfigurationTests.cs` for serialized editor assets), using `[UnityTest]` only when frames are required. Do not add scene loading, screenshots or real-time waits to test pure logic. Name files `*Tests.cs` and methods descriptively, e.g. `Simulation_SameSeedAndCommands_ProducesSameHash`. Add invariant and fixed-seed regression tests for simulation changes. Mark long simulations `LongRunning`; retain their assertions and run them with `full` or `slow` when relevant. Use the four `EngineSmoke` checks for runtime wiring changes, and targeted PlayMode/visual review only when rendering, UI or assets change. Do not run both full editor suites after every edit. No numeric coverage threshold is specified.
 
 ## Architecture & Asset Rules
 

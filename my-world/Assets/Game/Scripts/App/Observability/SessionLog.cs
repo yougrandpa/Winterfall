@@ -7,7 +7,6 @@ using MyAiWorld.Sim.Agents;
 using MyAiWorld.Sim.Systems;
 using MyAiWorld.Sim.World;
 using Newtonsoft.Json;
-using UnityEngine;
 
 namespace MyAiWorld.App.Observability
 {
@@ -25,7 +24,7 @@ namespace MyAiWorld.App.Observability
 
             try
             {
-                string root = Path.Combine(Application.persistentDataPath, "MyAiWorld", "sessions");
+                string root = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "sessions");
                 Directory.CreateDirectory(root);
                 string stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff");
                 FilePath = Path.Combine(root, "session-" + stamp + ".jsonl");
@@ -60,7 +59,7 @@ namespace MyAiWorld.App.Observability
             }
             catch (Exception exception)
             {
-                Debug.LogWarning("My AI World: structured logging is unavailable: " + exception.Message);
+                RuntimeHost.Warn("My AI World: structured logging is unavailable: " + exception.Message);
                 _writer = null;
                 FilePath = null;
             }
@@ -155,7 +154,7 @@ namespace MyAiWorld.App.Observability
             }
             catch (Exception exception)
             {
-                Debug.LogWarning("My AI World: failed to write session log: " + exception.Message);
+                RuntimeHost.Warn("My AI World: failed to write session log: " + exception.Message);
             }
         }
 

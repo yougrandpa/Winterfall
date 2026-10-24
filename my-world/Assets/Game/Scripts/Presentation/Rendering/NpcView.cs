@@ -18,6 +18,8 @@ namespace MyAiWorld.Presentation.Rendering
         private int _health = 10000;
         private float _flashUntil;
         private float _combatUntil;
+        private float _combatFrom;
+        private SpriteRenderer _huntRole;
         private int _eventStage = -1;
         private int _eventDirection;
         public int CombatStage { get; private set; } = -1;
@@ -117,7 +119,7 @@ namespace MyAiWorld.Presentation.Rendering
                     (attack.Phase == CombatAttackPhase.Preparing ? 2 : 3);
             }
             FacingDirection = _motion.Direction;
-            if (clock < _combatUntil)
+            if (clock < _combatUntil && (attack == null || _eventStage == 4))
             {
                 CombatStage = _eventStage; FacingDirection = _eventDirection;
             }
@@ -127,7 +129,9 @@ namespace MyAiWorld.Presentation.Rendering
                 ApplyAlpha(1f);
             }
             else { CombatStage = -1; }
-            FrameIndex = Mathf.FloorToInt((clock + Id.Value * 0.137f) * (CombatStage >= 0 ? 12f : _action == 1 ? 8f : 3f)) % 4;
+            FrameIndex = CombatStage < 0 ? Mathf.FloorToInt((clock + Id.Value * 0.137f) * (_action == 1 ? 8f : 3f)) % 4 :
+                attack != null && !(clock < _combatUntil && _eventStage == 4) ? CombatPose.Frame(attack, tick, alpha) :
+                Mathf.Clamp(Mathf.FloorToInt((clock - _combatFrom) * 16f), 0, 3);
             SpriteKey = CombatStage >= 0 ? "npc_attack_" + _role + "_" + _look + "_" + FacingDirection + "_" + CombatStage + "_" + FrameIndex :
                 "npc_" + _role + "_" + _look + "_" + FacingDirection + "_" + _action + "_" + FrameIndex;
             // A missing generated key stays visible to diagnostics (null), not a fake fallback attack.
@@ -162,7 +166,21 @@ namespace MyAiWorld.Presentation.Rendering
                 _eventDirection = _motion.Direction;
             }
             else { return; }
-            _combatUntil = clock + 0.25f;
+            _combatFrom = clock; _combatUntil = clock + 0.25f;
+        }
+
+        public void SetHuntRole(HuntRole? role)
+        {
+            if (_huntRole == null && role.HasValue)
+            {
+                _huntRole = CreateSelectionSprite("HuntRole", "hunt_role_0");
+                _huntRole.transform.localPosition = new Vector3(-0.35f, 1.3f, 0);
+                _huntRole.transform.localScale = Vector3.one * 0.5f;
+                _huntRole.sortingOrder = 219;
+            }
+            if (_huntRole == null) { return; }
+            _huntRole.enabled = role.HasValue && Visible;
+            if (role.HasValue) { _huntRole.sprite = _art.Get("hunt_role_" + (int)role.Value); }
         }
 
         private SpriteRenderer CreateSelectionSprite(string label, string key)

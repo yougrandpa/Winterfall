@@ -163,6 +163,7 @@ namespace MyAiWorld.Tests.EditMode
             prey.BodyMass = prey.Definition.AdultMass;
             prey.Position = npc.Position;
             prey.Health = 1;
+            prey.Encounter.NextStepTick = long.MaxValue;
             prey.ReservedBy = npc.Id;
             // Keep the hunt itself under test; without warmth the thermal priority
             // legitimately interrupts any work plan at this cold spring hour.
@@ -234,6 +235,7 @@ namespace MyAiWorld.Tests.EditMode
             WorldState world = Create(npcCount: 0);
             NpcState first = AddAtMarket(world);
             NpcState second = AddAtMarket(world);
+            world.Environment.Temperature = 2500; world.Environment.Wind = 0;
             first.HasHuntingTool = second.HasHuntingTool = true;
             first.Inventory.TryAdd(ItemKind.Arrow, 4);
             second.Inventory.TryAdd(ItemKind.Arrow, 4);
@@ -255,6 +257,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void Animals_FleeBreedAndAge_StayWalkableAndBounded()
         {
             WorldState world = Create(npcCount: 0);
@@ -265,6 +268,7 @@ namespace MyAiWorld.Tests.EditMode
             world.Tick = prey.NextDecisionTick;
             prey.NextMoveTick = world.Tick;
             world.Ecology.Update(world, new List<SimEvent>());
+            world.Tick++; world.Ecology.Update(world, new List<SimEvent>());
             Assert.That(prey.Fleeing, Is.True);
             Assert.That(prey.Position.ManhattanDistance(hunter.Position), Is.GreaterThan(0));
             prey.AgeTicks = prey.MaxAgeTicks - 1;
@@ -372,6 +376,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void Replay_SameSeedAndSpawnTradeCommands_MatchEveryTick()
         {
             WorldState first = Create();
@@ -392,7 +397,8 @@ namespace MyAiWorld.Tests.EditMode
 
         // One fixed-seed 14-day integration baseline complements focused mechanics
         // tests and the four-seed snapshot/resume determinism tests.
-        [TestCase(20261020, "ec8b3c600e0fe272")]
+        [TestCase(20261020, "3e9bf147ce864e89")]
+        [Category("LongRunning")]
         public void DefaultWorld_FourteenDays_ConservesResourcesAndCurrencyWithDistinctStrategies(int seed, string expectedHash)
         {
             WorldState world = Create(seed);

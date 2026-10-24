@@ -29,13 +29,21 @@ namespace MyAiWorld.Sim.Systems
         public static bool TryStartHunt(WorldState world, NpcState npc, AnimalState animal, List<SimEvent> events)
         {
             if (npc == null || animal == null || !world.Entities.TryGetNpc(npc.Id, out NpcState registered) || registered != npc ||
-                world.Ecology.Find(animal.Id.Value) != animal || animal.Health <= 0 || animal.ReservedBy != npc.Id ||
+                world.Ecology.Find(animal.Id.Value) != animal || animal.Health <= 0 || !HuntingCoordinator.Authorized(world, npc, animal) ||
                 !HasLocalPosition(world, animal) || !world.Map.IsInside(npc.Position) ||
                 !Ready(npc) || !HuntingSystem.CanStrike(world, npc, animal)) { return false; }
-            ItemKind weapon = HuntingSystem.Weapon(npc);
+            ItemKind weapon = HuntingSystem.Weapon(world, npc);
             if (npc.Survival.Durability(weapon) <= 0 || (weapon == ItemKind.Bow && npc.Inventory.Count(ItemKind.Arrow) <= 0)) { return false; }
             return Start(world, npc.Id, animal.Id, false, true,
                 weapon == ItemKind.Bow ? CombatAttackKind.Bow : CombatAttackKind.Spear, npc.Position, animal.Position, false, events);
+        }
+
+        public static bool RequestCharge(WorldState world, AnimalState boar, NpcState target, List<SimEvent> events)
+        {
+            if (boar == null || target == null || boar.Species != AnimalSpecies.Boar || boar.Region != -1 ||
+                boar.Health <= 0 || target.Survival.Life != LifeState.Active ||
+                boar.Position.ManhattanDistance(target.Position) > 4 || !HuntingSystem.Visible(world, boar.Position, target.Position)) { return false; }
+            return Start(world, boar.Id, target.Id, true, false, CombatAttackKind.Charge, boar.Position, target.Position, false, events);
         }
 
         public static bool RequestAnimalAttack(WorldState world, AnimalState attacker, AnimalState target, List<SimEvent> events)
@@ -54,7 +62,8 @@ namespace MyAiWorld.Sim.Systems
             bool counterattack, List<SimEvent> events)
         {
             if (attacker == null || world.Ecology.Find(attacker.Id.Value) != attacker || attacker.Id == target) { return false; }
-            CombatAttackKind kind = attacker.Species == AnimalSpecies.Boar ? CombatAttackKind.Gore : CombatAttackKind.Bite;
+            CombatAttackKind kind = attacker.Species == AnimalSpecies.Boar ? CombatAttackKind.Gore :
+                attacker.Species == AnimalSpecies.Deer ? CombatAttackKind.Kick : CombatAttackKind.Bite;
             if (attacker.Region >= 0)
             {
                 if (!targetIsAnimal || !TryRegionalActors(world, attacker.Id, target, attacker.Region, attacker.HabitatId,
@@ -81,7 +90,7 @@ namespace MyAiWorld.Sim.Systems
                 state.MutableAttacks.Remove(existing);
             }
             if (state.NextAttackId == long.MaxValue) { throw new InvalidOperationException("Combat attack IDs exhausted."); }
-            int preparation = kind == CombatAttackKind.Bow ? 2 : 1;
+            int preparation = kind == CombatAttackKind.Bow || kind == CombatAttackKind.Charge ? 2 : 1;
             var attack = new CombatAttackState(state.NextAttackId++, attacker, target)
             {
                 AttackerIsAnimal = attackerIsAnimal, TargetIsAnimal = targetIsAnimal, Kind = kind,
@@ -89,8 +98,14 @@ namespace MyAiWorld.Sim.Systems
                 Phase = CombatAttackPhase.Preparing, StartTick = world.Tick, ReleaseTick = world.Tick + preparation,
                 RecoveryUntilTick = world.Tick + preparation + 1, CooldownUntilTick = world.Tick + preparation + 3,
                 FacingX = (to.X - from.X) * CombatState.UnitsPerCell, FacingY = (to.Y - from.Y) * CombatState.UnitsPerCell,
-                IsCounterattack = counterattack
+                IsCounterattack = counterattack, AimPosition = to
             };
+            if (kind == CombatAttackKind.Charge)
+            {
+                attack.FacingX = Math.Abs(to.X - from.X) >= Math.Abs(to.Y - from.Y) ? Math.Sign(to.X - from.X) * CombatState.UnitsPerCell : 0;
+                attack.FacingY = attack.FacingX == 0 ? Math.Sign(to.Y - from.Y) * CombatState.UnitsPerCell : 0;
+                attack.RecoveryUntilTick = attack.ReleaseTick + 5; attack.CooldownUntilTick = attack.ReleaseTick + 7;
+            }
             int index = state.MutableAttacks.FindIndex(a => a.Attacker.Value > attacker.Value);
             state.MutableAttacks.Insert(index < 0 ? state.MutableAttacks.Count : index, attack);
             if (counterattack) { state.Counterattacks++; }
@@ -121,6 +136,17 @@ namespace MyAiWorld.Sim.Systems
             state.LastUpdateTick = world.Tick;
             // In-flight contacts occur within the minute; releases/melee contact occur at
             // its end. Resolve arrows first so a lethally struck actor cannot release later.
+            // Finish charge movement endpoints before arrow sweeps, but delay charge contact until
+            // after arrows: an animal killed during this minute cannot subsequently gore someone.
+            var chargeContacts = new Dictionary<long, EntityId>();
+            foreach (CombatAttackState charge in state.MutableAttacks.ToArray())
+            {
+                if (charge.Kind == CombatAttackKind.Charge)
+                {
+                    EntityId contact = AdvanceCharge(world, charge);
+                    if (!contact.IsNone) { chargeContacts.Add(charge.Id, contact); }
+                }
+            }
             ProjectileSystem.Update(world, events);
             // Reactions may insert new attacks; never execute a newly-created reaction this minute.
             CombatAttackState[] attacks = state.MutableAttacks.ToArray();
@@ -132,6 +158,18 @@ namespace MyAiWorld.Sim.Systems
             foreach (CombatAttackState attack in attacks)
             {
                 if (attack.Region >= 0) { continue; }
+                if (attack.Kind == CombatAttackKind.Charge)
+                {
+                    if (chargeContacts.TryGetValue(attack.Id, out EntityId victim) &&
+                        TryPosition(world, attack.Attacker, true, out GridPos source) &&
+                        TryPosition(world, victim, false, out GridPos destination) && source == destination)
+                    {
+                        AnimalState boar = world.Ecology.Find(attack.Attacker.Value);
+                        ApplyDamage(world, attack.Attacker, true, victim, false, boar.Definition.InjuryDamage * 3 / 2,
+                            attack.Id, 0, CombatState.TimeUnitsPerTick, events);
+                    }
+                    UpdateChargeCooldown(world, attack); continue;
+                }
                 if (attack.Phase == CombatAttackPhase.Preparing)
                 {
                     if (!TryPosition(world, attack.Attacker, attack.AttackerIsAnimal, out GridPos from) ||
@@ -142,6 +180,7 @@ namespace MyAiWorld.Sim.Systems
                         CancelUnreleased(world, attack.Attacker);
                         continue;
                     }
+                    attack.AimPosition = to;
                     attack.FacingX = (to.X - from.X) * CombatState.UnitsPerCell;
                     attack.FacingY = (to.Y - from.Y) * CombatState.UnitsPerCell;
                     if (world.Tick < attack.ReleaseTick) { continue; }
@@ -155,12 +194,14 @@ namespace MyAiWorld.Sim.Systems
                     if (attack.Kind == CombatAttackKind.Bow)
                     {
                         world.Entities.TryGetNpc(attack.Attacker, out NpcState shooter);
-                        if (shooter.Inventory.Count(ItemKind.Arrow) <= 0 || from.ManhattanDistance(to) > 4 ||
-                            !HuntingSystem.Visible(world, from, to))
+                        if (shooter.Inventory.Count(ItemKind.Arrow) <= 0 ||
+                            !HuntingSystem.Visible(world, from, to) || !HuntingSystem.ClearShot(world, shooter.Id, from, to))
                         {
                             CancelUnreleased(world, attack.Attacker);
                             continue;
                         }
+                        // Initiation enforces range. A moving visible target may leave it during the draw;
+                        // releasing toward the last visible point must not create an endless cancel/draw loop.
                         ReleaseArrow(world, shooter, attack, from, to);
                     }
                     else
@@ -388,6 +429,7 @@ namespace MyAiWorld.Sim.Systems
                 animal.Health -= actual;
                 animal.LastDamageSourceId = source;
                 animal.Fleeing = animal.Health > 0;
+                AnimalEncounterSystem.Hit(world, animal, source, sourceIsAnimal);
                 killed = animal.Health == 0;
                 if (killed)
                 {
@@ -427,6 +469,49 @@ namespace MyAiWorld.Sim.Systems
                     CombatEventKind.Contact, position.X * CombatState.UnitsPerCell + 512,
                     position.Y * CombatState.UnitsPerCell + 512, time, actual));
             }
+        }
+
+        private static EntityId AdvanceCharge(WorldState world, CombatAttackState attack)
+        {
+            if (attack.Phase == CombatAttackPhase.Preparing)
+            {
+                if (!TryPosition(world, attack.Attacker, true, out GridPos _))
+                { CancelUnreleased(world, attack.Attacker); return EntityId.None; }
+                if (world.Tick < attack.ReleaseTick) { return EntityId.None; }
+                attack.Phase = CombatAttackPhase.Recovery; attack.ReleasedTick = attack.ReleaseTick; attack.ChargeRemaining = 3;
+                AddEvent(world, attack, CombatEventKind.Released, world.Ecology.Find(attack.Attacker.Value).Position, 0);
+            }
+            EntityId contact = EntityId.None;
+            if (attack.Phase == CombatAttackPhase.Recovery && attack.ChargeRemaining > 0 && attack.LastChargeTick != world.Tick)
+            {
+                attack.LastChargeTick = world.Tick;
+                AnimalState animal = world.Ecology.Find(attack.Attacker.Value);
+                if (!HasLocalPosition(world, animal) || animal.Health <= 0) { attack.ChargeRemaining = 0; }
+                else
+                {
+                    GridPos next = animal.Position.Offset(Math.Sign(attack.FacingX), Math.Sign(attack.FacingY));
+                    if (!world.Map.IsWalkable(next)) { attack.ChargeRemaining = 0; }
+                    else
+                    {
+                        animal.Position = next; animal.HabitatId = world.Ecology.HabitatAt(next).Id;
+                        attack.ChargeRemaining--;
+                        foreach (NpcState npc in world.Entities.Npcs)
+                        {
+                            if (npc.Survival.Life != LifeState.Active || npc.Position != next) { continue; }
+                            contact = npc.Id; attack.ChargeRemaining = 0; break;
+                        }
+                    }
+                }
+                if (attack.ChargeRemaining == 0)
+                { attack.RecoveryUntilTick = world.Tick + 2; attack.CooldownUntilTick = world.Tick + 4; }
+            }
+            return contact;
+        }
+
+        private static void UpdateChargeCooldown(WorldState world, CombatAttackState attack)
+        {
+            if (attack.Phase == CombatAttackPhase.Recovery && world.Tick >= attack.RecoveryUntilTick) { attack.Phase = CombatAttackPhase.Cooldown; }
+            if (attack.Phase == CombatAttackPhase.Cooldown && world.Tick >= attack.CooldownUntilTick) { world.Combat.MutableAttacks.Remove(attack); }
         }
 
         private static void AddEvent(WorldState world, CombatAttackState attack, CombatEventKind kind, GridPos position, int damage)

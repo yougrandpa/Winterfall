@@ -84,6 +84,7 @@ namespace MyAiWorld.Sim.Systems
         public EnvironmentState Environment { get; }
         public CampaignState Campaign { get; }
         public CombatState Combat { get; }
+        public HuntingState Hunting { get; } = new HuntingState();
         public SurvivalWorldState Survival { get; } = new SurvivalWorldState();
         public int LivingCount { get { int count = 0; foreach (NpcState npc in Entities.Npcs) { if (npc.Survival.Life != LifeState.Dead) { count++; } } return count; } }
         public WorldConfigData Config { get; }

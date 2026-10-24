@@ -27,6 +27,14 @@ namespace MyAiWorld.App.Observability
                 TradeOrder o = trade.Order;
                 return new SavedCommand { Kind = "trade", OrderId = o.Id, Arguments = new[] { o.NpcId.Value, (int)o.Side, (int)o.Item, o.Quantity, o.UnitPrice } };
             }
+            if (command is RequestHuntCommand hunt)
+            {
+                var args = new List<int> { hunt.TargetId.Value };
+                foreach (EntityId member in hunt.ParticipantIds) { args.Add(member.Value); }
+                return new SavedCommand { Kind = "hunt", Arguments = args.ToArray() };
+            }
+            if (command is CancelHuntCommand cancel)
+            { return new SavedCommand { Kind = "cancel_hunt", Arguments = new[] { cancel.TaskId } }; }
             if (command is ContinueObservationCommand)
             {
                 return new SavedCommand { Kind = "continue_observation", Arguments = new int[0] };
@@ -43,6 +51,14 @@ namespace MyAiWorld.App.Observability
             {
                 return new TradeCommand(new TradeOrder(OrderId, new EntityId(Arguments[0]), (TradeSide)Arguments[1], (ItemKind)Arguments[2], Arguments[3], Arguments[4]));
             }
+            if (Kind == "hunt" && Arguments != null && Arguments.Length >= 1 && Arguments.Length <= 4)
+            {
+                var members = new List<EntityId>();
+                for (int i = 1; i < Arguments.Length; i++) { members.Add(new EntityId(Arguments[i])); }
+                return new RequestHuntCommand(new EntityId(Arguments[0]), members);
+            }
+            if (Kind == "cancel_hunt" && Arguments != null && Arguments.Length == 1)
+            { return new CancelHuntCommand(Arguments[0]); }
             if (Kind == "continue_observation" && Arguments != null && Arguments.Length == 0)
             {
                 return new ContinueObservationCommand();
@@ -64,7 +80,7 @@ namespace MyAiWorld.App.Observability
 
     public static class SaveStore
     {
-        public const int CurrentVersion = 4;
+        public const int CurrentVersion = 5;
         private const int MaxBytes = 96 * 1024 * 1024;
         private sealed class Envelope
         {
@@ -106,7 +122,7 @@ namespace MyAiWorld.App.Observability
         {
             if (new FileInfo(path).Length > MaxBytes) { throw new InvalidDataException("Save exceeds size limit."); }
             var envelope = JsonConvert.DeserializeObject<Envelope>(File.ReadAllText(path));
-            if (envelope != null && envelope.Version != CurrentVersion) { throw new InvalidDataException("旧版存档不支持本次生存规则，请重新开局；旧文件已保留。"); }
+            if (envelope != null && envelope.Version != CurrentVersion) { throw new InvalidDataException("旧版存档不支持本次狩猎规则，请重新开局；旧文件已保留。"); }
             if (envelope == null || envelope.Version != CurrentVersion || envelope.Payload == null || envelope.Checksum != Digest(envelope.Payload))
             {
                 throw new InvalidDataException("Unsupported or damaged save.");

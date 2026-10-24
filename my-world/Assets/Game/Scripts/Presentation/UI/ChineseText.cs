@@ -77,6 +77,13 @@ namespace MyAiWorld.Presentation.UI
         {
             if (label == null) { return ""; }
             if (label.StartsWith("Hunt: pursue")) { return "接近猎物"; }
+            if (label == "Hunt: gather") { return "集结与准备装备"; }
+            if (label == "Hunt: flank") { return "侧翼截击"; }
+            if (label == "Hunt: cover") { return "掩护队友"; }
+            if (label == "Hunt: return") { return "运送猎获回村"; }
+            if (label == "Hunt: retreat") { return "撤离狩猎区域"; }
+            if (label == "Hunt: complete") { return "狩猎结束"; }
+            if (label == "Hunt: shelter") { return "寻找安全退路"; }
             if (label == "Hunt: track") { return "追踪猎物"; }
             if (label == "Hunt: attack") { return "瞄准与攻击"; }
             if (label == "Hunt: retrieve") { return "取回猎获"; }

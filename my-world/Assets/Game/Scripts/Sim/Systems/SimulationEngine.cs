@@ -76,6 +76,7 @@ namespace MyAiWorld.Sim.Systems
                 world.Market.UpdatePrices();
             }
 
+            HuntingCoordinator.Update(world, events);
             IReadOnlyList<NpcState> npcs = world.Entities.Npcs;
             for (int i = 0; i < npcs.Count; i++)
             {
@@ -91,6 +92,7 @@ namespace MyAiWorld.Sim.Systems
                 }
             }
             world.Ecology.ResolveDeaths(world, events);
+            HuntingCoordinator.CommitRetrieval(world, events);
             foreach (KeyValuePair<NpcState, PlanStep> completion in _pendingCompletions)
             {
                 NpcState npc = completion.Key;
@@ -215,6 +217,7 @@ namespace MyAiWorld.Sim.Systems
             if (npc.Survival.Life != LifeState.Downed) { UpdateNeeds(world, npc, events); }
             if (!HealthSystem.Update(world, npc, events)) { return; }
             if (npc.Survival.Life == LifeState.Recovering && !npc.Survival.Rescuer.IsNone) { return; }
+            if (HuntingCoordinator.UpdateMember(world, npc, events)) { return; }
             if (npc.Plan.IsActive && (ShouldInterrupt(npc) ||
                 ThermalSystem.ShouldSeekWarmth(world, npc) && npc.Plan.Goal != NpcGoalType.WarmUp &&
                 npc.Plan.Goal != NpcGoalType.Eat && npc.Plan.Goal != NpcGoalType.Drink &&
@@ -750,6 +753,7 @@ namespace MyAiWorld.Sim.Systems
 
         private static void FailPlan(WorldState world, NpcState npc, string reason, List<SimEvent> events, bool interrupted = false)
         {
+            HuntingCoordinator.Detach(world, npc.Id);
             world.Resources.Release(npc.Id);
             world.Ecology.Release(npc.Id);
             ProductionSystem.Release(world, npc);

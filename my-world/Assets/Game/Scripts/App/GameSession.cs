@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
 using MyAiWorld.App.Observability;
 using MyAiWorld.App.Query;
 using MyAiWorld.Sim.Core;
@@ -58,7 +57,7 @@ namespace MyAiWorld.App
         public int WorldRevision { get; private set; }
         public string SaveStatus { get; private set; } = "尚未存档";
         public bool LastSaveSucceeded { get; private set; }
-        public string SaveDirectory { get; set; } = Path.Combine(Application.persistentDataPath, "MyAiWorld", "saves-winter-ecology-v4");
+        public string SaveDirectory { get; set; } = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "saves-hunting-v5");
         public string ManualSavePath => Path.Combine(SaveDirectory, "manual.json");
         public string AutoSavePath => Path.Combine(SaveDirectory, "auto.json");
         public string ReplayPath => Replay != null ? Replay.FilePath : null;

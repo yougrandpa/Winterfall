@@ -10,7 +10,7 @@ namespace MyAiWorld.Sim.Systems
     // No trace packets, recorded movement, or presentation facts enter this format.
     public static class CombatSnapshot
     {
-        public const int CurrentVersion = 2;
+        public const int CurrentVersion = 3;
         private const int MaxRecords = 1000000;
 
         public static byte[] Capture(WorldState world)
@@ -40,6 +40,8 @@ namespace MyAiWorld.Sim.Systems
                 writer.Write(attack.RecoveryUntilTick); writer.Write(attack.CooldownUntilTick);
                 writer.Write(attack.FacingX); writer.Write(attack.FacingY); writer.Write(attack.IsCounterattack);
                 writer.Write(attack.Region); writer.Write(attack.HabitatId);
+                writer.Write(attack.AimPosition.X); writer.Write(attack.AimPosition.Y);
+                writer.Write(attack.ChargeRemaining); writer.Write(attack.LastChargeTick);
             }
             writer.Write(state.Projectiles.Count);
             foreach (ProjectileState arrow in state.Projectiles)
@@ -101,7 +103,9 @@ namespace MyAiWorld.Sim.Systems
                     StartTick = reader.ReadInt64(), ReleaseTick = reader.ReadInt64(), ReleasedTick = reader.ReadInt64(),
                     RecoveryUntilTick = reader.ReadInt64(), CooldownUntilTick = reader.ReadInt64(),
                     FacingX = reader.ReadInt32(), FacingY = reader.ReadInt32(), IsCounterattack = reader.ReadBoolean(),
-                    Region = reader.ReadInt32(), HabitatId = reader.ReadInt32()
+                    Region = reader.ReadInt32(), HabitatId = reader.ReadInt32(),
+                    AimPosition = new GridPos(reader.ReadInt32(), reader.ReadInt32()),
+                    ChargeRemaining = reader.ReadInt32(), LastChargeTick = reader.ReadInt64()
                 };
                 state.MutableAttacks.Add(attack);
             }
@@ -149,12 +153,16 @@ namespace MyAiWorld.Sim.Systems
                     attack.Attacker.Value > previousActor, "Duplicate/invalid attack actor or target.");
                 previousActor = attack.Attacker.Value;
                 Require(Enum.IsDefined(typeof(CombatAttackKind), attack.Kind) && Enum.IsDefined(typeof(CombatAttackPhase), attack.Phase) &&
-                    (attack.AttackerIsAnimal ? attack.Kind == CombatAttackKind.Bite || attack.Kind == CombatAttackKind.Gore :
+                    (attack.AttackerIsAnimal ? attack.Kind == CombatAttackKind.Bite || attack.Kind == CombatAttackKind.Gore || attack.Kind == CombatAttackKind.Kick || attack.Kind == CombatAttackKind.Charge :
                         (attack.Kind == CombatAttackKind.Bow || attack.Kind == CombatAttackKind.Spear) && attack.TargetIsAnimal), "Invalid attack kind.");
-                int preparation = attack.Kind == CombatAttackKind.Bow ? 2 : 1;
+                int preparation = attack.Kind == CombatAttackKind.Bow || attack.Kind == CombatAttackKind.Charge ? 2 : 1;
                 Require(attack.StartTick >= 0 && attack.StartTick <= world.Tick && attack.StartTick <= long.MaxValue - 8 &&
-                    attack.ReleaseTick == attack.StartTick + preparation && attack.RecoveryUntilTick == attack.ReleaseTick + 1 &&
-                    attack.CooldownUntilTick == attack.ReleaseTick + 3 && Math.Abs((long)attack.FacingX) <= (long)world.Map.Width * CombatState.UnitsPerCell &&
+                    attack.ReleaseTick == attack.StartTick + preparation &&
+                    (attack.Kind == CombatAttackKind.Charge ? attack.RecoveryUntilTick >= attack.ReleaseTick + 2 &&
+                        attack.RecoveryUntilTick <= attack.ReleaseTick + 5 && attack.CooldownUntilTick == attack.RecoveryUntilTick + 2 &&
+                        attack.Region == -1 && !attack.TargetIsAnimal && attack.ChargeRemaining >= 0 && attack.ChargeRemaining <= 3 &&
+                        Math.Abs(attack.FacingX) + Math.Abs(attack.FacingY) == CombatState.UnitsPerCell :
+                        attack.RecoveryUntilTick == attack.ReleaseTick + 1 && attack.CooldownUntilTick == attack.ReleaseTick + 3 && attack.ChargeRemaining == 0) && Math.Abs((long)attack.FacingX) <= (long)world.Map.Width * CombatState.UnitsPerCell &&
                     Math.Abs((long)attack.FacingY) <= (long)world.Map.Height * CombatState.UnitsPerCell, "Invalid attack timing/facing.");
                 Require(attack.Region == -1 ? attack.HabitatId == -1 :
                     CombatSystem.ValidRegionalHabitat(world, attack.Region, attack.HabitatId) &&

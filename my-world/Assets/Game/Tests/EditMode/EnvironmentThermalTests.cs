@@ -86,6 +86,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void FirstNight_TwentyResidentsStayWarm_DeterministicallyUntilFiniteFuelRunsOut()
         {
             var config = new WorldConfigData(731, 64, 64, 20, 97 * 1440 + 360, 2, new[] { 1 });
@@ -205,6 +206,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
+        [Category("LongRunning")]
         public void Weather_FourteenWinterDays_ReplaysExactlyAndKeepsAllFieldsBounded()
         {
             WorldState first = Empty(0, false);

@@ -33,6 +33,12 @@ namespace MyAiWorld.EditorTools
             Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode");
         }
 
+        [MenuItem("Tools/My AI World/Verification/Run PlayMode Smoke Tests")]
+        public static void RunPlayModeSmoke()
+        {
+            Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode", "EngineSmoke");
+        }
+
         [MenuItem("Tools/My AI World/Verification/Inspect First NPC")]
         public static void InspectFirstNpc()
         {
@@ -103,7 +109,7 @@ namespace MyAiWorld.EditorTools
             Debug.Log("M4 verification player: " + report.summary.result + ", errors=" + report.summary.totalErrors + ", " + path);
         }
 
-        private static void Run(TestMode mode, string assembly)
+        private static void Run(TestMode mode, string assembly, string category = null)
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -111,11 +117,12 @@ namespace MyAiWorld.EditorTools
                 return;
             }
 
-            SessionState.SetString(PendingModeKey, mode.ToString());
+            SessionState.SetString(PendingModeKey, mode + (category == null ? "" : "-" + category));
             Api.Execute(new ExecutionSettings(new Filter
             {
                 testMode = mode,
-                assemblyNames = new[] { assembly }
+                assemblyNames = new[] { assembly },
+                categoryNames = category == null ? null : new[] { category }
             }));
         }
 
@@ -141,6 +148,7 @@ namespace MyAiWorld.EditorTools
             public string result;
             public string message;
             public string stackTrace;
+            public double durationSeconds;
         }
 
         private sealed class ResultRecorder : ICallbacks
@@ -189,7 +197,8 @@ namespace MyAiWorld.EditorTools
                         name = result.FullName,
                         result = result.ResultState,
                         message = result.Message,
-                        stackTrace = result.StackTrace
+                        stackTrace = result.StackTrace,
+                        durationSeconds = result.Duration
                     });
                     return;
                 }

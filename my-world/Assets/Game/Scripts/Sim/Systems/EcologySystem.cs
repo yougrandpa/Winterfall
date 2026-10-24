@@ -46,6 +46,7 @@ namespace MyAiWorld.Sim.Systems
                     }
                     continue;
                 }
+                if (AnimalEncounterSystem.Update(world, animal, events)) { continue; }
                 if (world.Tick >= animal.NextDecisionTick)
                 {
                     Decide(world, animal, events);
@@ -537,30 +538,6 @@ namespace MyAiWorld.Sim.Systems
                     CombatSystem.RequestAnimalAttack(world, animal, threat, events);
                 }
                 return;
-            }
-            if (animal.Region < 0)
-            {
-                foreach (NpcState npc in world.Entities.Npcs)
-                {
-                    int distance = npc.Position.ManhattanDistance(animal.Position);
-                    if (npc.Survival.Life != LifeState.Active || !npc.HasHuntingTool || distance > Sight(world, animal) ||
-                        !HuntingSystem.Visible(world, animal.Position, npc.Position))
-                    {
-                        continue;
-                    }
-                    animal.TargetPosition = npc.Position;
-                    if (distance <= 1 && (animal.Species == AnimalSpecies.Boar || animal.Species == AnimalSpecies.Wolf))
-                    {
-                        animal.Behavior = AnimalBehavior.Defend;
-                        CombatSystem.RequestNpcAttack(world, animal, npc, events);
-                    }
-                    else
-                    {
-                        animal.Fleeing = true;
-                        animal.Behavior = AnimalBehavior.Flee;
-                    }
-                    return;
-                }
             }
             if (animal.MigrationDestination >= 0)
             {

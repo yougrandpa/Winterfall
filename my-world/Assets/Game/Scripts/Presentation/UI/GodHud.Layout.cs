@@ -375,6 +375,7 @@ namespace MyAiWorld.Presentation.UI
         private void BuildMarket(Transform root)
         {
             var content = Detail(root, "EcologyEconomy", "生态与市场", "coin", 1);
+            BuildHunting(content);
             HudLayout.Section(content, "山野生灵");
             _rabbitValue = AddPopulationRow(content, "RabbitRow", "野兔", out _rabbitFill);
             _boarValue = AddPopulationRow(content, "BoarRow", "野猪", out _boarFill);

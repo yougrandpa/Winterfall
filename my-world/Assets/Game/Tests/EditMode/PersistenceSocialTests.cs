@@ -27,6 +27,7 @@ namespace MyAiWorld.Tests.EditMode
         [TestCase(42)]
         [TestCase(1)]
         [TestCase(12345)]
+        [Category("LongRunning")]
         public void Snapshot_MidActionAndReservations_ContinueWithIdenticalHashes(int seed)
         {
             WorldState world = Create(seed);
@@ -256,7 +257,7 @@ namespace MyAiWorld.Tests.EditMode
                     WorldState current = session.World;
                     Assert.That(session.Load(path), Is.False); Assert.That(session.World, Is.SameAs(current));
                     Assert.That(File.ReadAllText(path), Is.EqualTo(legacy));
-                    Assert.That(session.SaveDirectory, Does.EndWith("saves-winter-ecology-v4"));
+                    Assert.That(session.SaveDirectory, Does.EndWith("saves-hunting-v5"));
                 }
             }
             finally { Directory.Delete(folder, true); }

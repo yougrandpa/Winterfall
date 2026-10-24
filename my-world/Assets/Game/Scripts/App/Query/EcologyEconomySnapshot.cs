@@ -16,6 +16,7 @@ namespace MyAiWorld.App.Query
             Cell = animal.Position;
             Health = animal.Health;
             Fleeing = animal.Fleeing;
+            Encounter = animal.Encounter.Phase; Stamina = animal.Encounter.Stamina;
             ReservedBy = animal.ReservedBy;
             Energy = animal.Energy;
             EnergyCapacity = animal.Definition.EnergyCapacity;
@@ -47,6 +48,8 @@ namespace MyAiWorld.App.Query
         public GridPos Cell { get; }
         public int Health { get; }
         public bool Fleeing { get; }
+        public EncounterPhase Encounter { get; }
+        public int Stamina { get; }
         public EntityId ReservedBy { get; }
         public int Energy { get; }
         public int EnergyCapacity { get; }

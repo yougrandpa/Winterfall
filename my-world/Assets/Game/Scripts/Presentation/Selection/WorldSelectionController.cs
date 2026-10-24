@@ -11,6 +11,8 @@ namespace MyAiWorld.Presentation.Selection
         private Camera _camera;
         private WorldPresenter _presenter;
 
+        public EntityId? SelectedAnimal { get; private set; }
+        public event Action<EntityId?> AnimalSelected;
         public GridPos? SelectedCell { get; private set; }
         public event Action<GridPos> CellSelected;
         public EntityId? Selected { get; private set; }
@@ -42,8 +44,15 @@ namespace MyAiWorld.Presentation.Selection
             Vector3 screen = Input.mousePosition;
             Vector3 world = _camera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -_camera.transform.position.z));
             NpcView view = _presenter.PickNpc(new Vector2(world.x, world.y));
-            Select(view != null ? view.Id : (EntityId?)null);
-            if (view == null) { SelectCell(new GridPos(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y))); }
+            if (view != null) { Select(view.Id); return; }
+            AnimalView animal = _presenter.PickAnimal(new Vector2(world.x, world.y));
+            if (animal != null) { SelectAnimal(animal.Id); return; }
+            SelectCell(new GridPos(Mathf.FloorToInt(world.x), Mathf.FloorToInt(world.y)));
+        }
+
+        public void SelectAnimal(EntityId id)
+        {
+            Select(null); SelectedAnimal = id; _presenter.SetSelectedAnimal(id); AnimalSelected?.Invoke(id);
         }
 
         public void SelectCell(GridPos cell)
@@ -54,6 +63,7 @@ namespace MyAiWorld.Presentation.Selection
         public void Select(EntityId? id)
         {
             SelectedCell = null;
+            if (SelectedAnimal.HasValue) { SelectedAnimal = null; _presenter.SetSelectedAnimal(null); AnimalSelected?.Invoke(null); }
             if (Selected.HasValue == id.HasValue &&
                 (!Selected.HasValue || Selected.Value == id.Value))
             {

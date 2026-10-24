@@ -374,6 +374,7 @@ namespace MyAiWorld.App.Query
         }
         public EcologyEconomySnapshot EcologyEconomy { get; private set; }
         public CombatReadModel Combat { get; private set; }
+        public HuntingReadModel Hunting { get; private set; }
         // Missing locally does not imply death: regional residents have no renderable cell.
         public bool IsAnimalNonLocal(EntityId id) => _nonLocalAnimals.Contains(id);
         public int ReservationCount { get; private set; }
@@ -457,6 +458,7 @@ namespace MyAiWorld.App.Query
             SocialTimeline = Array.AsReadOnly(new List<MyAiWorld.Sim.Agents.SocialEvent>(world.Social.Timeline).ToArray());
             EcologyEconomy = new EcologyEconomySnapshot(world);
             Combat = new CombatReadModel(world.Combat);
+            Hunting = new HuntingReadModel(world);
             _nonLocalAnimals.Clear();
             foreach (AnimalState animal in world.Ecology.Animals)
             {

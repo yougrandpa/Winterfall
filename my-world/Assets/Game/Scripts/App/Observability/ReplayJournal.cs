@@ -4,7 +4,6 @@ using System.IO;
 using MyAiWorld.Sim.Systems;
 using MyAiWorld.Sim.World;
 using Newtonsoft.Json;
-using UnityEngine;
 
 namespace MyAiWorld.App.Observability
 {
@@ -22,14 +21,14 @@ namespace MyAiWorld.App.Observability
             _config = config ?? throw new ArgumentNullException(nameof(config));
             try
             {
-                string root = Path.Combine(Application.persistentDataPath, "MyAiWorld", "replays");
+                string root = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "replays");
                 Directory.CreateDirectory(root);
                 string stamp = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss-fff");
                 FilePath = Path.Combine(root, "replay-" + stamp + ".json");
             }
             catch (Exception exception)
             {
-                Debug.LogWarning("My AI World: replay journal is unavailable: " + exception.Message);
+                RuntimeHost.Warn("My AI World: replay journal is unavailable: " + exception.Message);
                 FilePath = null;
             }
         }
@@ -62,7 +61,7 @@ namespace MyAiWorld.App.Observability
 
             var replay = new ReplayData
             {
-                FormatVersion = 5,
+                FormatVersion = 6,
                 InitialSnapshot = _initialSnapshot,
                 StateHashVersion = StateHasher.Version,
                 Seed = _config.Seed,
@@ -84,7 +83,7 @@ namespace MyAiWorld.App.Observability
             }
             catch (Exception exception)
             {
-                Debug.LogWarning("My AI World: failed to write replay journal: " + exception.Message);
+                RuntimeHost.Warn("My AI World: failed to write replay journal: " + exception.Message);
             }
         }
 

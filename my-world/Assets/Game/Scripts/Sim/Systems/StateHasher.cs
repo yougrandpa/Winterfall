@@ -9,7 +9,7 @@ namespace MyAiWorld.Sim.Systems
 {
     public static class StateHasher
     {
-        public const int Version = 6;
+        public const int Version = 7;
         private const ulong FnvOffset = 14695981039346656037UL;
         private const ulong FnvPrime = 1099511628211UL;
 
@@ -226,6 +226,7 @@ namespace MyAiWorld.Sim.Systems
                 state.Campaign.Write(writer);
                 state.Ecology.WriteSnapshot(writer);
                 CombatSnapshot.Write(writer, state);
+                HuntingSnapshot.Write(writer, state);
                 foreach (byte value in stream.ToArray()) { hash = Mix(hash, (int)value); }
             }
             return hash;

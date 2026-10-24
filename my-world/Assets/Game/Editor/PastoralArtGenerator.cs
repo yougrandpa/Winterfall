@@ -226,6 +226,7 @@ namespace MyAiWorld.EditorTools
 
             // Append only after every legacy slice: old atlas sizes and packing stay unchanged.
             GenerateWinterAndCombatAtlases();
+            DrawHuntingAtlas();
 
             foreach (AtlasTarget target in Targets) { Save(target); }
 
@@ -250,6 +251,56 @@ namespace MyAiWorld.EditorTools
             EnsureAtmosphereProfile();
             _target = null;
             Debug.Log("Cold island art generated: " + config.sprites.Length + " sprites across " + Targets.Count + " atlases.");
+        }
+
+        [MenuItem("Tools/My AI World/Art/Generate Hunting Art")]
+        public static void GenerateHuntingArt()
+        {
+            Targets.Clear(); DrawHuntingAtlas(); Save(Targets[0]);
+            var config = AssetDatabase.LoadAssetAtPath<PastoralArtConfig>(Root + "PastoralArt.asset");
+            var entries = config.sprites.Where(e => !e.key.StartsWith("animal_charge_") && !e.key.StartsWith("animal_hurt_") && !e.key.StartsWith("hunt_"));
+            config.sprites = entries.Concat(AssetDatabase.LoadAllAssetsAtPath(Root + "HuntingAtlas.png").OfType<Sprite>()
+                .Select(sprite => new PastoralArtConfig.Entry { key = sprite.name, sprite = sprite }))
+                .OrderBy(e => e.key, StringComparer.Ordinal).ToArray();
+            EditorUtility.SetDirty(config); AssetDatabase.SaveAssets(); _target = null;
+        }
+
+        private static void DrawHuntingAtlas()
+        {
+            var target = new AtlasTarget("HuntingAtlas.png", 1024, 1024, 16, FilterMode.Point);
+            Targets.Add(target); Use(target);
+            for (int direction = 0; direction < 4; direction++)
+            for (int stage = 0; stage < 3; stage++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("animal_charge_" + direction + "_" + stage + "_" + frame);
+                AnimalAttack(1, direction, stage == 0 ? 0 : stage == 1 ? 2 : 3);
+                int shift = stage == 0 ? -frame : stage == 1 ? frame * 2 : 3 - frame;
+                ShiftDrawing(direction == 1 ? shift : direction == 3 ? -shift : 0,
+                    direction == 0 ? -shift : direction == 2 ? shift : 0);
+                if (stage == 1) { L(20, 8, 30, 8, SoilLight); L(16, 12, 24, 12, SoilLight); }
+            }
+            for (int species = 0; species < 7; species++)
+            for (int direction = 0; direction < 4; direction++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("animal_hurt_" + species + "_" + direction + "_" + frame);
+                AnimalAttack(species, direction, 0);
+                int shift = frame == 1 ? 3 : frame == 2 ? 2 : 0;
+                ShiftDrawing(direction == 1 ? -shift : direction == 3 ? shift : 0,
+                    direction == 0 ? shift : direction == 2 ? -shift : 0);
+            }
+            Begin("hunt_charge_warning");
+            L(19, 8, 32, 19, C(236, 157, 72)); L(32, 19, 45, 8, C(236, 157, 72));
+            L(19, 10, 32, 21, C(236, 157, 72)); L(32, 21, 45, 10, C(236, 157, 72));
+            for (int role = 0; role < 3; role++)
+            {
+                Begin("hunt_role_" + role);
+                E(32, 32, 12, 12, Outline);
+                if (role == 0) { DrawCombatBow(32, 30, 1, 7); }
+                else if (role == 1) { DrawSpear(25, 20, 38, 44); }
+                else { L(22, 24, 37, 39, Cream); L(27, 39, 37, 39, Cream); L(37, 39, 37, 29, Cream); }
+            }
         }
 
         private static void GenerateWinterAndCombatAtlases()

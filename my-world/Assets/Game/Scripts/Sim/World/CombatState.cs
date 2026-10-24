@@ -4,7 +4,7 @@ using MyAiWorld.Sim.Core;
 
 namespace MyAiWorld.Sim.World
 {
-    public enum CombatAttackKind { Bow, Spear, Bite, Gore }
+    public enum CombatAttackKind { Bow, Spear, Bite, Gore, Kick, Charge }
     public enum CombatAttackPhase { Preparing, Recovery, Cooldown }
     public enum ProjectilePhase { Flying, Embedded }
     public enum CombatEventKind { Started, Released, Flying, Contact, Missed, Cancelled, Embedded, Grounded, Broken, Lost, Recovered }
@@ -36,6 +36,9 @@ namespace MyAiWorld.Sim.World
         public int FacingX { get; internal set; }
         public int FacingY { get; internal set; }
         public bool IsCounterattack { get; internal set; }
+        public GridPos AimPosition { get; internal set; } = GridPos.Invalid;
+        public int ChargeRemaining { get; internal set; }
+        public long LastChargeTick { get; internal set; } = -1;
     }
 
     // A single Arrow belongs here until it is transferred to a bag/ground or consumed.

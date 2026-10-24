@@ -20,7 +20,7 @@
 | M1 / M2 / M3 核心切片 | 已实现，默认 20 NPC、四种子各通过 14 游戏日验证 |
 | 32×32 美术与动画 | 首版完成：地图分层、地形变体、树/岩/建筑、五职业、兔/野猪逐帧动画 |
 | 中文 HUD | 首版完成：顶栏摘要、三个详情面板、NPC 检查器、需求曲线、F1 调试 |
-| 自动测试 | 当前源码静态统计：EditMode 372 项、PlayMode 66 项；本轮删减后未执行，范围与预算见 [测试维护说明](Docs/Testing.md) |
+| 自动测试 | 默认独立代码测试：快速集 392 项，长周期回归 13 项；编辑器配置 1 项、PlayMode 64 项按需执行，见 [测试运行说明](Docs/Testing.md) |
 | 存档 / 社会记忆 | 手动与每日自动存档、备份恢复、单向信任、问候/赠食、人物事件时间线 |
 | 视觉验收 | 首版仅以 1920×1080 为验收目标；白天/黄昏/夜晚；动物逃跑与近景细节 |
 | LLM | 未接入，M5 计划 |
@@ -92,7 +92,18 @@ Logs/TestResults/             # 自动测试结果（运行测试后生成）
 
 ## 测试
 
-编辑器内：退出 Play Mode 并等待编译完成，执行 **Tools → My AI World → Verification → Run EditMode Tests / Run PlayMode Tests**，生成 `Logs/TestResults/*-CurrentProject.json`。运行游戏时可用同菜单的 **Inspect First NPC** 暂停并查看首个 NPC。
+日常从仓库根目录直接运行代码测试，无需启动或连接编辑器：
+
+```bash
+python3 tools/test.py                                  # 默认快速集
+python3 tools/test.py --filter HuntingGameplayTests    # 仅相关测试
+python3 tools/test.py --no-build                       # 只用有效缓存，禁止编译
+python3 tools/test.py full                             # 按需包含长周期回归
+```
+
+首次使用已安装的 Tuanjie Mono 编译生产源码与 NUnit 测试，后续缓存未变化的程序集。结果为 `Logs/TestResults/Code-*.json` 和 `.xml`。需要已恢复工程的 NUnit 与 Newtonsoft 包；自定义安装路径使用 `--editor /path/to/Tuanjie.app`。
+
+涉及场景、输入或渲染接线时，在编辑器内退出 Play Mode，执行 **Tools → My AI World → Verification → Run PlayMode Smoke Tests**（4 项）。完整 **Run EditMode Tests / Run PlayMode Tests** 保留用于按需验收，结果为 `Logs/TestResults/*-CurrentProject.json`。运行游戏时可用同菜单的 **Inspect First NPC** 暂停并查看首个 NPC。
 
 命令行方式需先关闭此工程的编辑器；不要加 `-quit`，否则测试进程会提前退出：
 
@@ -112,7 +123,7 @@ mkdir -p "$PROJECT/Logs/TestResults"
   -logFile "$PROJECT/Logs/TestResults/PlayMode.log"
 ```
 
-当前测试保留单种子十四日生存／守恒／职业差异整合回归、四种子存档恢复确定性、四季交界、损坏拒绝、备份、命令队列恢复，以及互助因果链和 UI 集成。2026-10-24 已删减重复长期模拟，目标为已打开编辑器内全量测试连同模式切换低于两分钟；本轮未执行测试，尚未实测达成。当前范围、覆盖变化与验收口径见 [测试维护说明](Docs/Testing.md)。历史 M4 通过记录见 [M4 记录](Docs/Progress/Milestone-04.md)，不代表本轮源码的验证结果。
+快速集实测 392 项全部通过，首次构建加运行共 3.42 秒，复用缓存时共 1.79 秒；长周期回归及引擎测试按需执行。本轮将 7 项纯数据用例从 PlayMode 迁移至代码测试，没有删除断言。完整范围、缓存行为与验证记录见 [测试运行说明](Docs/Testing.md)。历史 M4 通过记录见 [M4 记录](Docs/Progress/Milestone-04.md)。
 
 存档位于 `Application.persistentDataPath/MyAiWorld/saves/`：`manual.json`、`auto.json` 和各自的 `.bak`。每个游戏日午夜自动保存。文件损坏或不可写时保留当前世界，并在底部状态栏提示。M4.1 的 v1 存档会迁移至 v2；M1–M3 的日志/回放摘要不是完整存档。读取后世界暂停，需求曲线从恢复时刻重新采样。
 

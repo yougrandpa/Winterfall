@@ -116,6 +116,7 @@ namespace MyAiWorld.Tests.PlayMode
         }
 
         [UnityTest]
+        [Category("EngineSmoke")]
         public IEnumerator Bootstrap_CreatesWorldCameraAndNpcViews()
         {
             var root = new GameObject("BootstrapSmokeTest");

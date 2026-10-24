@@ -15,6 +15,9 @@ namespace MyAiWorld.Sim.Systems
             (target.Position != target.Home || target.Needs.Food < 3500 && target.Inventory.Food == 0 || target.Needs.Water < 3500 && target.Inventory.Water == 0));
         internal static void Cancel(WorldState world, NpcState npc, string reason)
         {
+            HuntTaskState hunt = world.Hunting.ForNpc(npc.Id);
+            if (hunt != null) { HuntingCoordinator.Retreat(world, hunt, "队员倒地或救援中断", new List<SimEvent>()); }
+            HuntingCoordinator.Detach(world, npc.Id);
             world.Resources.Release(npc.Id); world.Ecology.Release(npc.Id); ProductionSystem.Release(world, npc);
             if (npc.Plan.IsActive) { npc.Plan.Fail(reason); }
             npc.Action.SetIdle(reason, world.Tick + 1);
