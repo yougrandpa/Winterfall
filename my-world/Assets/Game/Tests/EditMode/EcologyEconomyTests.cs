@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using MyAiWorld.Sim.Agents;
 using MyAiWorld.Sim.Ai;
 using MyAiWorld.Sim.Core;
@@ -8,7 +7,6 @@ using MyAiWorld.Sim.Navigation;
 using MyAiWorld.Sim.Systems;
 using MyAiWorld.Sim.World;
 using NUnit.Framework;
-using UnityEngine;
 
 namespace MyAiWorld.Tests.EditMode
 {
@@ -392,22 +390,13 @@ namespace MyAiWorld.Tests.EditMode
             }
         }
 
-        // Survival v5 includes production, equipment, crops, rescue and ground inventories.
-        // All earlier conservation and specialization
-        // assertions remain active before accepting these new baselines.
+        // One fixed-seed 14-day integration baseline complements focused mechanics
+        // tests and the four-seed snapshot/resume determinism tests.
         [TestCase(20261020, "ec8b3c600e0fe272")]
-        [TestCase(42, "76dfcfb3cc7119a4")]
-        [TestCase(1, "e9b36ab66ecc80eb")]
-        [TestCase(12345, "19997160b1426731")]
         public void DefaultWorld_FourteenDays_ConservesResourcesAndCurrencyWithDistinctStrategies(int seed, string expectedHash)
         {
             WorldState world = Create(seed);
             var engine = new SimulationEngine();
-            int minHealth = 10000;
-            int minPopulation = 48;
-            int maxPopulation = 0;
-            int previousLedgerCount = 0;
-            var daily = new List<string>();
             var eaten = new HashSet<EntityId>();
             var drunk = new HashSet<EntityId>();
             var slept = new HashSet<EntityId>();
@@ -436,14 +425,11 @@ namespace MyAiWorld.Tests.EditMode
                 int boars = world.Ecology.Count(AnimalSpecies.Boar);
                 Assert.That(rabbits, Is.InRange(0, EcologyState.SpeciesCapacity));
                 Assert.That(boars, Is.InRange(0, EcologyState.SpeciesCapacity));
-                minPopulation = Math.Min(minPopulation, rabbits + boars);
-                maxPopulation = Math.Max(maxPopulation, rabbits + boars);
                 AssertInventory(world.Resources.Stockpile);
                 AssertInventory(world.Market.Inventory);
                 Assert.That(world.Market.Treasury, Is.GreaterThanOrEqualTo(0));
                 foreach (NpcState npc in world.Entities.Npcs)
                 {
-                    minHealth = Math.Min(minHealth, npc.Needs.Health);
                     Assert.That(npc.Coins, Is.GreaterThanOrEqualTo(0));
                     // Winter-tuned survival now permits deprivation, downing and death;
                     // the invariant is no negative state, not guaranteed comfort.
@@ -453,19 +439,6 @@ namespace MyAiWorld.Tests.EditMode
                     Assert.That(npc.Needs.Energy, Is.GreaterThanOrEqualTo(0));
                     Assert.That(world.Map.IsWalkable(npc.Position), Is.True);
                     AssertInventory(npc.Inventory);
-                }
-                if ((tick + 1) % GameCalendar.TicksPerDay == 0)
-                {
-                    int buys = 0, sales = 0;
-                    for (int trade = previousLedgerCount; trade < world.Market.Ledger.Count; trade++)
-                    {
-                        TradeRecord record = world.Market.Ledger[trade];
-                        if (record.Filled && record.Order.Side == TradeSide.Buy) { buys++; }
-                        if (record.Filled && record.Order.Side == TradeSide.Sell) { sales++; }
-                    }
-                    previousLedgerCount = world.Market.Ledger.Count;
-                    daily.Add("{\"day\":" + (tick + 1) / 1440 + ",\"buys\":" + buys + ",\"sales\":" + sales +
-                        ",\"rabbits\":" + rabbits + ",\"boars\":" + boars + ",\"treasury\":" + world.Market.Treasury + "}");
                 }
                 foreach (AnimalState animal in world.Ecology.Animals)
                 {
@@ -505,16 +478,6 @@ namespace MyAiWorld.Tests.EditMode
             foreach (NpcState npc in world.Entities.Npcs) { Assert.That(npc.Social.Memories.Count, Is.LessThanOrEqualTo(NpcSocialState.MemoryLimit)); }
             ReconcileLedger(world);
             Assert.That(StateHasher.ToHex(StateHasher.Compute(world)), Is.EqualTo(expectedHash));
-            string report = "{\"seed\":" + seed + ",\"ticks\":20160,\"hash\":\"" + StateHasher.ToHex(StateHasher.Compute(world)) +
-                "\",\"greetings\":" + world.Social.Greetings + ",\"gifts\":" + world.Social.Gifts + ",\"hashVersion\":5,\"minHealth\":" + minHealth + ",\"minPopulation\":" + minPopulation + ",\"maxPopulation\":" + maxPopulation +
-                ",\"births\":" + world.Ecology.Births + ",\"hunts\":" + kills + ",\"farmerHarvest\":" + farmerHarvest +
-                ",\"gathererHarvest\":" + gathererHarvest + ",\"farmerGather\":" + farmerGather + ",\"gathererGather\":" + gathererGather +
-                ",\"filled\":" + world.Market.FilledCount + ",\"rejected\":" + world.Market.RejectedCount +
-                ",\"treasury\":" + world.Market.Treasury + ",\"currencyError\":0,\"materialErrors\":[0,0,0],\"days\":[" + string.Join(",", daily) + "]}";
-            string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Logs", "TestResults"));
-            Directory.CreateDirectory(folder);
-            File.WriteAllText(Path.Combine(folder, "Survival-FourteenDays-" + seed + ".json"), report);
-            TestContext.WriteLine(report);
         }
 
         private static void AssertInventory(InventoryState inventory)

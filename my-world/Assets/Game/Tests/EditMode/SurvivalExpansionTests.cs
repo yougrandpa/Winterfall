@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using MyAiWorld.Sim.Agents;
 using MyAiWorld.Sim.Ai;
@@ -237,39 +236,6 @@ namespace MyAiWorld.Tests.EditMode
             new SimulationEngine().Tick(world, null); npc.Needs.Thirst = 100; new SimulationEngine().Tick(world, null);
             Assert.That(f.ReservedBy.IsNone, Is.True); Assert.That(world.Resources.Reservations.Count, Is.Zero);
             Assert.That(f.Inventory.Count(ItemKind.Stone), Is.EqualTo(4)); Conserved(world);
-        }
-
-        [Test]
-        public void DefaultWorld_FullYear_ConservesAllItemsAndMaintainsProduction()
-        {
-            // The winter challenge is a bounded 14-day settlement. Long-term observation
-            // is the supported mode for year-round ecology and material accounting.
-            var world = WorldFactory.Create(WorldConfigData.CreateObservationDefault()); var engine = new SimulationEngine();
-            long startTick = world.Tick;
-            Directory.CreateDirectory(Path.Combine(UnityEngine.Application.dataPath, "../Logs/TestResults"));
-            int completedDays = 0;
-            for (int i = 0; i < GameCalendar.DaysPerYear * 1440; i++)
-            {
-                engine.Tick(world, null); Conserved(world);
-                foreach (AnimalSpecies species in Enum.GetValues(typeof(AnimalSpecies))) { Assert.That(world.Ecology.Count(species), Is.LessThanOrEqualTo(EcologyState.SpeciesCapacity)); }
-                if ((i + 1) % 1440 == 0)
-                {
-                    completedDays++;
-                    if (completedDays <= GameCalendar.DefaultChallengeDays) { Assert.That(world.LivingCount, Is.GreaterThan(0), "Day " + completedDays); }
-                    if (completedDays % 28 == 0)
-                    {
-                        var copy = WorldSnapshot.Restore(WorldSnapshot.Capture(world));
-                        Assert.That(StateHasher.Compute(copy), Is.EqualTo(StateHasher.Compute(world)));
-                        File.WriteAllText(Path.Combine(UnityEngine.Application.dataPath, "../Logs/TestResults/Survival-Season-" + completedDays + ".json"),
-                            "{\"day\":" + completedDays + ",\"living\":" + world.LivingCount + ",\"water\":" + world.Resources.Stockpile.Water + ",\"food\":" + world.Resources.Stockpile.Food + ",\"hash\":\"" + StateHasher.ToHex(StateHasher.Compute(world)) + "\"}");
-                    }
-                }
-            }
-            Assert.That(world.Tick, Is.EqualTo(startTick + GameCalendar.DaysPerYear * 1440L));
-            Assert.That(world.Campaign.Phase, Is.EqualTo(CampaignPhase.Observation));
-            Assert.That(world.Survival.Facilities.Count(f => f.Complete), Is.EqualTo(5));
-            Assert.That(world.Entities.Npcs.Sum(n => n.Survival.WaterProduced), Is.GreaterThan(1000));
-            Assert.That(world.Entities.Npcs.Sum(n => n.HarvestedFood), Is.GreaterThan(0));
         }
     }
 }

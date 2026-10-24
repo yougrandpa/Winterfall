@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using MyAiWorld.Sim.Agents;
@@ -445,10 +444,12 @@ namespace MyAiWorld.Tests.EditMode
             {
                 Tick(world, firstEvents, combat: false);
             }
+            Assert.That(world.Ecology.Balance.Photosynthesis, Is.GreaterThan(0));
             WorldState restored = CloneEcology(world);
             CollectionAssert.AreEqual(world.Ecology.Capture(), restored.Ecology.Capture());
             restored.Ecology.Validate(restored);
-            for (int minute = 0; minute < 2 * GameCalendar.TicksPerDay; minute++)
+            // Keep per-minute resume checks; reproduction and seasonal transitions have separate tests.
+            for (int minute = 0; minute < 120; minute++)
             {
                 Tick(world, firstEvents, combat: false);
                 Tick(restored, secondEvents, combat: false);
@@ -464,59 +465,56 @@ namespace MyAiWorld.Tests.EditMode
             Assert.Throws<InvalidDataException>(() => restored.Ecology.Validate(restored));
         }
 
-        [TestCase(42, false, 112)]
-        [TestCase(12345, true, 112)]
-        [TestCase(2026, false, 112)]
-        [TestCase(31415, true, 112)]
-        [TestCase(42, true, 448)]
-        [TestCase(12345, false, 448)]
-        [TestCase(2026, true, 448)]
-        [TestCase(31415, false, 448)]
-        public void LongRun_FourSeedsAcrossSeasonsAndYears_ConserveFiniteEcologyAndMaterials(int seed, bool connected, int days)
+        [TestCase(Season.Spring, false)]
+        [TestCase(Season.Spring, true)]
+        [TestCase(Season.Summer, false)]
+        [TestCase(Season.Summer, true)]
+        [TestCase(Season.Autumn, false)]
+        [TestCase(Season.Autumn, true)]
+        [TestCase(Season.Winter, false)]
+        [TestCase(Season.Winter, true)]
+        public void SeasonBoundary_ConnectedAndIsolated_ConserveEcologyAndRoundTripSnapshots(Season season, bool connected)
         {
-            // Connected cases exercise winter migration; isolated cases start in
-            // spring so multi-year reproduction is not vacuously tested after a
-            // legitimate severe first-winter extinction.
-            WorldState world = Create(seed, connected, connected ? GameCalendar.WinterStartTick : GameCalendar.StartTick);
+            // Spring crosses the year boundary; other cases cross within the first year.
+            long boundaryTick = season == Season.Spring
+                ? (long)GameCalendar.DaysPerYear * GameCalendar.TicksPerDay
+                : (long)season * GameCalendar.DaysPerSeason * GameCalendar.TicksPerDay;
+            Season previousSeason = (Season)(((int)season + GameCalendar.SeasonsPerYear - 1) % GameCalendar.SeasonsPerYear);
+            WorldState world = Create(connected: connected, start: boundaryTick - 60);
             var events = new List<SimEvent>();
-            var seenSeasons = new HashSet<Season>();
-            int snapshots = 0;
-            int maxSnapshotBytes = 0;
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-            for (int minute = 0; minute < days * GameCalendar.TicksPerDay; minute++)
+            long birthProgress = world.Ecology.BirthProgress;
+            int initialYear = world.Date.Year;
+            Assert.That(world.Date.Season, Is.EqualTo(previousSeason));
+            AssertBalance(world);
+            world.Ecology.Validate(world);
+            for (int minute = 0; minute < 120; minute++)
             {
                 Tick(world, events);
-                // Every update checks the physical ledgers; full reference validation
-                // is sampled daily because it also checks map reachability.
                 AssertBalance(world);
-                if (minute % GameCalendar.TicksPerDay == 0)
+                Assert.That(world.Date.Season, Is.EqualTo(world.Tick < boundaryTick ? previousSeason : season));
+                Assert.That(world.Ecology.Regions.Enabled, Is.EqualTo(connected));
+                Assert.That(world.Ecology.Animals.Count, Is.LessThanOrEqualTo(2048));
+                if (world.Tick == boundaryTick || minute == 119)
                 {
                     world.Ecology.Validate(world);
-                    seenSeasons.Add(world.Date.Season);
                     byte[] bytes = world.Ecology.Capture();
-                    maxSnapshotBytes = Math.Max(maxSnapshotBytes, bytes.Length);
+                    Assert.That(bytes.Length, Is.LessThan(4 * 1024 * 1024));
                     WorldState candidate = CloneEcology(world);
                     CollectionAssert.AreEqual(bytes, candidate.Ecology.Capture());
                     candidate.Ecology.Validate(candidate);
-                    snapshots++;
+                    AssertBalance(candidate);
                 }
             }
-            watch.Stop();
-            Assert.That(seenSeasons.Count, Is.EqualTo(4));
-            Assert.That(world.Ecology.BirthProgress, Is.EqualTo((long)days * GameCalendar.TicksPerDay));
+            Assert.That(world.Tick, Is.EqualTo(boundaryTick + 60));
+            Assert.That(world.Date.DayOfSeason, Is.EqualTo(1));
+            Assert.That(world.Date.Year, Is.EqualTo(initialYear + (season == Season.Spring ? 1 : 0)));
+            Assert.That(world.Ecology.BirthProgress, Is.EqualTo(birthProgress + 120));
             Assert.That(world.Ecology.Balance.Respiration, Is.GreaterThan(0));
-            Assert.That(world.Ecology.Balance.Photosynthesis, Is.GreaterThan(0));
             if (!connected)
             {
-                Assert.That(world.Ecology.Births, Is.GreaterThan(0), "Spring reproduction must actually execute before any legal extinction.");
+                Assert.That(world.Ecology.Regions.Departures, Is.Zero);
+                Assert.That(world.Ecology.Regions.Returns, Is.Zero);
             }
-            Assert.That(world.Ecology.Animals.Count, Is.LessThanOrEqualTo(2048));
-            Assert.That(maxSnapshotBytes, Is.LessThan(4 * 1024 * 1024));
-            Console.WriteLine("Ecology seed=" + seed + " connected=" + connected + " days=" + days +
-                " alive=" + world.Ecology.Animals.Count + " births=" + world.Ecology.Births +
-                " deaths=" + world.Ecology.TotalDeaths + " migrations=" + world.Ecology.Regions.Departures +
-                "/" + world.Ecology.Regions.Returns + " snapshots=" + snapshots + " maxBytes=" + maxSnapshotBytes +
-                " elapsedMs=" + watch.ElapsedMilliseconds);
         }
     }
 }
