@@ -11,7 +11,7 @@ namespace MyAiWorld.Presentation.UI
     internal static class HudLayout
     {
         public static RectTransform Surface(Transform parent, string name, Vector2 min, Vector2 max,
-            Vector2 pivot, Vector2 position, Vector2 size, bool shadow = true)
+            Vector2 pivot, Vector2 position, Vector2 size, bool shadow = false)
         {
             var rect = UiFactory.CreatePanel(parent, name, min, max, pivot, position, size, HudTheme.Paper);
             HudTheme.StyleSurface(rect.GetComponent<Image>(), shadow);
@@ -131,7 +131,7 @@ namespace MyAiWorld.Presentation.UI
         public static RectTransform Surface(Transform parent, string name, Vector2 anchor, Vector2 position, Vector2 size)
         {
             var rect = UiFactory.CreatePanel(parent, name, anchor, anchor, anchor, position, size, HudTheme.Paper);
-            HudTheme.StyleSurface(rect.GetComponent<Image>(), true);
+            HudTheme.StyleSurface(rect.GetComponent<Image>());
             var outline = rect.gameObject.AddComponent<Outline>();
             outline.effectColor = HudTheme.LineSoft;
             outline.effectDistance = new Vector2(1, -1);
@@ -323,9 +323,13 @@ namespace MyAiWorld.Presentation.UI
             image.color = HudTheme.Inset;
             image.raycastTarget = false;
             HudTheme.StyleSurface(image);
-            iconImage = HudTheme.Icon(card, "Icon", icon, new Vector2(10, -10), new Vector2(16, 16), accent);
-            var title = FixedLabel(card, "Caption", caption, new Vector2(32, -9), new Vector2(60, 18), 11, true);
-            title.horizontalOverflow = HorizontalWrapMode.Overflow;
+            iconImage = HudTheme.Icon(card, "Icon", icon, new Vector2(8, -8), new Vector2(12, 12), accent);
+            var title = UiFactory.CreateText(card, "Caption", caption, 10, TextAnchor.MiddleLeft, HudTheme.Muted);
+            title.rectTransform.anchorMin = new Vector2(0, 1);
+            title.rectTransform.anchorMax = Vector2.one;
+            title.rectTransform.pivot = Vector2.up;
+            title.rectTransform.anchoredPosition = new Vector2(24, -4);
+            title.rectTransform.sizeDelta = new Vector2(-28, 26);
             var value = UiFactory.CreateText(card, "Value", "—", 20, TextAnchor.MiddleLeft, HudTheme.Ink);
             value.rectTransform.anchorMin = new Vector2(0, 0);
             value.rectTransform.anchorMax = new Vector2(1, 1);
@@ -340,17 +344,12 @@ namespace MyAiWorld.Presentation.UI
         {
             var cell = Rect(parent, "Fact_" + name);
             Flexible(cell);
-            Height(cell, 27);
-            iconImage = HudTheme.Icon(cell, "Icon", icon, new Vector2(0, -7), new Vector2(14, 14), iconColor);
-            var title = FixedLabel(cell, "Caption", caption, new Vector2(20, -5), new Vector2(86, 18), 12, true);
-            title.alignment = TextAnchor.MiddleLeft;
-            title.horizontalOverflow = HorizontalWrapMode.Overflow;
-            var value = UiFactory.CreateText(cell, "Value", "—", 12, TextAnchor.MiddleRight, HudTheme.Ink);
-            value.rectTransform.anchorMin = new Vector2(0, 0);
-            value.rectTransform.anchorMax = new Vector2(1, 1);
-            value.rectTransform.offsetMin = new Vector2(96, 0);
-            value.rectTransform.offsetMax = new Vector2(0, 0);
-            value.horizontalOverflow = HorizontalWrapMode.Overflow;
+            Height(cell, 42);
+            iconImage = HudTheme.Icon(cell, "Icon", icon, new Vector2(0, -3), new Vector2(12, 12), iconColor);
+            var title = FixedLabel(cell, "Caption", caption, new Vector2(18, 0), new Vector2(118, 18), 10, true);
+            var value = UiFactory.CreateText(cell, "Value", "—", 12, TextAnchor.MiddleLeft, HudTheme.Ink);
+            value.rectTransform.offsetMin = new Vector2(18, 0);
+            value.rectTransform.offsetMax = new Vector2(0, -18);
             return value;
         }
 
@@ -366,12 +365,15 @@ namespace MyAiWorld.Presentation.UI
             var fillImage = fill.GetComponent<Image>();
             HudTheme.StyleSurface(fillImage);
             fillImage.raycastTarget = false;
+            fill.gameObject.AddComponent<HudMeterMotion>();
             return fillImage;
         }
 
-        public static void SetMeter(Image fill, float value)
+        public static void SetMeter(Image fill, float value, bool instant = false)
         {
             if (fill == null) { return; }
+            var motion = fill.GetComponent<HudMeterMotion>();
+            if (motion != null) { motion.SetTarget(value, instant); return; }
             var rect = fill.rectTransform;
             rect.anchorMax = new Vector2(Mathf.Clamp01(value), 1f);
             rect.offsetMin = rect.offsetMax = Vector2.zero;
@@ -429,6 +431,11 @@ namespace MyAiWorld.Presentation.UI
         private readonly List<Image> _rails = new List<Image>();
         private readonly List<RectTransform> _progressGroups = new List<RectTransform>();
         private readonly List<Image> _progressFills = new List<Image>();
+        private readonly List<HudPulse> _feedback = new List<HudPulse>();
+        private readonly List<string> _motionKeys = new List<string>();
+        private readonly Dictionary<string, long> _motionValues = new Dictionary<string, long>();
+        private readonly HashSet<string> _seen = new HashSet<string>();
+        private readonly List<string> _removed = new List<string>();
         private int _count;
         private readonly StringBuilder _text = new StringBuilder();
         public string Text => _text.ToString();
@@ -454,6 +461,7 @@ namespace MyAiWorld.Presentation.UI
         public void Begin()
         {
             _count = 0;
+            _seen.Clear();
             _text.Clear();
         }
 
@@ -476,6 +484,8 @@ namespace MyAiWorld.Presentation.UI
                 _rails.Add(card.Find("Accent").GetComponent<Image>());
                 _progressGroups.Add(progressGroup);
                 _progressFills.Add(fill);
+                _feedback.Add(HudPulse.Attach(card, "EntryFeedback"));
+                _motionKeys.Add(null);
             }
             var current = _cards[_count];
             if (!current.gameObject.activeSelf) { current.gameObject.SetActive(true); }
@@ -491,9 +501,34 @@ namespace MyAiWorld.Presentation.UI
             _count++;
         }
 
+        public void ObserveLast(string key, long value, bool animate, Color? accent = null)
+        {
+            int index = _count - 1;
+            if (_motionKeys[index] != key)
+            {
+                _feedback[index].ResetFeedback();
+                _motionKeys[index] = key;
+            }
+            if (_motionValues.TryGetValue(key, out long previous) && value != previous && animate)
+            {
+                _feedback[index].Play(accent ?? (value > previous ? HudTheme.Positive : HudTheme.Danger), HudMotion.EcologyDuration);
+            }
+            _motionValues[key] = value;
+            _seen.Add(key);
+        }
+
+        public void ResetFeedback()
+        {
+            _motionValues.Clear();
+            foreach (var pulse in _feedback) { pulse.ResetFeedback(); }
+        }
+
         public void End()
         {
             for (int i = _count; i < _cards.Count; i++) { _cards[i].gameObject.SetActive(false); }
+            _removed.Clear();
+            foreach (var key in _motionValues.Keys) { if (!_seen.Contains(key)) { _removed.Add(key); } }
+            foreach (var key in _removed) { _motionValues.Remove(key); }
         }
     }
 }

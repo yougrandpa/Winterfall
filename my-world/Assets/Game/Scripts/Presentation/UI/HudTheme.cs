@@ -5,20 +5,20 @@ namespace MyAiWorld.Presentation.UI
 {
     public static class HudTheme
     {
-        public static readonly Color Paper = new Color32(233, 236, 231, 255);
-        public static readonly Color PaperRaised = new Color32(242, 244, 239, 255);
-        public static readonly Color Inset = new Color32(215, 221, 219, 255);
-        public static readonly Color InsetDeep = new Color32(197, 205, 204, 255);
-        public static readonly Color Ink = new Color32(36, 48, 53, 255);
-        public static readonly Color Muted = new Color32(103, 117, 121, 255);
-        public static readonly Color Faint = new Color32(142, 153, 155, 255);
-        public static readonly Color Gold = new Color32(166, 122, 68, 255);
-        public static readonly Color GoldSoft = new Color32(196, 162, 110, 255);
-        public static readonly Color Line = new Color32(196, 204, 202, 255);
-        public static readonly Color LineSoft = new Color32(216, 222, 220, 255);
-        public static readonly Color Danger = new Color32(164, 70, 58, 255);
-        public static readonly Color Positive = new Color32(80, 126, 112, 255);
-        public static readonly Color Shadow = new Color32(28, 42, 46, 46);
+        public static readonly Color Paper = new Color32(23, 33, 38, 244);
+        public static readonly Color PaperRaised = new Color32(31, 43, 49, 255);
+        public static readonly Color Inset = new Color32(38, 51, 57, 255);
+        public static readonly Color InsetDeep = new Color32(48, 64, 70, 255);
+        public static readonly Color Ink = new Color32(232, 239, 238, 255);
+        public static readonly Color Muted = new Color32(169, 187, 189, 255);
+        public static readonly Color Faint = new Color32(133, 155, 159, 255);
+        public static readonly Color Gold = new Color32(212, 154, 98, 255);
+        public static readonly Color GoldSoft = new Color32(145, 112, 79, 255);
+        public static readonly Color Line = new Color32(71, 91, 98, 255);
+        public static readonly Color LineSoft = new Color32(46, 64, 71, 255);
+        public static readonly Color Danger = new Color32(203, 112, 103, 255);
+        public static readonly Color Positive = new Color32(151, 187, 167, 255);
+        public static readonly Color Shadow = new Color32(0, 0, 0, 0);
         public static readonly Color[] Needs =
         {
             new Color32(176, 132, 66, 255), new Color32(72, 131, 147, 255),
@@ -42,9 +42,9 @@ namespace MyAiWorld.Presentation.UI
                 {
                     for (int x = 0; x < size; x++)
                     {
-                        float dx = Mathf.Max(6f - (x + 0.5f), x + 0.5f - 18f, 0f);
-                        float dy = Mathf.Max(6f - (y + 0.5f), y + 0.5f - 18f, 0f);
-                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(6.5f - Mathf.Sqrt(dx * dx + dy * dy))));
+                        float dx = Mathf.Max(3f - (x + 0.5f), x + 0.5f - 21f, 0f);
+                        float dy = Mathf.Max(3f - (y + 0.5f), y + 0.5f - 21f, 0f);
+                        texture.SetPixel(x, y, new Color(1f, 1f, 1f, Mathf.Clamp01(3.5f - Mathf.Sqrt(dx * dx + dy * dy))));
                     }
                 }
                 texture.Apply();

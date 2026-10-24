@@ -24,6 +24,7 @@ namespace MyAiWorld.Presentation.UI
             BuildNavigation(root);
             BuildHelp(root);
             BuildInspector(root);
+            BuildNpcSummary(root);
             BuildResources(root);
             BuildMarket(root);
             BuildEvents(root);
@@ -33,92 +34,135 @@ namespace MyAiWorld.Presentation.UI
             BuildCampaignModal(root);
             SelectInspectorTab(0);
             RefreshNavigation();
+            string[] instruments = { "ChallengeInstrument", "EnvironmentInstrument", "SupplyInstrument", "TimeControls", "Navigation", "HelpButton", "ReturnToVillage" };
+            for (int i = 0; i < instruments.Length; i++)
+            {
+                root.Find(instruments[i]).gameObject.AddComponent<HudEntrance>().Begin(Mathf.Min(i, 3) * HudMotion.EntranceStagger);
+            }
         }
 
         private void BuildTopBar(Transform root)
         {
-            var bar = HudLayout.Surface(root, "TopBar", Vector2.up, Vector2.one, Vector2.up,
-                new Vector2(16, -16), new Vector2(-32, 102));
-            HudTheme.Icon(bar, "CalendarIcon", "clock", new Vector2(18, -22), new Vector2(28, 28), HudTheme.Gold);
-            _clockText = HudLayout.FixedLabel(bar, "Date", "", new Vector2(56, -10), new Vector2(220, 18), 12);
-            _clockText.color = HudTheme.Gold;
-            _timeText = HudLayout.FixedLabel(bar, "Clock", "", new Vector2(56, -28), new Vector2(104, 34), 26);
-            _timeText.fontStyle = FontStyle.Bold;
-            _runDot = UiFactory.CreatePanel(bar, "RunDot", Vector2.up, Vector2.up, Vector2.up,
-                new Vector2(158, -43), new Vector2(6, 6), HudTheme.Positive).GetComponent<Image>();
+            var day = HudLayout.Surface(root, "ChallengeInstrument", Vector2.up, new Vector2(16, -16), new Vector2(224, 80));
+            day.GetComponent<Image>().raycastTarget = false;
+            BuildCampaignTopBar(day);
+            _clockText = HudLayout.FixedLabel(day, "Date", "", new Vector2(12, -62), new Vector2(200, 18), 11, true);
+            _timeText = HudLayout.FixedLabel(day, "Clock", "", new Vector2(12, -43), new Vector2(64, 19), 12);
+            _runDot = UiFactory.CreatePanel(day, "RunDot", Vector2.up, Vector2.up, Vector2.up,
+                new Vector2(79, -49), new Vector2(4, 4), HudTheme.Positive).GetComponent<Image>();
             _runDot.raycastTarget = false;
-            _runText = HudLayout.FixedLabel(bar, "RunState", "", new Vector2(170, -34), new Vector2(108, 20), 11, true);
+            _runText = HudLayout.FixedLabel(day, "RunState", "", new Vector2(91, -44), new Vector2(120, 18), 11, true);
 
-            var rule = UiFactory.CreatePanel(bar, "TopRule", Vector2.up, Vector2.up, Vector2.up,
-                new Vector2(292, -14), new Vector2(1, 44), HudTheme.LineSoft);
-            rule.GetComponent<Image>().raycastTarget = false;
+            var environment = HudLayout.Surface(root, "EnvironmentInstrument", Vector2.one, new Vector2(-16, -16), new Vector2(208, 56));
+            environment.GetComponent<Image>().raycastTarget = false;
+            _weatherIcon = HudTheme.Icon(environment, "WeatherIcon", "snow", new Vector2(12, -13), new Vector2(24, 24), HudTheme.Ink);
+            _weatherMotion = _weatherIcon.gameObject.AddComponent<HudWeatherMotion>();
+            _environmentFeedback = HudPulse.Attach(environment, "EnvironmentFeedback", true);
+            _temperatureText = HudLayout.FixedLabel(environment, "Temperature", "", new Vector2(46, -6), new Vector2(150, 30), 21);
+            _environmentSummary = HudLayout.FixedLabel(environment, "EnvironmentSummary", "", new Vector2(46, -34), new Vector2(152, 18), 10, true);
 
-            var stock = HudLayout.Rect(bar, "VillageStock");
-            HudLayout.Place(stock, new Vector2(0.5f, 1), new Vector2(0, -10), new Vector2(480, 52));
-            string[] names = { "食物", "饮水", "种子", "村民" };
-            for (int i = 0; i < names.Length; i++)
+            var supplies = HudLayout.Surface(root, "SupplyInstrument", Vector2.zero, new Vector2(16, 16), new Vector2(384, 56));
+            supplies.GetComponent<Image>().raycastTarget = false;
+            string[] captions = { "食物", "饮水", "木材" };
+            string[] icons = { "food", "water", "fire" };
+            for (int i = 0; i < 3; i++)
             {
-                float x = i * 120;
-                UiFactory.CreateIcon(stock, "StockIcon" + i, _presenter.Art.Get("icon_" + i),
-                    new Vector2(x + 14, -6), new Vector2(28, 28));
-                HudLayout.FixedLabel(stock, "StockLabel" + i, names[i], new Vector2(x + 48, -3), new Vector2(62, 16), 11, true);
-                _stockTexts[i] = HudLayout.FixedLabel(stock, "StockValue" + i, "", new Vector2(x + 48, -18), new Vector2(70, 30), 21);
-                _stockTexts[i].fontStyle = FontStyle.Bold;
+                int index = i;
+                var slot = HudLayout.FixedButton(supplies, "SupplyButton" + i, "", new Vector2(i * 128, 0), new Vector2(128, 56),
+                    delegate { if (OpenGlobalPanel != 0) { ToggleGlobalPanel(0); } });
+                slot.image.color = Color.clear;
+                HudTheme.Icon(slot.transform, "SupplyIcon", icons[i], new Vector2(10, -9), new Vector2(16, 16), HudTheme.Muted);
+                HudLayout.FixedLabel(slot.transform, "SupplyCaption" + i, captions[i], new Vector2(32, -6), new Vector2(36, 18), 11, true);
+                _stockTexts[index] = HudLayout.FixedLabel(slot.transform, "StockValue" + i, "", new Vector2(70, -5), new Vector2(48, 24), 16);
+                _stockTexts[index].alignment = TextAnchor.UpperRight;
+                _supplySummaries[i] = HudLayout.FixedLabel(slot.transform, "SupplySummary" + i, "", new Vector2(10, -31), new Vector2(110, 18), 10);
+                _supplyFeedback[i] = HudPulse.Attach(slot.transform, "SupplyFeedback" + i);
+                _supplyMarks[i] = new Image[8];
+                for (int j = 0; j < 8; j++)
+                {
+                    var mark = UiFactory.CreatePanel(slot.transform, "SupplyMark" + j, Vector2.up, Vector2.up, Vector2.up,
+                        new Vector2(10 + j * 14, -51), new Vector2(10, 2), HudTheme.Line).GetComponent<Image>();
+                    mark.raycastTarget = false;
+                    _supplyMarks[i][j] = mark;
+                }
             }
 
-            var rightRule = UiFactory.CreatePanel(bar, "ControlsRule", Vector2.one, Vector2.one, Vector2.one,
-                new Vector2(-360, -14), new Vector2(1, 44), HudTheme.LineSoft);
-            rightRule.GetComponent<Image>().raycastTarget = false;
-
-            var controls = HudLayout.Rect(bar, "TimeControls");
-            HudLayout.Place(controls, Vector2.one, new Vector2(-16, -10), new Vector2(350, 52));
-            _pauseButton = HudLayout.IconButton(controls, "PauseButton", "pause", "暂停", new Vector2(0, -6),
-                new Vector2(78, 40), delegate { _runner.TogglePause(); RefreshTopBar(); }, out _pauseIcon);
+            var controls = HudLayout.Rect(root, "TimeControls");
+            HudLayout.Place(controls, Vector2.right, new Vector2(-16, 64), new Vector2(252, 32));
+            _pauseButton = HudLayout.IconButton(controls, "PauseButton", "pause", "", Vector2.zero,
+                new Vector2(32, 32), delegate { _runner.TogglePause(); RefreshTopBar(); }, out _pauseIcon);
             _pauseLabel = _pauseButton.transform.Find("Label").GetComponent<Text>();
             for (int i = 0; i < 4; i++)
             {
                 int speed = 1 << i;
                 _speedButtons[i] = HudLayout.FixedButton(controls, "Speedx" + speed, speed + "×",
-                    new Vector2(86 + i * 46, -6), new Vector2(42, 40),
-                    delegate { _runner.SetSpeed(speed); RefreshTopBar(); });
-                _speedButtons[i].GetComponentInChildren<Text>().fontSize = 13;
+                    new Vector2(38 + i * 44, 0), new Vector2(38, 32), delegate { _runner.SetSpeed(speed); RefreshTopBar(); });
+                _speedButtons[i].GetComponentInChildren<Text>().fontSize = 12;
             }
-            _stepButton = HudLayout.IconButton(controls, "StepButton", "step", "单步", new Vector2(272, -6),
-                new Vector2(70, 40), delegate { _runner.StepOnce(); RefreshAll(); }, out _);
-            BuildCampaignTopBar(bar);
+            _stepButton = HudLayout.IconButton(controls, "StepButton", "step", "", new Vector2(220, 0),
+                new Vector2(32, 32), delegate { _runner.StepOnce(); RefreshAll(); }, out _);
         }
 
         private void BuildNavigation(Transform root)
         {
-            var dock = HudLayout.Surface(root, "Navigation", new Vector2(0.5f, 0), new Vector2(0, 16), new Vector2(520, 60));
+            var dock = HudLayout.Rect(root, "Navigation");
+            HudLayout.Place(dock, Vector2.right, new Vector2(-16, 16), new Vector2(312, 40));
             string[] names = { "ResourcesButton", "EconomyButton", "EventsButton", "SaveMenuButton" };
-            string[] labels = { "村庄物资", "生态与市场", "村庄记事", "存档" };
-            string[] icons = { "bag", "coin", "scroll", "save" };
+            string[] labels = { "物资", "生态", "记事", "存档" };
+            string[] icons = { "bag", "paw", "scroll", "save" };
             for (int i = 0; i < names.Length; i++)
             {
                 int index = i;
                 _navigation[i] = HudLayout.IconButton(dock, names[i], icons[i], labels[i],
-                    new Vector2(12 + i * 124, -10), new Vector2(116, 40),
+                    new Vector2(i * 80, 0), new Vector2(72, 40),
                     delegate { if (index == 3) { ToggleSaveMenu(); } else { ToggleGlobalPanel(index); } }, out _);
-                _navigation[i].GetComponentInChildren<Text>().fontSize = 13;
+                _navigation[i].GetComponentInChildren<Text>().fontSize = 12;
             }
+            _ecologyFeedback = HudPulse.Attach(_navigation[1].transform, "EcologyFeedback");
+            var help = HudLayout.IconButton(root, "HelpButton", "help", "", Vector2.zero, new Vector2(32, 32), ToggleHelp, out _);
+            HudLayout.Place(help.GetComponent<RectTransform>(), Vector2.right, new Vector2(-344, 16), new Vector2(32, 32));
+            var home = HudLayout.IconButton(root, "ReturnToVillage", "home", "", Vector2.zero, new Vector2(32, 32), ReturnToVillage, out _);
+            HudLayout.Place(home.GetComponent<RectTransform>(), Vector2.right, new Vector2(-384, 16), new Vector2(32, 32));
+        }
 
-            var help = HudLayout.IconButton(root, "HelpButton", "help", "", new Vector2(16, 16), new Vector2(44, 44),
-                ToggleHelp, out _);
-            HudLayout.Place(help.GetComponent<RectTransform>(), Vector2.zero, new Vector2(16, 16), new Vector2(44, 44));
+        private static RectTransform DetailSurface(Transform root, string name)
+        {
+            var panel = HudLayout.Surface(root, name, Vector2.one, new Vector2(-16, -96), new Vector2(336, -208));
+            panel.anchorMin = Vector2.right;
+            panel.anchorMax = Vector2.one;
+            panel.pivot = Vector2.one;
+            return panel;
+        }
 
-            var home = HudLayout.IconButton(root, "ReturnToVillage", "home", "回村  H", new Vector2(0, 0),
-                new Vector2(132, 44), ReturnToVillage, out _);
-            HudLayout.Place(home.GetComponent<RectTransform>(), new Vector2(1, 0), new Vector2(-16, 16), new Vector2(132, 44));
+        private void BuildNpcSummary(Transform root)
+        {
+            var panel = HudLayout.Surface(root, "NpcSummary", Vector2.right, new Vector2(-16, 112), new Vector2(280, 124));
+            _summaryName = HudLayout.FixedLabel(panel, "SummaryName", "", new Vector2(12, -8), new Vector2(214, 26), 17);
+            HudLayout.CloseButton(panel, "CloseNpcSummary", new Vector2(242, -6), CloseInspector);
+            _summaryAction = HudLayout.FixedLabel(panel, "SummaryAction", "", new Vector2(12, -35), new Vector2(256, 20), 11, true);
+            string[] names = { "食", "水", "力", "健", "安" };
+            for (int i = 0; i < 5; i++)
+            {
+                var need = HudLayout.Rect(panel, "SummaryNeed" + i);
+                HudLayout.Place(need, Vector2.up, new Vector2(12 + i * 52, -58), new Vector2(46, 22));
+                _summaryValues[i] = HudLayout.FixedLabel(need, "SummaryValue" + i, names[i], Vector2.zero, new Vector2(46, 18), 10);
+                _summaryFills[i] = HudLayout.Meter(need, "Track", 2, HudTheme.Line, HudTheme.Needs[i]);
+            }
+            HudLayout.FixedButton(panel, "OpenNpcDetails", "档案", new Vector2(12, -87), new Vector2(76, 28), ShowSelectedNpcDetails);
+            HudLayout.FixedButton(panel, "SummaryFocus", "定位", new Vector2(96, -87), new Vector2(76, 28), FocusSelected);
+            _summaryFollow = HudLayout.FixedButton(panel, "SummaryFollow", "跟随", new Vector2(180, -87), new Vector2(88, 28), ToggleFollowSelected);
+            _summaryPanel = Transition(panel);
+            _summaryPanel.Configure(Vector2.down * 4f, HudMotion.SummaryDuration);
+            _summaryFeedback = HudPulse.Attach(panel, "NpcStateFeedback", true);
         }
 
         private void BuildHelp(Transform root)
         {
-            var panel = HudLayout.Surface(root, "ControlGuide", Vector2.zero, new Vector2(16, 76), new Vector2(330, 356));
+            var panel = DetailSurface(root, "ControlGuide");
             HudTheme.Icon(panel, "HelpIcon", "help", new Vector2(16, -14), new Vector2(20, 20), HudTheme.Gold);
             var title = HudLayout.FixedLabel(panel, "HelpTitle", "操作指南", new Vector2(44, -10), new Vector2(200, 28), 16);
             title.fontStyle = FontStyle.Bold;
-            HudLayout.CloseButton(panel, "CloseHelp", new Vector2(286, -10), ToggleHelp);
+            HudLayout.CloseButton(panel, "CloseHelp", new Vector2(294, -10), ToggleHelp);
             var line = UiFactory.CreatePanel(panel, "HelpRule", Vector2.up, Vector2.up, Vector2.up,
                 new Vector2(16, -48), new Vector2(44, 2), HudTheme.Gold);
             line.GetComponent<Image>().raycastTarget = false;
@@ -133,17 +177,17 @@ namespace MyAiWorld.Presentation.UI
             HudLayout.KeyRow(rows, "H", "回到村庄");
             HudLayout.KeyRow(rows, "Esc", "关闭面板");
             HudLayout.KeyRow(rows, "F1", "调试观察");
+            _motionToggle = HudLayout.FixedButton(panel, "ReducedMotionButton", "", new Vector2(16, -356),
+                new Vector2(298, 32), delegate { SetReducedMotion(!ReducedMotion); });
+            RefreshMotionPreference();
             _helpPanel = Transition(panel);
         }
 
         private RectTransform Detail(Transform root, string name, string title, string icon, int index, int top = 64)
         {
-            var panel = HudLayout.Surface(root, name, Vector2.up, new Vector2(16, -130), new Vector2(400, -222));
-            panel.anchorMin = Vector2.zero;
-            panel.anchorMax = Vector2.up;
-            panel.pivot = Vector2.up;
+            var panel = DetailSurface(root, name);
             Header(panel, title, icon);
-            HudLayout.CloseButton(panel, "CloseDetails", new Vector2(352, -14), delegate { ToggleGlobalPanel(index); });
+            HudLayout.CloseButton(panel, "CloseDetails", new Vector2(294, -14), delegate { ToggleGlobalPanel(index); });
             _globalPanels[index] = Transition(panel);
             return HudLayout.Scroll(panel, "Viewport", top, 16, out _);
         }
@@ -151,7 +195,7 @@ namespace MyAiWorld.Presentation.UI
         private static void Header(RectTransform panel, string title, string icon)
         {
             HudTheme.Icon(panel, "TitleIcon", icon, new Vector2(18, -16), new Vector2(22, 22), HudTheme.Gold);
-            var label = HudLayout.FixedLabel(panel, "Title", title, new Vector2(48, -12), new Vector2(292, 30), 21);
+            var label = HudLayout.FixedLabel(panel, "Title", title, new Vector2(48, -12), new Vector2(238, 30), 21);
             label.fontStyle = FontStyle.Bold;
             var line = UiFactory.CreatePanel(panel, "HeaderRule", Vector2.up, Vector2.up, Vector2.up,
                 new Vector2(18, -49), new Vector2(44, 2), HudTheme.Gold);
@@ -160,14 +204,11 @@ namespace MyAiWorld.Presentation.UI
 
         private void BuildInspector(Transform root)
         {
-            var panel = HudLayout.Surface(root, "NpcInspector", Vector2.one, new Vector2(-16, -130), new Vector2(360, -222));
-            panel.anchorMin = Vector2.right;
-            panel.anchorMax = Vector2.one;
-            panel.pivot = Vector2.one;
+            var panel = DetailSurface(root, "NpcInspector");
             var eyebrow = HudLayout.FixedLabel(panel, "Eyebrow", "村 民 档 案", new Vector2(18, -12), new Vector2(200, 20), 11);
             eyebrow.color = HudTheme.Gold;
             eyebrow.fontStyle = FontStyle.Bold;
-            HudLayout.CloseButton(panel, "CloseInspector", new Vector2(316, -10), CloseInspector);
+            HudLayout.CloseButton(panel, "CloseInspector", new Vector2(294, -10), HideInspectorPanel);
             var portraitFrame = HudLayout.Inset(panel, "PortraitFrame", new Vector2(18, -42), new Vector2(72, 80), HudTheme.Inset);
             var portraitOutline = portraitFrame.gameObject.AddComponent<Outline>();
             portraitOutline.effectColor = HudTheme.GoldSoft;
@@ -175,16 +216,16 @@ namespace MyAiWorld.Presentation.UI
             _portrait = UiFactory.CreateIcon(portraitFrame, "Portrait", null, new Vector2(4, 4), new Vector2(64, 72));
 
             var nameArea = HudLayout.Rect(panel, "IdentityScrollArea");
-            HudLayout.Place(nameArea, Vector2.up, new Vector2(102, -42), new Vector2(240, 46));
+            HudLayout.Place(nameArea, Vector2.up, new Vector2(102, -42), new Vector2(214, 46));
             var nameScroll = HudLayout.Scroll(nameArea, "IdentityScroll", 0, 0, 0, 0);
             _identity = HudLayout.Label(nameScroll.content, "Name", "", 22);
             _identity.fontStyle = FontStyle.Bold;
-            _identityMeta = HudLayout.FixedLabel(panel, "IdentityMeta", "", new Vector2(102, -88), new Vector2(240, 20), 11, true);
+            _identityMeta = HudLayout.FixedLabel(panel, "IdentityMeta", "", new Vector2(102, -88), new Vector2(214, 20), 11, true);
 
-            var actionChip = HudLayout.Inset(panel, "ActionChip", new Vector2(18, -113), new Vector2(324, 28), HudTheme.Inset);
+            var actionChip = HudLayout.Inset(panel, "ActionChip", new Vector2(18, -113), new Vector2(300, 28), HudTheme.Inset);
             HudTheme.Icon(actionChip, "ActionIcon", "leaf", new Vector2(9, -5), new Vector2(18, 18), HudTheme.Gold);
-            _currentAction = HudLayout.FixedLabel(actionChip, "CurrentAction", "", new Vector2(33, -3), new Vector2(282, 22), 12);
-            _currentAction.horizontalOverflow = HorizontalWrapMode.Overflow;
+            _currentAction = HudLayout.FixedLabel(actionChip, "CurrentAction", "", new Vector2(33, -3), new Vector2(258, 22), 12);
+            _currentAction.horizontalOverflow = HorizontalWrapMode.Wrap;
 
             HudLayout.IconButton(panel, "FocusSelected", "target", "定位", new Vector2(18, -146), new Vector2(100, 30),
                 FocusSelected, out _);
@@ -196,7 +237,7 @@ namespace MyAiWorld.Presentation.UI
             {
                 int tab = i;
                 _tabButtons[i] = HudLayout.FixedButton(panel, new[] { "OverviewTab", "RelationshipsTab", "PlanTab" }[i],
-                    tabs[i], new Vector2(18 + i * 108, -184), new Vector2(104, 30), delegate { SelectInspectorTab(tab); });
+                    tabs[i], new Vector2(18 + i * 100, -184), new Vector2(96, 30), delegate { SelectInspectorTab(tab); });
                 _tabButtons[i].GetComponentInChildren<Text>().fontSize = 13;
                 var content = HudLayout.Scroll(panel, new[] { "概览", "关系记忆", "行动计划" }[i], 224, 16, out _tabScrolls[i]);
                 _tabs[i] = _tabScrolls[i].gameObject;
@@ -211,6 +252,7 @@ namespace MyAiWorld.Presentation.UI
                 else { _plan = new HudEntries(content, "PlanSteps"); }
             }
             _inspectorPanel = Transition(panel);
+            _inspectorFeedback = HudPulse.Attach(panel, "InspectorStateFeedback", true);
         }
 
         private void BuildOverview(RectTransform content)
@@ -233,7 +275,7 @@ namespace MyAiWorld.Presentation.UI
                         HudTheme.Needs[i]);
                 }
                 _needLabels[i] = HudLayout.FixedLabel(need, "Label", names[i], new Vector2(24, -4), new Vector2(180, 18), 12, true);
-                _needValues[i] = HudLayout.FixedLabel(need, "Value", "", new Vector2(220, -4), new Vector2(100, 18), 12);
+                _needValues[i] = HudLayout.FixedLabel(need, "Value", "", new Vector2(200, -4), new Vector2(96, 18), 12);
                 _needValues[i].alignment = TextAnchor.MiddleRight;
                 _needFills[i] = HudLayout.Meter(need, "Track", 5, HudTheme.LineSoft, HudTheme.Needs[i]);
             }
@@ -281,7 +323,7 @@ namespace MyAiWorld.Presentation.UI
         private void AddFactRow(Transform parent, string keyA, string captionA, string iconA,
             string keyB, string captionB, string iconB)
         {
-            var row = HudLayout.Row(parent, "Facts_" + keyA, 27, 14);
+            var row = HudLayout.Row(parent, "Facts_" + keyA, 42, 14);
             _facts[keyA] = HudLayout.FactCell(row, keyA, captionA, iconA, HudTheme.Gold, out _);
             if (keyB != null)
             {
@@ -324,7 +366,10 @@ namespace MyAiWorld.Presentation.UI
             _inspection = new HudEntries(content, "WorldInspection");
             _inspectionSection.SetActive(false);
             HudLayout.Section(content, "环境与供给估算");
+            _supplyFacts = HudLayout.Label(content, "SupplyFacts", "", 12);
+            _estimateToggle = HudLayout.Button(content, "ToggleSupplyEstimate", "＋ 估算依据", ToggleSupplyEstimate);
             _supplyGuide = HudLayout.Label(content, "SupplyEstimateGuide", "", 12);
+            _supplyGuide.gameObject.SetActive(false);
         }
 
         private void BuildMarket(Transform root)
@@ -337,17 +382,25 @@ namespace MyAiWorld.Presentation.UI
             _birthValue = HudLayout.StatCard(births, "BirthStat", "出生", "health", HudTheme.Positive, out _);
             _deathValue = HudLayout.StatCard(births, "DeathStat", "自然死亡", "arrow-down", HudTheme.Muted, out _);
             _huntValue = HudLayout.StatCard(births, "HuntStat", "猎获", "target", HudTheme.Gold, out _);
+            _rabbitFeedback = Feedback(_rabbitValue, "RabbitFeedback");
+            _boarFeedback = Feedback(_boarValue, "BoarFeedback");
+            _birthFeedback = Feedback(_birthValue, "BirthFeedback");
+            _deathFeedback = Feedback(_deathValue, "DeathFeedback");
+            _huntFeedback = Feedback(_huntValue, "HuntFeedback");
             HudLayout.Section(content, "种群、栖地与迁徙");
             _ecology = new HudEntries(content, "EcologyObservation");
 
             HudLayout.Section(content, "今日行情");
             _marketCells = HudLayout.Grid(content, "MarketTable", new[] { "物品", "单价", "库存", "买入", "卖出" }, 3);
+            for (int i = 0; i < 3; i++) { _marketFeedback[i] = Feedback(_marketCells[i * 5], "MarketFeedback" + i); }
 
             HudLayout.Section(content, "交易汇总");
             var trades = HudLayout.Row(content, "TradeStats", 66, 6);
             _tradeValue = HudLayout.StatCard(trades, "TradeStat", "成交 / 拒绝", "coin", HudTheme.Positive, out _);
             _treasuryValue = HudLayout.StatCard(trades, "TreasuryStat", "国库 / 成交额", "coin", HudTheme.Gold, out _);
 
+            _tradeFeedback = Feedback(_tradeValue, "TradeFeedback");
+            _treasuryFeedback = Feedback(_treasuryValue, "TreasuryFeedback");
             HudLayout.Section(content, "最近交易");
             _ledger = new HudEntries(content, "TradeLedger");
         }
@@ -359,7 +412,7 @@ namespace MyAiWorld.Presentation.UI
             HudTheme.Icon(row, "Icon", "paw", new Vector2(0, -2), new Vector2(16, 16), HudTheme.Gold);
             var caption = HudLayout.FixedLabel(row, "Label", label, new Vector2(22, -1), new Vector2(100, 18), 12);
             caption.fontStyle = FontStyle.Bold;
-            var value = HudLayout.FixedLabel(row, "Value", "", new Vector2(180, -1), new Vector2(140, 18), 12);
+            var value = HudLayout.FixedLabel(row, "Value", "", new Vector2(140, -1), new Vector2(152, 18), 12);
             value.alignment = TextAnchor.MiddleRight;
             fill = null;
             return value;
@@ -370,12 +423,12 @@ namespace MyAiWorld.Presentation.UI
             var content = Detail(root, "EventLog", "村庄记事", "scroll", 2, 148);
             var panel = (RectTransform)_globalPanels[2].transform;
             var filters = HudLayout.Row(panel, "Filters", 34);
-            HudLayout.Place(filters, Vector2.up, new Vector2(16, -62), new Vector2(368, 34));
+            HudLayout.Place(filters, Vector2.up, new Vector2(16, -62), new Vector2(304, 34));
             _timelineAll = HudLayout.Button(filters, "TimelineAll", "全部", delegate { SetTimelineFilter(false); });
             _timelineSelected = HudLayout.Button(filters, "TimelineSelected", "当前村民", delegate { SetTimelineFilter(true); });
 
             var paging = HudLayout.Row(panel, "Paging", 30);
-            HudLayout.Place(paging, Vector2.up, new Vector2(16, -104), new Vector2(368, 30));
+            HudLayout.Place(paging, Vector2.up, new Vector2(16, -104), new Vector2(304, 30));
             var pagingLayout = paging.GetComponent<HorizontalLayoutGroup>();
             pagingLayout.childForceExpandWidth = false;
             _timelineNewer = HudLayout.IconButton(paging, "TimelineNewer", "chevron-left", "", Vector2.zero,
@@ -399,13 +452,13 @@ namespace MyAiWorld.Presentation.UI
 
         private void BuildSaveMenu(Transform root)
         {
-            var panel = HudLayout.Surface(root, "SaveMenu", new Vector2(0.5f, 0.5f), new Vector2(0, 12), new Vector2(430, 540));
+            var panel = DetailSurface(root, "SaveMenu");
             Header(panel, "存档", "save");
-            HudLayout.CloseButton(panel, "SaveClose", new Vector2(386, -12), ToggleSaveMenu);
+            HudLayout.CloseButton(panel, "SaveClose", new Vector2(294, -12), ToggleSaveMenu);
             var content = HudLayout.Scroll(panel, "SaveViewport", 66, 16, out _);
 
             _saveButtons[0] = HudLayout.IconButton(content, "SaveButton", "save", "保存当前世界", Vector2.zero,
-                new Vector2(390, 48), SaveWorld, out _);
+                new Vector2(294, 48), SaveWorld, out _);
             HudLayout.Flexible(_saveButtons[0].GetComponent<RectTransform>());
             HudLayout.Height(_saveButtons[0].GetComponent<RectTransform>(), 48);
             _saveButtons[0].GetComponentInChildren<Text>().fontSize = 14;
@@ -430,7 +483,7 @@ namespace MyAiWorld.Presentation.UI
 
         private Button SaveSlot(Transform content, string name, string label, string icon, int statusIndex, UnityEngine.Events.UnityAction action)
         {
-            var button = HudLayout.IconButton(content, name, icon, label, Vector2.zero, new Vector2(390, 46), action, out _);
+            var button = HudLayout.IconButton(content, name, icon, label, Vector2.zero, new Vector2(294, 46), action, out _);
             var rect = button.GetComponent<RectTransform>();
             HudLayout.Flexible(rect);
             HudLayout.Height(rect, 46);
@@ -474,12 +527,13 @@ namespace MyAiWorld.Presentation.UI
 
         private void BuildToast(Transform root)
         {
-            var panel = HudLayout.Surface(root, "SaveStatusPanel", new Vector2(1, 0), new Vector2(-16, 16), new Vector2(360, 54));
+            var panel = HudLayout.Surface(root, "SaveStatusPanel", new Vector2(1, 0), new Vector2(-368, 112), new Vector2(360, 54));
             _toastIcon = HudTheme.Icon(panel, "ToastIcon", "save", new Vector2(14, -16), new Vector2(22, 22), HudTheme.Positive);
             var toastScroll = HudLayout.Scroll(panel, "ToastViewport", 44, 6, 44, 6);
             _toastText = HudLayout.Label(toastScroll.content, "Feedback", "", 12);
             HudLayout.CloseButton(panel, "DismissFeedback", new Vector2(324, -12), DismissToast);
             _toastPanel = Transition(panel);
+            _toastPanel.Configure(Vector2.down * 4f, HudMotion.SummaryDuration);
         }
     }
 }

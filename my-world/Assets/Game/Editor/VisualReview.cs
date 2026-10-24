@@ -500,6 +500,7 @@ namespace MyAiWorld.EditorTools
                     var timeline = bootstrap.Session.ReadModel.SocialTimeline;
                     var id = (_plan.preset == "relations" || _plan.preset == "events-social") && timeline.Count > 0 ? timeline[timeline.Count - 1].Actor : bootstrap.Session.ReadModel.Npcs[0].Id;
                     bootstrap.Selection.Select(id);
+                    bootstrap.Hud.ShowSelectedNpcDetails();
                     Click(bootstrap, _plan.preset == "relations" ? "RelationshipsTab" : _plan.preset.StartsWith("plan", StringComparison.Ordinal) ? "PlanTab" : "OverviewTab");
                     if (_plan.preset == "events-social")
                     {

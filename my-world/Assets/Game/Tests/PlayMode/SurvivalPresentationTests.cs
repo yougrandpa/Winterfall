@@ -60,25 +60,34 @@ namespace MyAiWorld.Tests.PlayMode
             finally { if (Directory.Exists(folder)) { Directory.Delete(folder, true); } }
         }
 
-        private static void Capture(GameBootstrap game, string path, int width, int height)
+        internal static void Capture(GameBootstrap game, string path, int width, int height)
         {
             var camera = game.PlayerCamera;
             var canvases = Object.FindObjectsOfType<Canvas>().Where(c => c.isRootCanvas && c.renderMode == RenderMode.ScreenSpaceOverlay).ToArray();
             var oldCameras = canvases.Select(c => c.worldCamera).ToArray();
             var distances = canvases.Select(c => c.planeDistance).ToArray();
+            var orders = canvases.Select(c => c.sortingOrder).ToArray();
             var texture = new RenderTexture(width, height, 24); var pixels = new Texture2D(width, height, TextureFormat.RGB24, false);
             var oldTarget = camera.targetTexture; var oldActive = RenderTexture.active;
             try
             {
                 camera.targetTexture = texture;
-                foreach (var canvas in canvases) { canvas.renderMode = RenderMode.ScreenSpaceCamera; canvas.worldCamera = camera; canvas.planeDistance = 1; }
+                // Overlay canvases normally render after every world sprite. Preserve
+                // that ordering when capturing through a camera (fog uses order 190).
+                foreach (var canvas in canvases)
+                {
+                    canvas.renderMode = RenderMode.ScreenSpaceCamera;
+                    canvas.worldCamera = camera;
+                    canvas.planeDistance = 1;
+                    canvas.sortingOrder += 1000;
+                }
                 Canvas.ForceUpdateCanvases(); camera.Render(); RenderTexture.active = texture;
                 pixels.ReadPixels(new Rect(0, 0, width, height), 0, 0); pixels.Apply(); File.WriteAllBytes(path, pixels.EncodeToPNG());
             }
             finally
             {
                 camera.targetTexture = oldTarget; RenderTexture.active = oldActive;
-                for (int i = 0; i < canvases.Length; i++) { canvases[i].renderMode = RenderMode.ScreenSpaceOverlay; canvases[i].worldCamera = oldCameras[i]; canvases[i].planeDistance = distances[i]; }
+                for (int i = 0; i < canvases.Length; i++) { canvases[i].renderMode = RenderMode.ScreenSpaceOverlay; canvases[i].worldCamera = oldCameras[i]; canvases[i].planeDistance = distances[i]; canvases[i].sortingOrder = orders[i]; }
                 Object.DestroyImmediate(texture); Object.DestroyImmediate(pixels);
             }
         }

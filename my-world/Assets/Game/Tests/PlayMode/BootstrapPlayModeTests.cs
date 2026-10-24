@@ -171,10 +171,11 @@ namespace MyAiWorld.Tests.PlayMode
         [UnityTest]
         public IEnumerator Bootstrap_SelectedNpcShowsSurvivalPlanInventoryAndNeedHistory()
         {
-            var root = new GameObject("SurvivalHudSmokeTest");
-            var bootstrap = root.AddComponent<GameBootstrap>();
+            SceneManager.LoadScene("Bootstrap");
             yield return null;
             yield return null;
+            var bootstrap = Object.FindObjectOfType<GameBootstrap>();
+            var root = bootstrap.gameObject;
 
             try
             {
@@ -191,6 +192,9 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(bootstrap.Presenter.ResourceNodeViewCount, Is.EqualTo(readModel.ResourceNodes.Count));
                 Assert.That(bootstrap.Presenter.FarmPlotViewCount, Is.EqualTo(readModel.FarmPlots.Count));
                 Assert.That(bootstrap.Hud.ResourceText, Is.Not.Empty);
+                Assert.That(bootstrap.Hud.NpcSummaryOpen, Is.True);
+                Assert.That(bootstrap.Hud.InspectorOpen, Is.False);
+                ClickHudButton(bootstrap, "OpenNpcDetails");
                 Assert.That(bootstrap.Hud.InspectorOpen, Is.True);
                 Assert.That(bootstrap.Hud.InspectorText, Does.Contain("背包"));
                 ClickHudButton(bootstrap, "PlanTab");
@@ -369,6 +373,9 @@ namespace MyAiWorld.Tests.PlayMode
             EntityId id = bootstrap.Session.ReadModel.Npcs[0].Id;
             bootstrap.Selection.Select(id);
             yield return new WaitForSecondsRealtime(0.22f);
+            Assert.That(bootstrap.Hud.NpcSummaryOpen, Is.True);
+            Assert.That(bootstrap.Hud.InspectorOpen, Is.False);
+            bootstrap.Hud.ShowSelectedNpcDetails();
             Assert.That(bootstrap.Hud.InspectorOpen, Is.True);
             Assert.That(StateHasher.Compute(bootstrap.Session.World), Is.EqualTo(hash));
             Assert.That(bootstrap.Session.ReadModel.Tick, Is.EqualTo(tick));
@@ -565,6 +572,7 @@ namespace MyAiWorld.Tests.PlayMode
             var evt = session.World.Social.Timeline.Last();
             Assert.That(evt.CauseSequence, Is.EqualTo(cause));
             bootstrap.Selection.Select(evt.Actor);
+            bootstrap.Hud.ShowSelectedNpcDetails();
             ClickHudButton(bootstrap, "RelationshipsTab");
             ClickHudButton(bootstrap, "EventsButton"); ClickHudButton(bootstrap, "TimelineSelected");
             yield return null;

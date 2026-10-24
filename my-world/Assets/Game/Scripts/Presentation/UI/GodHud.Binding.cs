@@ -20,15 +20,12 @@ namespace MyAiWorld.Presentation.UI
         {
             var model = _session.ReadModel;
             var date = model.Date;
-            _clockText.text = "第 " + date.Year + " 年 · " + new[] { "春", "夏", "秋", "冬" }[(int)date.Season] + " " + date.DayOfSeason + " 日";
+            _clockText.text = "存活 " + model.Survival.Living + " 人";
             _timeText.text = date.ClockText;
-            _runText.text = _runner.IsPaused ? "已暂停" : "流动 · " + _runner.SpeedMultiplier + "×";
+            _runText.text = _runner.IsPaused ? "已暂停" : _runner.SpeedMultiplier + "×";
             _runDot.color = _runner.IsPaused ? HudTheme.Gold : HudTheme.Positive;
-            _stockTexts[0].text = model.StockFood.ToString();
-            _stockTexts[1].text = model.StockWater.ToString();
-            _stockTexts[2].text = model.StockSeeds.ToString();
-            _stockTexts[3].text = model.Survival.Living.ToString();
-            _pauseLabel.text = _runner.IsPaused ? "继续" : "暂停";
+            // Pause is an icon-only control; keyboard help lives in the help surface.
+            _pauseLabel.text = "";
             _pauseIcon.sprite = HudIcons.Get(_runner.IsPaused ? "play" : "pause");
             HudTheme.Select(_pauseButton, _runner.IsPaused);
             for (int i = 0; i < _speedButtons.Length; i++)
@@ -56,6 +53,7 @@ namespace MyAiWorld.Presentation.UI
             NpcDetails details = _selected.HasValue ? _session.ReadModel.GetDetails(_selected.Value) : null;
             if (details == null)
             {
+                _motionNpc = null;
                 _inspectorText = "";
                 _historyBody.text = "";
                 _historyGraph.SetHistory(null);
@@ -65,11 +63,15 @@ namespace MyAiWorld.Presentation.UI
             if (_identity.text != details.Name)
             { _identity.GetComponentInParent<UnityEngine.UI.ScrollRect>().verticalNormalizedPosition = 1; }
             _identity.text = details.Name;
+            _summaryName.text = details.Name;
             _identityMeta.text = ChineseText.Role(details.Role) + " · " + details.Age + " 岁 · #" + details.Id.Value;
             _currentAction.text = ChineseText.Goal(details.GoalType) + " · " + ChineseText.Action(details.ActionType);
             if (!string.IsNullOrEmpty(ChineseText.Activity(details.ActionLabel))) { _currentAction.text += " · " + ChineseText.Activity(details.ActionLabel); }
             if (details.Life != LifeState.Active) { _currentAction.text = ChineseText.Life(details.Life); }
-            _portrait.sprite = _presenter.Art.Get("npc_" + NpcView.RoleIndex(details.Role) + "_0_0_0");
+            _summaryAction.text = _currentAction.text;
+            if (details.DiseaseTicks > 0) { _summaryAction.text = "患病 · " + _summaryAction.text; }
+            _summaryAction.color = details.Life != LifeState.Active || details.DiseaseTicks > 0 ? HudTheme.Danger : HudTheme.Muted;
+            _portrait.sprite = _presenter.Art.Get("npc_" + NpcView.RoleIndex(details.Role) + "_" + NpcView.LookIndex(details.Id) + "_0_0_0");
 
             int[] values = { details.Food, details.Water, details.Energy, details.Health, details.Safety };
             for (int i = 0; i < values.Length; i++)
@@ -78,9 +80,14 @@ namespace MyAiWorld.Presentation.UI
                 _needIcons[i].color = i < 2 ? Color.white : HudTheme.Needs[i];
                 _needValues[i].text = values[i] / 100 + "%";
                 _needValues[i].color = critical ? HudTheme.Danger : HudTheme.Ink;
-                HudLayout.SetMeter(_needFills[i], values[i] / 10000f);
+
+                _summaryValues[i].text = new[] { "食", "水", "力", "健", "安" }[i] + " " + values[i] / 100;
+                _summaryValues[i].color = critical ? HudTheme.Danger : HudTheme.Muted;
+                _summaryFills[i].color = critical ? HudTheme.Danger : HudTheme.Needs[i];
+
             }
 
+            RefreshNpcMotion(details);
             int[] bag = { details.BagFood, details.BagWater, details.BagSeeds };
             for (int i = 0; i < bag.Length; i++) { _bagLabels[i].text = bag[i].ToString(); }
 
@@ -219,6 +226,7 @@ namespace MyAiWorld.Presentation.UI
             _huntValue.text = economy.HuntKills.ToString();
             _tradeValue.text = economy.Filled + " / " + economy.Rejected;
             _treasuryValue.text = economy.Treasury + " / " + economy.Volume;
+            RefreshEconomyMotion(economy);
             RefreshEcology(economy);
 
             _ledger.Begin();
@@ -346,15 +354,19 @@ namespace MyAiWorld.Presentation.UI
                     ages.Append(ChineseText.AnimalAge((AnimalLifeStage)i)).Append(' ').Append(species.AgeCounts[i]);
                 }
                 _ecology.Add(ChineseText.Species(species.Species) + " · 本地 " + species.Count + " · 群体 " + species.GroupCount, ages.ToString(), HudTheme.Positive);
+                _ecology.ObserveLast("species:" + species.Species, species.Count, AnimateEcology);
             }
             foreach (var group in economy.Groups)
             {
                 if (group.Region != -1) { continue; }
                 _ecology.Add(ChineseText.Species(group.Species) + "群 #" + group.Id,
                     "成员 " + group.Members.Count + " · 首领 " + AnimalId(group.LeaderId) + " · 领地 #" + group.TerritoryHabitatId + " · 争夺 " + group.Disputes, HudTheme.Gold);
+                _ecology.ObserveLast("group:" + group.Id, group.Members.Count * 1000000L + group.TerritoryHabitatId * 1000L + group.Disputes,
+                    AnimateEcology, HudTheme.Gold);
             }
             _ecology.Add("区域往来 · " + (economy.RegionsEnabled ? "开放" : "隔离"),
                 "离境 " + economy.Departures + " · 返回 " + economy.Returns + "\n外部居民不计入本地种群，不显示在地图上", HudTheme.Gold);
+            _ecology.ObserveLast("migration", economy.Departures + economy.Returns, AnimateEcology, HudTheme.Gold);
             foreach (var region in economy.Regions)
             {
                 var counts = new StringBuilder();
@@ -370,16 +382,22 @@ namespace MyAiWorld.Presentation.UI
                     if (habitat.Id == region.HabitatId) { counts.Append('\n').Append(HabitatDescription(habitat)); break; }
                 }
                 _ecology.Add(ChineseText.Region(region.Id), counts.ToString(), HudTheme.Muted);
+                _ecology.ObserveLast("region:" + region.Id, region.Immigration + region.Emigration + region.Births + region.Deaths,
+                    AnimateEcology, HudTheme.Gold);
             }
             _ecology.Add("本地栖地资源", "草本 " + economy.LocalHerbaceousBiomass + " · 灌木 " + economy.LocalShrubBiomass + " · 树木 " + economy.LocalTreeBiomass +
                 "\n水 " + economy.LocalWater + " · 雪水 " + economy.LocalSnowWater + " · 枯落物 " + economy.LocalLitter + " · 矿物 " + economy.LocalMineral +
                 "\n全域生物量 " + economy.Biomass + " · 全域水 " + economy.Water + " · 本地尸体 " + economy.Carcasses.Count, HudTheme.Positive);
+            // Quantized resource feedback avoids a continuously flashing line as plants grow each tick.
+            _ecology.ObserveLast("habitat:local", (economy.LocalHerbaceousBiomass + economy.LocalShrubBiomass + economy.LocalTreeBiomass) / 1000,
+                AnimateEcology);
             var deaths = new StringBuilder("自然死亡 " + economy.NaturalDeaths + " · 捕食死亡 " + economy.PredationDeaths + " · 猎获 " + economy.HuntKills);
             for (int i = 1; i < economy.DeathCounts.Count; i++)
             {
                 deaths.Append('\n').Append(ChineseText.AnimalDeath((AnimalDeathCause)i)).Append(' ').Append(economy.DeathCounts[i]);
             }
             _ecology.Add("死亡原因 · 全域累计", deaths.ToString(), HudTheme.Muted);
+            _ecology.ObserveLast("deaths", economy.NaturalDeaths + economy.PredationDeaths + economy.HuntKills, AnimateEcology, HudTheme.Danger);
             _ecology.End();
         }
 

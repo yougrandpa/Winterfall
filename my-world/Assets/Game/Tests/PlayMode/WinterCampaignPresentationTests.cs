@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using MyAiWorld.App;
 using MyAiWorld.App.Query;
 using MyAiWorld.Presentation;
@@ -37,7 +38,7 @@ namespace MyAiWorld.Tests.PlayMode
                 CampaignSnapshot initial = game.Session.ReadModel.Campaign;
                 EnvironmentSnapshot initialEnvironment = game.Session.ReadModel.Environment;
                 Assert.That(game.Hud.CampaignModalOpen, Is.False);
-                Assert.That(game.Hud.CampaignSummaryText, Does.Contain("1/14"));
+                Assert.That(game.Hud.CampaignSummaryText, Does.Contain("01 / 14"));
                 AssertImmutableDtos();
                 Assert.Throws<NotSupportedException>(() => ((IList<EntityId>)initial.InitialNpcs)[0] = EntityId.None);
                 AssertReserves(game.Session);
@@ -46,6 +47,10 @@ namespace MyAiWorld.Tests.PlayMode
                 game.Runner.StepOnce();
                 Assert.That(game.Session.ReadModel.Campaign.Downed, Is.EqualTo(5));
                 Assert.That(game.Session.ReadModel.Campaign.Result, Is.Null);
+                game.Selection.Select(game.Session.ReadModel.Npcs[0].Id);
+                yield return new WaitForSecondsRealtime(0.25f);
+                Assert.That(game.Hud.NpcSummaryOpen, Is.True);
+                Assert.That(game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "SummaryAction").text, Does.Contain("倒地"));
                 for (int i = 0; i <= SurvivalRules.RescueWindow; i++) { game.Runner.StepOnce(); }
                 yield return new WaitForSecondsRealtime(0.25f);
 
@@ -55,10 +60,18 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(score.Grade, Is.EqualTo("F"));
                 Assert.That(score.Reason, Is.EqualTo("all_initial_npcs_dead"));
                 Assert.That(game.Hud.CampaignModalOpen, Is.True);
-                Assert.That(game.Hud.CampaignSummaryText, Does.Contain("1/14"));
+                Assert.That(game.Hud.CampaignSummaryText, Does.Contain("01 / 14"));
                 Assert.That(game.Hud.CampaignText, Does.Contain("原始名单").And.Contain("初始 5").And.Contain("实际食物"));
                 Assert.That(game.Hud.CampaignText, Does.Contain("倒地 0").And.Contain("恢复 0").And.Contain("无干预"));
                 Assert.That(game.Hud.EventText, Does.Contain("寒冬挑战结束"));
+                var resultBody = game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "CampaignResultBody");
+                Assert.That(resultBody.gameObject.activeSelf, Is.False);
+                string visualFolder = Path.GetFullPath(Path.Combine(Application.dataPath, "../Logs/TestResults/WinterHudVisual"));
+                Directory.CreateDirectory(visualFolder);
+                SurvivalPresentationTests.Capture(game, Path.Combine(visualFolder, "winter-settlement-1920.png"), 1920, 1080);
+                Click(game, FindButton(game, "ToggleCampaignDetails"));
+                Assert.That(resultBody.gameObject.activeSelf, Is.True);
+                Assert.That(resultBody.text, Does.Contain("实际食物").And.Contain("成绩已永久冻结"));
                 AssertResult(score, game.Session.World.Campaign.Result);
                 Assert.That(initial.Phase, Is.EqualTo(CampaignPhase.SurvivalActive));
                 Assert.That(initial.Survivors, Is.EqualTo(5));
@@ -152,6 +165,8 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(game.Session.ReadModel.Campaign.ChallengeDay, Is.EqualTo(1));
                 game.Runner.StepOnce();
                 Assert.That(game.Session.ReadModel.Campaign.ChallengeDay, Is.EqualTo(2));
+                yield return new WaitForSecondsRealtime(0.25f);
+                Assert.That(game.Hud.GetComponentsInChildren<Image>(true).Count(i => i.name.StartsWith("DayMark") && i.color == HudTheme.Gold), Is.EqualTo(1));
                 Assert.That(initial.ChallengeDay, Is.EqualTo(1));
 
                 game.Session.EnqueueCommand(new SpawnNpcCommand());
@@ -166,6 +181,7 @@ namespace MyAiWorld.Tests.PlayMode
                 CampaignSnapshot campaign = game.Session.ReadModel.Campaign;
                 Assert.That(campaign.IsLocked, Is.True);
                 Assert.That(campaign.RemainingMinutes, Is.Zero);
+                Assert.That(game.Hud.GetComponentsInChildren<Image>(true).Count(i => i.name.StartsWith("DayMark") && i.color == HudTheme.Gold), Is.EqualTo(14));
                 Assert.That(campaign.ChallengeDay, Is.EqualTo(14));
                 Assert.That(campaign.Result.EndedTick, Is.EqualTo(campaign.DeadlineTick));
                 Assert.That(campaign.Result.Grade, Is.EqualTo("S"));
@@ -203,6 +219,7 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(game.Session.ReadModel.Campaign.IsUnlimited, Is.True);
                 Assert.That(game.Session.ReadModel.Campaign.Result, Is.Null);
                 Assert.That(game.Hud.CampaignSummaryText, Does.Contain("无期限"));
+                Assert.That(game.Hud.GetComponentsInChildren<Image>(true).Count(i => i.name.StartsWith("DayMark") && i.gameObject.activeSelf), Is.Zero);
                 ulong hash = StateHasher.Compute(game.Session.World);
                 game.Hud.ShowCampaignResult();
                 Assert.That(game.Hud.CampaignModalOpen, Is.False);
@@ -223,6 +240,137 @@ namespace MyAiWorld.Tests.PlayMode
                 game.Runner.Pause();
                 if (Directory.Exists(folder)) { Directory.Delete(folder, true); }
             }
+        }
+
+        [UnityTest]
+        public IEnumerator WinterHud_ThreeResolutions_LeavesWorldOpenAndCapturesDayNightAndDetails()
+        {
+            SceneManager.LoadScene("Bootstrap"); yield return null; yield return null;
+            var game = Object.FindObjectOfType<GameBootstrap>(); game.Runner.Pause();
+            string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "../Logs/TestResults/WinterHudVisual"));
+            Directory.CreateDirectory(folder);
+            long noon = game.Session.World.Tick / GameCalendar.TicksPerDay * GameCalendar.TicksPerDay + 720;
+            game.Session.EnqueueCommand(new JumpAndRestCommand(noon - 1)); game.Runner.StepOnce();
+            foreach (int width in new[] { 1280, 1920, 2560 })
+            {
+                int height = width * 9 / 16;
+#if UNITY_EDITOR
+                Type.GetType("MyAiWorld.EditorTools.ReviewGameView,MyAiWorld.Editor").GetMethod("TrySetResolution")
+                    .Invoke(null, new object[] { width, height });
+#else
+                Screen.SetResolution(width, height, false);
+#endif
+                yield return new WaitForSecondsRealtime(0.3f);
+                game.Hud.CloseGlobalPanels(); game.Hud.CloseInspector();
+                yield return new WaitForSecondsRealtime(0.2f);
+                Canvas.ForceUpdateCanvases();
+                var rects = game.Hud.GetComponentsInChildren<RectTransform>();
+                string[] groups = { "ChallengeInstrument", "EnvironmentInstrument", "SupplyInstrument", "TimeControls", "Navigation", "HelpButton", "ReturnToVillage" };
+                float area = 0;
+                foreach (string name in groups)
+                {
+                    Rect bounds = HudBounds(rects.Single(r => r.name == name));
+                    area += bounds.width * bounds.height;
+                    Assert.That(bounds.xMin, Is.GreaterThanOrEqualTo(0), name);
+                    Assert.That(bounds.xMax, Is.LessThanOrEqualTo(Screen.width), name);
+                    Assert.That(bounds.yMin, Is.GreaterThanOrEqualTo(0), name);
+                    Assert.That(bounds.yMax, Is.LessThanOrEqualTo(Screen.height), name);
+                }
+                Assert.That(area / (Screen.width * (float)Screen.height), Is.LessThan(0.1f));
+                foreach (Vector2 point in new[] { new Vector2(.5f, .5f), new Vector2(.5f, .96f), new Vector2(.5f, .05f), new Vector2(.95f, .5f) })
+                {
+                    var hits = new List<RaycastResult>();
+                    EventSystem.current.RaycastAll(new PointerEventData(EventSystem.current)
+                        { position = new Vector2(Screen.width * point.x, Screen.height * point.y) }, hits);
+                    Assert.That(hits, Is.Empty, "Unoccupied HUD space must pass map input: " + point);
+                }
+                var dayLabel = FindButton(game, "CampaignResultButton").GetComponentInChildren<Text>();
+                Assert.That(dayLabel.text, Does.Contain("/ 14"));
+                Assert.That(dayLabel.rectTransform.rect.height, Is.GreaterThanOrEqualTo(dayLabel.preferredHeight), "Challenge day must render inside its button.");
+                ulong hash = StateHasher.Compute(game.Session.World);
+                SurvivalPresentationTests.Capture(game, Path.Combine(folder, "winter-day-" + width + ".png"), width, height);
+                game.Selection.Select(game.Session.ReadModel.Npcs[0].Id);
+                yield return new WaitForSecondsRealtime(0.2f);
+                Assert.That(game.Hud.NpcSummaryOpen, Is.True);
+                Assert.That(game.Hud.InspectorOpen, Is.False);
+                SurvivalPresentationTests.Capture(game, Path.Combine(folder, "winter-summary-" + width + ".png"), width, height);
+                Click(game, FindButton(game, "OpenNpcDetails"));
+                yield return new WaitForSecondsRealtime(0.2f);
+                Assert.That(game.Hud.InspectorOpen, Is.True);
+                Assert.That(game.Hud.NpcSummaryOpen, Is.False);
+                Assert.That(game.Hud.GetComponentsInChildren<Image>(true).Single(i => i.name == "Portrait").sprite, Is.Not.Null);
+                SurvivalPresentationTests.Capture(game, Path.Combine(folder, "winter-inspector-" + width + ".png"), width, height);
+                Click(game, FindButton(game, "ResourcesButton"));
+                yield return new WaitForSecondsRealtime(0.2f);
+                Assert.That(game.Hud.InspectorOpen, Is.False);
+                var guide = game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "SupplyEstimateGuide");
+                Assert.That(guide.gameObject.activeSelf, Is.False);
+                var scroll = guide.GetComponentInParent<ScrollRect>();
+                scroll.verticalNormalizedPosition = 0;
+                yield return null;
+                Click(game, FindButton(game, "ToggleSupplyEstimate"));
+                Assert.That(guide.gameObject.activeSelf, Is.True);
+                Assert.That(guide.text, Does.Contain("游戏估算"));
+                Click(game, FindButton(game, "ToggleSupplyEstimate"));
+                SurvivalPresentationTests.Capture(game, Path.Combine(folder, "winter-resources-" + width + ".png"), width, height);
+                Assert.That(StateHasher.Compute(game.Session.World), Is.EqualTo(hash));
+            }
+            game.Hud.CloseGlobalPanels(); game.Hud.CloseInspector();
+            game.Session.EnqueueCommand(new JumpAndRestCommand(noon + 600 - 1)); game.Runner.StepOnce();
+            yield return new WaitForSecondsRealtime(0.3f);
+            Assert.That(game.Session.ReadModel.Environment.IsDaytime, Is.False);
+            SurvivalPresentationTests.Capture(game, Path.Combine(folder, "winter-night-2560.png"), 2560, 1440);
+        }
+
+        [UnityTest]
+        public IEnumerator WinterHud_SupplyStates_AreLegibleAndDoNotMutateWorld()
+        {
+            SceneManager.LoadScene("Bootstrap"); yield return null; yield return null;
+            var game = Object.FindObjectOfType<GameBootstrap>(); game.Runner.Pause();
+            ulong hash = StateHasher.Compute(game.Session.World);
+            EnvironmentSnapshot original = game.Session.ReadModel.Environment;
+            try
+            {
+                foreach (int reserve in new[] { 100, 1, 0, -1 })
+                {
+                    // Independent observation fixtures exercise binding without writing to the running world.
+                    var world = WorldFactory.Create(new WorldConfigData(42, 32, 32, reserve < 0 ? 0 : 5, GameCalendar.WinterStartTick + 720, 2, new[] { 1 }, reserve < 0 ? 0 : 14));
+                    var stores = new HashSet<InventoryState> { world.Resources.Stockpile, world.Market.Inventory };
+                    foreach (var npc in world.Entities.Npcs) { stores.Add(npc.Inventory); }
+                    foreach (var shelter in world.Survival.Shelters) { stores.Add(shelter.Inventory); }
+                    foreach (var inventory in stores)
+                    {
+                        inventory.TryRemove(ItemKind.Food, inventory.Count(ItemKind.Food));
+                    }
+                    if (reserve > 0) { Assert.That(world.Resources.Stockpile.TryAdd(ItemKind.Food, reserve), Is.True); }
+                    var ctor = typeof(EnvironmentSnapshot).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
+                    var snapshot = (EnvironmentSnapshot)ctor.Invoke(new object[] { world });
+                    typeof(WorldReadModel).GetProperty("Environment").GetSetMethod(true).Invoke(game.Session.ReadModel, new object[] { snapshot });
+                    yield return new WaitForSecondsRealtime(0.25f);
+                    var label = game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "SupplySummary0");
+                    var value = game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "StockValue0");
+                    Assert.That(value.text, Is.EqualTo(snapshot.Food.Reserve.ToString()));
+                    Assert.That(label.text, Does.Contain(ChineseText.Supply(snapshot.Food.Status)));
+                    if (reserve == 0)
+                    {
+                        Assert.That(label.color, Is.EqualTo(HudTheme.Danger));
+                        var marks = game.Hud.GetComponentsInChildren<Image>(true).Where(i => i.name.StartsWith("SupplyMark") && i.transform.parent.name == "SupplyButton0").ToArray();
+                        Assert.That(marks.Count(i => i.color.r == HudTheme.Danger.r && i.color.g == HudTheme.Danger.g &&
+                            i.color.b == HudTheme.Danger.b && i.color.a >= 0.8f), Is.EqualTo(4));
+                        Assert.That(marks.Count(i => i.color == Color.clear), Is.EqualTo(4));
+                    }
+                    if (reserve == 1) { Assert.That(label.color, Is.EqualTo(HudTheme.Gold)); }
+                    if (reserve < 0) { Assert.That(label.text, Is.EqualTo("无需供给")); }
+                    Assert.That(StateHasher.Compute(game.Session.World), Is.EqualTo(hash));
+                }
+            }
+            finally { typeof(WorldReadModel).GetProperty("Environment").GetSetMethod(true).Invoke(game.Session.ReadModel, new object[] { original }); }
+        }
+
+        private static Rect HudBounds(RectTransform rect)
+        {
+            var corners = new Vector3[4]; rect.GetWorldCorners(corners);
+            return Rect.MinMaxRect(corners[0].x, corners[0].y, corners[2].x, corners[2].y);
         }
 
         private static void LoadScenario(GameBootstrap game, string folder, int days, int count)

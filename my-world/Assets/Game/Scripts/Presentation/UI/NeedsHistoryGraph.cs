@@ -36,7 +36,7 @@ namespace MyAiWorld.Presentation.UI
             rect.xMax -= 2f;
             rect.yMin += 3f;
             rect.yMax -= 3f;
-            Color gridColor = new Color(0.42f, 0.5f, 0.38f, 0.22f);
+            Color gridColor = new Color(0.65f, 0.75f, 0.78f, 0.15f);
             for (int line = 0; line < 3; line++)
             {
                 float y = rect.yMin + line * rect.height / 2f;

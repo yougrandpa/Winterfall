@@ -20,6 +20,13 @@ namespace MyAiWorld.Presentation.UI
         private WorldPresenter _presenter;
         private WorldSelectionController _selection;
         private PanelTransition _inspectorPanel;
+        private PanelTransition _summaryPanel;
+        private Text _summaryName, _summaryAction, _temperatureText, _supplyFacts;
+        private Image _weatherIcon;
+        private Button _summaryFollow, _estimateToggle;
+        private readonly Text[] _summaryValues = new Text[5];
+        private readonly Image[] _summaryFills = new Image[5];
+        private readonly Image[][] _supplyMarks = new Image[3][];
         private PanelTransition _savePanel;
         private PanelTransition _toastPanel;
         private PanelTransition _helpPanel;
@@ -31,7 +38,7 @@ namespace MyAiWorld.Presentation.UI
         private readonly Button[] _atmosphereButtons = new Button[5];
         private readonly GameObject[] _tabs = new GameObject[3];
         private readonly ScrollRect[] _tabScrolls = new ScrollRect[3];
-        private readonly Text[] _stockTexts = new Text[4];
+        private readonly Text[] _stockTexts = new Text[3];
         private readonly Text[] _needLabels = new Text[5];
         private readonly Image[] _needFills = new Image[5];
         private readonly Text[] _bagLabels = new Text[3];
@@ -64,6 +71,7 @@ namespace MyAiWorld.Presentation.UI
         private string _inspectorText = "", _resourceText = "", _economyText = "", _eventText = "";
         public int OpenGlobalPanel { get; private set; } = -1;
         public int InspectorTab { get; private set; }
+        public bool NpcSummaryOpen => _summaryPanel != null && _summaryPanel.IsOpen;
         public bool InspectorOpen => _inspectorPanel != null && _inspectorPanel.IsOpen;
         public bool SaveMenuOpen => _savePanel != null && _savePanel.IsOpen;
         public bool HelpOpen => _helpPanel != null && _helpPanel.IsOpen;
@@ -100,6 +108,7 @@ namespace MyAiWorld.Presentation.UI
         private void Update()
         {
             if (!_initialized) { return; }
+            PrepareMotionFrame();
             if (_worldRevision != _session.WorldRevision)
             {
                 _worldRevision = _session.WorldRevision;
@@ -109,6 +118,8 @@ namespace MyAiWorld.Presentation.UI
             RefreshCampaign();
             HandleShortcuts();
             HudTheme.Select(_followButton, _cameraController.IsFollowing);
+            HudTheme.Select(_summaryFollow, _cameraController.IsFollowing);
+            RefreshSummaryVisibility();
             if (Time.unscaledDeltaTime > 0.0001f) { _fps = Mathf.Lerp(_fps, 1f / Time.unscaledDeltaTime, 0.08f); }
             if (_toastUntil > 0f && Time.unscaledTime >= _toastUntil) { DismissToast(); }
             if (Time.unscaledTime < _nextRefresh) { return; }
@@ -144,15 +155,37 @@ namespace MyAiWorld.Presentation.UI
             if (HelpOpen) { ToggleHelp(); }
             else if (SaveMenuOpen) { ToggleSaveMenu(); }
             else if (OpenGlobalPanel >= 0) { CloseGlobalPanels(); }
+            else if (InspectorOpen) { HideInspectorPanel(); }
+            else if (_debugVisible) { ToggleDebug(); }
             else { CloseInspector(); }
+        }
+
+        // A single expanded surface keeps the world open. Selection survives navigation.
+        private void CloseExpandedPanels()
+        {
+            OpenGlobalPanel = -1;
+            foreach (var panel in _globalPanels) { panel.SetOpen(false, true); }
+            _inspectorPanel.SetOpen(false, true);
+            _savePanel.SetOpen(false, true);
+            _helpPanel.SetOpen(false, true);
+            _debugVisible = false;
+            _debugPanel.SetActive(false);
+        }
+
+        private void RefreshSummaryVisibility()
+        {
+            bool expanded = InspectorOpen || SaveMenuOpen || HelpOpen || OpenGlobalPanel >= 0 || _debugVisible || CampaignModalOpen;
+            _summaryPanel.SetOpen(_selected.HasValue && !expanded);
         }
 
         public void ToggleGlobalPanel(int index)
         {
             if (index < 0 || index >= _globalPanels.Length) { return; }
-            OpenGlobalPanel = OpenGlobalPanel == index ? -1 : index;
-            for (int i = 0; i < _globalPanels.Length; i++) { _globalPanels[i].SetOpen(i == OpenGlobalPanel); }
+            bool open = OpenGlobalPanel != index;
+            CloseExpandedPanels();
+            if (open) { OpenGlobalPanel = index; _globalPanels[index].SetOpen(true); }
             RefreshNavigation();
+            RefreshSummaryVisibility();
         }
 
         public void CloseGlobalPanels()
@@ -160,30 +193,55 @@ namespace MyAiWorld.Presentation.UI
             OpenGlobalPanel = -1;
             foreach (var panel in _globalPanels) { panel.SetOpen(false); }
             RefreshNavigation();
+            RefreshSummaryVisibility();
+        }
+
+        public void ShowSelectedNpcDetails()
+        {
+            if (!_selected.HasValue) { return; }
+            CloseExpandedPanels();
+            _inspectorPanel.SetOpen(true);
+            RefreshNavigation();
+            RefreshSummaryVisibility();
         }
 
         public void CloseInspector()
         {
             _selection.Select(null);
             _inspectorPanel.SetOpen(false);
+            RefreshSummaryVisibility();
         }
 
         public void HideInspectorPanel()
         {
             if (_inspectorPanel != null) { _inspectorPanel.SetOpen(false); }
+            RefreshSummaryVisibility();
         }
 
         public void ToggleSaveMenu()
         {
-            _savePanel.SetOpen(!SaveMenuOpen);
+            bool open = !SaveMenuOpen;
+            CloseExpandedPanels();
+            _savePanel.SetOpen(open);
             RefreshSaveStatus();
             RefreshNavigation();
+            RefreshSummaryVisibility();
         }
 
         public void ToggleHelp()
         {
-            _helpPanel.SetOpen(!HelpOpen);
-            if (HelpOpen) { _helpPanel.transform.SetAsLastSibling(); }
+            bool open = !HelpOpen;
+            CloseExpandedPanels();
+            _helpPanel.SetOpen(open);
+            RefreshNavigation();
+            RefreshSummaryVisibility();
+        }
+
+        private void ToggleSupplyEstimate()
+        {
+            bool open = !_supplyGuide.gameObject.activeSelf;
+            _supplyGuide.gameObject.SetActive(open);
+            _estimateToggle.GetComponentInChildren<Text>().text = open ? "－ 收起估算依据" : "＋ 估算依据";
         }
 
         public void SelectInspectorTab(int index)
@@ -208,8 +266,12 @@ namespace MyAiWorld.Presentation.UI
 
         public void ToggleDebug()
         {
-            _debugVisible = !_debugVisible;
-            _debugPanel.SetActive(_debugVisible);
+            bool open = !_debugVisible;
+            CloseExpandedPanels();
+            _debugVisible = open;
+            _debugPanel.SetActive(open);
+            RefreshNavigation();
+            RefreshSummaryVisibility();
             if (_debugVisible) { _debugPanel.transform.SetAsLastSibling(); }
             RefreshDebug();
         }
@@ -268,9 +330,13 @@ namespace MyAiWorld.Presentation.UI
         {
             _cameraController.StopFollowing();
             _selected = selected;
+            _motionNpc = null;
             _timelinePage = 0;
-            _inspectorPanel.SetOpen(selected.HasValue);
+            if (selected.HasValue) { CloseExpandedPanels(); }
+            else { _inspectorPanel.SetOpen(false); }
+            RefreshNavigation();
             RefreshInspector();
+            RefreshSummaryVisibility();
             SelectInspectorTab(0);
             RefreshEventLog();
         }
@@ -297,6 +363,7 @@ namespace MyAiWorld.Presentation.UI
 
         private void RefreshAll()
         {
+            PrepareMotionFrame();
             RefreshTopBar();
             RefreshInspector();
             RefreshResources();
@@ -304,6 +371,7 @@ namespace MyAiWorld.Presentation.UI
             RefreshSaveStatus();
             RefreshDebug();
             RefreshCampaign();
+            _motionReady = true;
         }
 
         private void RefreshSaveStatus()

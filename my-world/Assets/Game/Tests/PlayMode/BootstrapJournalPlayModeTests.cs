@@ -31,6 +31,9 @@ namespace MyAiWorld.Tests.PlayMode
             long tick = game.Session.LastTick; ulong hash = StateHasher.Compute(game.Session.World);
             game.Selection.Select(game.Session.ReadModel.Npcs[0].Id);
             yield return new WaitForSecondsRealtime(0.2f);
+            Assert.That(game.Hud.NpcSummaryOpen, Is.True);
+            Assert.That(game.Hud.InspectorOpen, Is.False);
+            ClickHudButton(game, "OpenNpcDetails");
             foreach (string tab in new[] { "RelationshipsTab", "PlanTab", "OverviewTab" })
             {
                 ClickHudButton(game, tab);
@@ -50,11 +53,16 @@ namespace MyAiWorld.Tests.PlayMode
             ClickHudButton(game, "SaveMenuButton"); yield return new WaitForSecondsRealtime(0.2f);
             game.Hud.CloseTopmostPanel();
             Assert.That(game.Hud.SaveMenuOpen, Is.False);
-            Assert.That(game.Hud.OpenGlobalPanel, Is.EqualTo(2)); Assert.That(game.Hud.InspectorOpen, Is.True);
+            Assert.That(game.Hud.OpenGlobalPanel, Is.EqualTo(-1));
+            Assert.That(game.Hud.InspectorOpen, Is.False);
+            Assert.That(game.Hud.NpcSummaryOpen, Is.True);
+            ClickHudButton(game, "OpenNpcDetails");
             game.Hud.CloseTopmostPanel();
-            Assert.That(game.Hud.OpenGlobalPanel, Is.EqualTo(-1)); Assert.That(game.Hud.InspectorOpen, Is.True);
+            Assert.That(game.Hud.InspectorOpen, Is.False);
+            Assert.That(game.Hud.NpcSummaryOpen, Is.True);
+            Assert.That(game.Selection.Selected, Is.Not.Null);
             game.Hud.CloseTopmostPanel();
-            Assert.That(game.Hud.InspectorOpen, Is.False); Assert.That(game.Selection.Selected, Is.Null);
+            Assert.That(game.Hud.NpcSummaryOpen, Is.False); Assert.That(game.Selection.Selected, Is.Null);
             // Closing immediately releases raycasts, including during the fade-out.
             foreach (var panel in game.Hud.GetComponentsInChildren<PanelTransition>())
             {
@@ -97,6 +105,8 @@ namespace MyAiWorld.Tests.PlayMode
                 yield return new WaitForSecondsRealtime(0.25f);
                 ClickHudButton(game, "LoadAutoButton"); ClickHudButton(game, "LoadAutoBackupButton");
                 game.Selection.Select(game.Session.ReadModel.Npcs[0].Id);
+                Assert.That(game.Hud.SaveMenuOpen, Is.False, "Selecting a villager returns to the status card.");
+                ClickHudButton(game, "SaveMenuButton");
                 ClickHudButton(game, "LoadButton"); yield return null; yield return null;
                 Assert.That(game.Selection.Selected, Is.Null); Assert.That(game.Hud.InspectorOpen, Is.False);
                 Assert.That(game.Runner.IsPaused, Is.True);
@@ -131,19 +141,21 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(Screen.width, Is.EqualTo(resolution.x)); Assert.That(Screen.height, Is.EqualTo(resolution.y));
                 game.Selection.Select(game.Session.ReadModel.Npcs[0].Id);
                 yield return new WaitForSecondsRealtime(0.2f);
+                ClickHudButton(game, "OpenNpcDetails");
                 foreach (string tab in new[] { "OverviewTab", "RelationshipsTab", "PlanTab" }) { ClickHudButton(game, tab); }
                 foreach (string nav in new[] { "ResourcesButton", "EconomyButton", "EventsButton" })
                 {
                     ClickHudButton(game, nav); yield return new WaitForSecondsRealtime(0.2f);
                     Canvas.ForceUpdateCanvases();
                     var open = game.Hud.GetComponentsInChildren<PanelTransition>().Where(p => p.IsOpen).ToArray();
-                    Assert.That(open.Length, Is.EqualTo(2));
-                    Rect left = ScreenRect(open.Single(p => p.name != "NpcInspector").GetComponent<RectTransform>());
-                    Rect right = ScreenRect(open.Single(p => p.name == "NpcInspector").GetComponent<RectTransform>());
-                    Assert.That(left.xMax, Is.LessThan(right.xMin));
-                    Assert.That(left.yMin, Is.GreaterThan(Screen.height * 0.12f));
-                    Assert.That(left.yMax, Is.LessThan(Screen.height * 0.87f));
-                    Assert.That(right.xMax, Is.LessThan(Screen.width));
+                    Assert.That(open.Length, Is.EqualTo(1));
+                    Assert.That(game.Hud.InspectorOpen, Is.False);
+                    Assert.That(game.Hud.NpcSummaryOpen, Is.False);
+                    Rect detail = ScreenRect(open.Single().GetComponent<RectTransform>());
+                    Assert.That(detail.xMin, Is.GreaterThan(Screen.width * 0.7f));
+                    Assert.That(detail.yMin, Is.GreaterThan(Screen.height * 0.15f));
+                    Assert.That(detail.yMax, Is.LessThan(Screen.height * 0.87f));
+                    Assert.That(detail.xMax, Is.LessThan(Screen.width));
                 }
                 ClickHudButton(game, "SaveMenuButton"); yield return new WaitForSecondsRealtime(0.2f);
                 ClickHudButton(game, "SaveClose");
@@ -177,6 +189,8 @@ namespace MyAiWorld.Tests.PlayMode
             dictionary[source.Id] = details;
             ulong hash = StateHasher.Compute(game.Session.World); long tick = game.Session.LastTick;
             game.Selection.Select(source.Id); yield return new WaitForSecondsRealtime(0.25f);
+            ClickHudButton(game, "OpenNpcDetails");
+            yield return new WaitForSecondsRealtime(0.2f);
             var name = game.Hud.GetComponentsInChildren<Text>(true).Single(t => t.name == "Name");
             Assert.That(name.text, Is.EqualTo(longName));
             var nameScroll = name.GetComponentInParent<ScrollRect>();

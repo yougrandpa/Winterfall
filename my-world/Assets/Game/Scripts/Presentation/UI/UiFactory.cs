@@ -124,12 +124,13 @@ namespace MyAiWorld.Presentation.UI
             button.targetGraphic = image;
             ColorBlock colors = button.colors;
             colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(1.06f, 1.06f, 1.02f, 1f);
-            colors.pressedColor = new Color(0.78f, 0.84f, 0.72f, 1f);
+            colors.highlightedColor = new Color(1.16f, 1.16f, 1.16f, 1f);
+            colors.pressedColor = new Color(0.78f, 0.84f, 0.86f, 1f);
             colors.selectedColor = Color.white;
-            colors.disabledColor = new Color(0.7f, 0.72f, 0.68f, 0.6f);
+            colors.disabledColor = new Color(0.7f, 0.72f, 0.74f, 0.6f);
             colors.fadeDuration = 0.15f;
             button.colors = colors;
+            go.AddComponent<HudButtonMotion>();
             if (onClick != null)
             {
                 button.onClick.AddListener(onClick);
