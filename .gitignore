@@ -56,6 +56,10 @@ my-world/Assets/AssetStoreTools/
 # Codely / Tuanjie local tooling
 my-world/.codely-cli/
 
+# Local agent skills
+/.agents/
+/skills-lock.json
+
 # Addressables / StreamingAssets generated data
 my-world/Assets/AddressableAssetsData/*/*.bin*
 my-world/Assets/StreamingAssets/aa.meta
