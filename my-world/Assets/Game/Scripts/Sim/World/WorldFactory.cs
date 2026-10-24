@@ -336,8 +336,28 @@ namespace MyAiWorld.Sim.World
                     item == ItemKind.RawWater ? 30 : 8, item == ItemKind.RawWater ? 12 : 180));
             }
             ItemKind[] raw = { ItemKind.Wood, ItemKind.Stone, ItemKind.Fiber, ItemKind.Herb };
-            for (int i = nodeCount; i < Math.Min(candidates.Count, nodeCount + 16); i++)
-            { world.Resources.AddNode(new ResourceNodeState(i + 1, candidates[i], raw[(i - nodeCount) % raw.Length], 30, 60)); }
+            int rawEnd = Math.Min(candidates.Count, nodeCount + 16);
+            int rawCursor = nodeCount;
+            for (int i = nodeCount; i < rawEnd; i++)
+            {
+                ItemKind item = raw[(i - nodeCount) % raw.Length];
+                // Wood nodes must sit on forested ground: the patch's finite tree
+                // biomass is what regenerates them, so a clear-cut node would die
+                // permanently while the rest of the map still held timber.
+                if (item == ItemKind.Wood)
+                {
+                    for (int j = rawCursor; j < candidates.Count; j++)
+                    {
+                        if (world.Map.GetTile(candidates[j]) != TileType.Forest) { continue; }
+                        GridPos swap = candidates[rawCursor];
+                        candidates[rawCursor] = candidates[j];
+                        candidates[j] = swap;
+                        break;
+                    }
+                }
+                world.Resources.AddNode(new ResourceNodeState(i + 1, candidates[rawCursor], item, 30, 60));
+                rawCursor++;
+            }
             world.Resources.Stockpile.TryAdd(ItemKind.WheatSeed, 30);
             world.Resources.Stockpile.TryAdd(ItemKind.BeanSeed, 30);
             world.Resources.Stockpile.TryAdd(ItemKind.Medicine, 4);

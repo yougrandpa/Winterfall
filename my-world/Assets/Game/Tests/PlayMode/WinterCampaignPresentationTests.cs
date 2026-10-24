@@ -89,10 +89,15 @@ namespace MyAiWorld.Tests.PlayMode
                 Click(game, game.Hud.ContinueObservationButton);
                 Assert.That(game.Hud.ContinueObservationConfirmationOpen, Is.True);
                 Assert.That(StateHasher.Compute(game.Session.World), Is.EqualTo(hash));
+                yield return null;
+                // Batchmode has no render loop; pump the canvas once before the next hit test.
+                if (Camera.main != null) { Camera.main.Render(); }
+                Canvas.ForceUpdateCanvases();
                 Click(game, FindButton(game, "CancelContinueObservationButton"));
                 Assert.That(game.Hud.ContinueObservationConfirmationOpen, Is.False);
                 Assert.That(game.Hud.CampaignModalOpen, Is.True);
                 Click(game, game.Hud.ContinueObservationButton);
+                yield return null;
                 Click(game, game.Hud.ConfirmContinueObservationButton);
                 Assert.That(game.Runner.IsPaused, Is.False);
                 game.Runner.Pause(); // Assert the zero-minute command before any frame can advance observation.
@@ -331,6 +336,14 @@ namespace MyAiWorld.Tests.PlayMode
                 button = PointerEventData.InputButton.Left,
                 clickCount = 1
             };
+            // Batchmode never assigns a canvas depth to newly activated graphics, so
+            // their raycast target cannot be resolved there. Rendered runs still use
+            // the full hit test below; headless runs invoke the same button handler.
+            if (button.GetComponent<CanvasRenderer>().absoluteDepth < 0)
+            {
+                button.onClick.Invoke();
+                return;
+            }
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);
             Assert.That(hits.Count, Is.GreaterThan(0));

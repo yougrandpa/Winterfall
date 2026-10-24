@@ -172,7 +172,7 @@ namespace MyAiWorld.Tests.PlayMode
                 typeof(NpcSocialState).GetMethod("Remember", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(npc.Social, new[] { memory });
             }
             var detailsConstructor = typeof(NpcDetails).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic).Single();
-            var details = (NpcDetails)detailsConstructor.Invoke(new object[] { npc, model.Tick, model.GetDetails(source.Id).NeedsHistory });
+            var details = (NpcDetails)detailsConstructor.Invoke(new object[] { npc, model.Tick, model.GetDetails(source.Id).NeedsHistory, null });
             var dictionary = (IDictionary)typeof(WorldReadModel).GetField("_details", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(model);
             dictionary[source.Id] = details;
             ulong hash = StateHasher.Compute(game.Session.World); long tick = game.Session.LastTick;

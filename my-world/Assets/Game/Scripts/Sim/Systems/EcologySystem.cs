@@ -855,17 +855,7 @@ namespace MyAiWorld.Sim.Systems
             }
             foreach (ResourceNodeState node in world.Resources.Nodes)
             {
-                // Built wells are exclusively WaterSystem's responsibility.
-                bool well = false;
-                foreach (FacilityState facility in world.Survival.Facilities)
-                {
-                    if (facility.WellNodeId == node.Id)
-                    {
-                        well = true;
-                        break;
-                    }
-                }
-                if (well || node.Amount >= node.Capacity)
+                if (node.Amount >= node.Capacity)
                 {
                     node.RegenerationProgress = 0;
                     continue;
@@ -884,11 +874,18 @@ namespace MyAiWorld.Sim.Systems
                 bool converted = false;
                 int mass = node.Item == ItemKind.Food || node.Item == ItemKind.Wood ||
                     node.Item == ItemKind.Fiber || node.Item == ItemKind.Herb ? EcologyBalance.BiomassPerItem(node.Item) : 0;
-                if (node.Item == ItemKind.RawWater && !world.Environment.WaterFrozen && patch.Water >= 100)
+                if (node.Item == ItemKind.RawWater && !world.Environment.WaterFrozen)
                 {
-                    patch.Water -= 100;
-                    ecology.Balance.MaterialWaterProduced += 100;
-                    converted = true;
+                    // Springs and wells stay tied to the regional groundwater pool:
+                    // a dry local patch must not strand a fixed node while the rest
+                    // of its region still holds finite water.
+                    HabitatPatchState pool = patch.Water >= 100 ? patch : FindWaterPool(ecology, patch);
+                    if (pool != null && pool.Water >= 100)
+                    {
+                        pool.Water -= 100;
+                        ecology.Balance.MaterialWaterProduced += 100;
+                        converted = true;
+                    }
                 }
                 else if (node.Item == ItemKind.Stone && patch.MineralRemaining >= 100)
                 {
@@ -900,6 +897,14 @@ namespace MyAiWorld.Sim.Systems
                 {
                     VegetationState vegetation = node.Item == ItemKind.Wood ? patch.Trees :
                         node.Item == ItemKind.Food ? patch.Shrubs : patch.Herbaceous;
+                    // A fixed node may sit on a small forest edge whose local patch is
+                    // exhausted long before the surrounding region is. Draw from the
+                    // nearest patch that still holds the same functional group, so the
+                    // harvest stays inside one finite, auditable biomass pool.
+                    if (vegetation.Biomass < mass)
+                    {
+                        vegetation = FindBiomassPool(ecology, patch, vegetation.Kind, mass) ?? vegetation;
+                    }
                     if (vegetation.Biomass >= mass &&
                         (node.Item != ItemKind.Food || patch.SnowDepth < 8000))
                     {
@@ -916,6 +921,45 @@ namespace MyAiWorld.Sim.Systems
                     ecology.Balance.NodeConversions[(int)node.Item]++;
                 }
             }
+        }
+
+        private static HabitatPatchState FindWaterPool(EcologyState ecology, HabitatPatchState local)
+        {
+            HabitatPatchState best = null;
+            int bestDistance = int.MaxValue;
+            foreach (HabitatPatchState candidate in ecology.Habitats)
+            {
+                if (candidate.Id == local.Id || candidate.Region != local.Region || candidate.Water < 100) { continue; }
+                int distance = local.Region < 0 && local.Origin.IsValid && candidate.Origin.IsValid ?
+                    local.Origin.ManhattanDistance(candidate.Origin) : Math.Abs(candidate.Id - local.Id);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = candidate;
+                }
+            }
+            return best;
+        }
+
+        private static VegetationState FindBiomassPool(EcologyState ecology, HabitatPatchState local,
+            VegetationKind kind, int mass)
+        {
+            VegetationState best = null;
+            int bestDistance = int.MaxValue;
+            foreach (HabitatPatchState candidate in ecology.Habitats)
+            {
+                if (candidate.Id == local.Id || candidate.Region != local.Region) { continue; }
+                VegetationState pool = candidate.Vegetation(kind);
+                if (pool.Biomass < mass) { continue; }
+                int distance = local.Region < 0 && local.Origin.IsValid && candidate.Origin.IsValid ?
+                    local.Origin.ManhattanDistance(candidate.Origin) : Math.Abs(candidate.Id - local.Id);
+                if (distance < bestDistance)
+                {
+                    bestDistance = distance;
+                    best = pool;
+                }
+            }
+            return best;
         }
 
         private static void UpdatePatch(WorldState world, HabitatPatchState patch, int dt)

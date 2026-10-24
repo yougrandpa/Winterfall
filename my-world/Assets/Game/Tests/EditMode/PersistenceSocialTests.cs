@@ -203,17 +203,39 @@ namespace MyAiWorld.Tests.EditMode
         public void Snapshot_NaturalDeathsAndBirthsInSameTick_RestoresTransientDeadEntities()
         {
             var world = new WorldState(new WorldConfigData(42, 16, 16, 0, 360, 2, new[] { 1 }), new WorldMap(16, 16), new DeterministicRng(42));
-            for (int species = 0; species < 2; species++)
+            world.Ecology.Initialize(world, world.Map.CollectReachable(world.Center));
+            world.Campaign.Initialize(world);
+            world.Materials.Initialize(world);
+            int initial = world.Ecology.Animals.Count;
+            AnimalState mother = null, father = null;
+            foreach (AnimalState animal in world.Ecology.Animals)
             {
-                for (int i = 0; i < EcologyState.SpeciesCapacity; i++)
+                if (mother == null && animal.Sex == AnimalSex.Female && animal.LifeStage == AnimalLifeStage.Adult)
                 {
-                    var type = (AnimalSpecies)species;
-                    world.Ecology.Spawn(world, type, new GridPos(5, 5), i < 22 ? AnimalDefinition.For(type).Lifespan - 1 : 1440);
+                    mother = animal;
+                    continue;
                 }
+                if (mother != null && animal.Sex == AnimalSex.Male && animal.Species == mother.Species) { father = animal; break; }
             }
-            world.Ecology.BirthProgress = 239; world.Materials.Initialize(world);
+            Assert.That(mother, Is.Not.Null); Assert.That(father, Is.Not.Null);
+            mother.Health = mother.Definition.Health;
+            father.Health = father.Definition.Health;
+            mother.PregnancyFatherId = father.Id;
+            mother.PregnancyLitter = 1;
+            mother.PregnancyTicks = mother.Definition.GestationTicks - 1;
+            mother.LastNeedsTick = world.Tick - 60;
+            int deaths = 0;
+            foreach (AnimalState animal in world.Ecology.Animals)
+            {
+                if (animal == mother || animal == father || animal.Health <= 0) { continue; }
+                animal.Health = 0;
+                if (++deaths == 3) { break; }
+            }
+            world.Ecology.BirthProgress = 239;
             var engine = new SimulationEngine(); engine.Tick(world, null);
-            Assert.That(world.Ecology.Animals.Count, Is.EqualTo(50), "Dead entities remain until the next ecology update.");
+            Assert.That(world.Ecology.Births, Is.GreaterThan(0));
+            Assert.That(world.Ecology.NaturalDeaths, Is.GreaterThanOrEqualTo(1));
+            Assert.That(world.Ecology.Animals.All(a => a.Health > 0), Is.True);
             var restored = WorldSnapshot.Restore(WorldSnapshot.Capture(world));
             Assert.That(StateHasher.Compute(restored), Is.EqualTo(StateHasher.Compute(world)));
             Assert.That(engine.Tick(restored, null).StateHash, Is.EqualTo(engine.Tick(world, null).StateHash));
@@ -230,11 +252,11 @@ namespace MyAiWorld.Tests.EditMode
                 using (var session = new GameSession(WorldConfigData.CreateDefault()))
                 {
                     Assert.That(session.Save(path), Is.True);
-                    string legacy = File.ReadAllText(path).Replace("\"Version\":3", "\"Version\":2"); File.WriteAllText(path, legacy);
+                    string legacy = File.ReadAllText(path).Replace("\"Version\":" + SaveStore.CurrentVersion, "\"Version\":3"); File.WriteAllText(path, legacy);
                     WorldState current = session.World;
                     Assert.That(session.Load(path), Is.False); Assert.That(session.World, Is.SameAs(current));
                     Assert.That(File.ReadAllText(path), Is.EqualTo(legacy));
-                    Assert.That(session.SaveDirectory, Does.EndWith("saves-survival-v3"));
+                    Assert.That(session.SaveDirectory, Does.EndWith("saves-winter-ecology-v4"));
                 }
             }
             finally { Directory.Delete(folder, true); }
@@ -249,7 +271,11 @@ namespace MyAiWorld.Tests.EditMode
                 npc.Needs.Hunger = npc.Needs.Thirst = npc.Needs.Fatigue = 9000;
                 npc.Action.SetIdle("waiting", 100000); world.Entities.AddNpc(npc); world.Market.IssuedCurrency += npc.Coins;
             }
+            world.Campaign.Initialize(world);
             world.Materials.Initialize(world);
+            EnvironmentSystem.Update(world);
+            world.Environment.Temperature = 2500;
+            world.Environment.Wind = 0;
             return world;
         }
     }

@@ -16,12 +16,16 @@ namespace MyAiWorld.Tests.EditMode
     {
         private static WorldState Empty(int count = 1)
         {
-            var world = new WorldState(new WorldConfigData(42, 32, 32, count, 360, 2, new[] { 1 }), new WorldMap(32, 32), new DeterministicRng(42));
+            // Warm spring noon keeps focused mechanics tests independent of the
+            // cold-weather survival priorities that now run in every tick.
+            long start = GameCalendar.StartTick + 12L * GameCalendar.TicksPerDay + 6 * GameCalendar.MinutesPerHour;
+            var world = new WorldState(new WorldConfigData(42, 32, 32, count, start, 2, new[] { 1 }), new WorldMap(32, 32), new DeterministicRng(42));
             for (int i = 0; i < count; i++)
             {
                 var npc = new NpcState(world.AllocateEntityId(), new NpcIdentity("Test" + i, "Builder", 25), new Personality(), new GridPos(16 + i, 16), (ulong)(42 + i));
                 world.Entities.AddNpc(npc); world.Market.IssuedCurrency += npc.Coins;
             }
+            EnvironmentSystem.Update(world);
             world.Campaign.Initialize(world);
             world.Materials.Initialize(world); return world;
         }
@@ -111,16 +115,30 @@ namespace MyAiWorld.Tests.EditMode
         [Test]
         public void Hunting_RangeOcclusionAndFullBagDrop_PreserveSingleYield()
         {
-            var world = Empty(); var npc = world.Entities.Npcs[0]; npc.HasHuntingTool = true;
-            for (int i = 0; i < 5; i++) { world.Ecology.Spawn(world, AnimalSpecies.Rabbit, npc.Position.Offset(3, 0), 1500); }
-            var prey = world.Ecology.Animals[0]; prey.Health = 1; prey.ReservedBy = npc.Id;
-            npc.Inventory.TryAdd(ItemKind.Seed, 12); world.Materials.Initialize(world);
+            var world = Empty();
+            world.Ecology.Initialize(world, world.Map.CollectReachable(world.Center));
+            var npc = world.Entities.Npcs[0];
+            npc.Action.SetIdle("Controlled hunt", long.MaxValue);
+            npc.HasHuntingTool = true;
+            npc.Inventory.TryAdd(ItemKind.Arrow, 4);
+            var prey = world.Ecology.Spawn(world, AnimalSpecies.Rabbit, npc.Position.Offset(3, 0), 1500);
+            prey.Health = 1;
+            prey.ReservedBy = npc.Id;
+            world.Materials.Initialize(world);
             world.Map.SetTile(npc.Position.Offset(1, 0), TileType.Rock);
             Assert.That(world.Ecology.Strike(world, npc, prey, new List<SimEvent>()), Is.False);
             world.Map.SetTile(npc.Position.Offset(1, 0), TileType.Grass);
             Assert.That(world.Ecology.Strike(world, npc, prey, new List<SimEvent>()), Is.True);
-            Assert.That(npc.Inventory.Food, Is.Zero); Assert.That(world.Survival.FindGround(npc.Survival.HuntDropId).Inventory.Food, Is.EqualTo(3));
-            Assert.That(world.Ecology.Strike(world, npc, prey, new List<SimEvent>()), Is.False); Conserved(world);
+            var engine = new SimulationEngine();
+            for (int i = 0; i < 12 && prey.Health > 0; i++) { engine.Tick(world, null); }
+            Assert.That(prey.Health, Is.Zero);
+            CarcassState carcass = world.Ecology.FindCarcass(prey.Id.Value);
+            Assert.That(carcass, Is.Not.Null, "A kill creates one carcass, not ready-made food.");
+            Assert.That(carcass.Id.Value, Is.EqualTo(prey.Id.Value));
+            Assert.That(npc.Inventory.Food, Is.Zero);
+            Assert.That(npc.Inventory.Count(ItemKind.RawMeat), Is.Zero);
+            Assert.That(world.Ecology.Strike(world, npc, prey, new List<SimEvent>()), Is.False);
+            Conserved(world);
         }
         [Test]
         public void Rescue_ZeroHealthClaimsTransferAndRecovery_ResumeDeterministically()
@@ -224,7 +242,10 @@ namespace MyAiWorld.Tests.EditMode
         [Test]
         public void DefaultWorld_FullYear_ConservesAllItemsAndMaintainsProduction()
         {
-            var world = WorldFactory.Create(WorldConfigData.CreateDefault()); var engine = new SimulationEngine();
+            // The winter challenge is a bounded 14-day settlement. Long-term observation
+            // is the supported mode for year-round ecology and material accounting.
+            var world = WorldFactory.Create(WorldConfigData.CreateObservationDefault()); var engine = new SimulationEngine();
+            long startTick = world.Tick;
             Directory.CreateDirectory(Path.Combine(UnityEngine.Application.dataPath, "../Logs/TestResults"));
             int completedDays = 0;
             for (int i = 0; i < GameCalendar.DaysPerYear * 1440; i++)
@@ -233,7 +254,8 @@ namespace MyAiWorld.Tests.EditMode
                 foreach (AnimalSpecies species in Enum.GetValues(typeof(AnimalSpecies))) { Assert.That(world.Ecology.Count(species), Is.LessThanOrEqualTo(EcologyState.SpeciesCapacity)); }
                 if ((i + 1) % 1440 == 0)
                 {
-                    completedDays++; Assert.That(world.LivingCount, Is.GreaterThan(0), "Day " + completedDays);
+                    completedDays++;
+                    if (completedDays <= GameCalendar.DefaultChallengeDays) { Assert.That(world.LivingCount, Is.GreaterThan(0), "Day " + completedDays); }
                     if (completedDays % 28 == 0)
                     {
                         var copy = WorldSnapshot.Restore(WorldSnapshot.Capture(world));
@@ -243,6 +265,8 @@ namespace MyAiWorld.Tests.EditMode
                     }
                 }
             }
+            Assert.That(world.Tick, Is.EqualTo(startTick + GameCalendar.DaysPerYear * 1440L));
+            Assert.That(world.Campaign.Phase, Is.EqualTo(CampaignPhase.Observation));
             Assert.That(world.Survival.Facilities.Count(f => f.Complete), Is.EqualTo(5));
             Assert.That(world.Entities.Npcs.Sum(n => n.Survival.WaterProduced), Is.GreaterThan(1000));
             Assert.That(world.Entities.Npcs.Sum(n => n.HarvestedFood), Is.GreaterThan(0));

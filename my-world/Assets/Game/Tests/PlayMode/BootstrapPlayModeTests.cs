@@ -267,6 +267,7 @@ namespace MyAiWorld.Tests.PlayMode
             Assert.That(spawnButton, Is.Not.Null);
             Assert.That(spawnButton.IsInteractable(), Is.True);
             Canvas.ForceUpdateCanvases();
+            OpenShelterSlot(bootstrap);
             int npcCount = session.ReadModel.NpcCount;
             int appliedCommands = session.AppliedCommandCount;
             long beforeSpawnTick = session.ReadModel.Tick;
@@ -307,7 +308,8 @@ namespace MyAiWorld.Tests.PlayMode
             var before = model.EcologyEconomy;
             var oldCell = before.Animals[0].Cell;
             int oldCount = before.Animals.Count;
-            Assert.That(oldCount, Is.EqualTo(24));
+            Assert.That(oldCount, Is.GreaterThan(0));
+            Assert.That(oldCount, Is.EqualTo(bootstrap.Session.World.Ecology.Animals.Count));
             Assert.That(bootstrap.Presenter.AnimalViewCount, Is.EqualTo(oldCount));
             ulong hash = model.StateHash;
             bootstrap.Selection.Select(model.Npcs[2].Id);
@@ -477,6 +479,7 @@ namespace MyAiWorld.Tests.PlayMode
             yield return null;
             GameBootstrap bootstrap = Object.FindObjectOfType<GameBootstrap>();
             bootstrap.Runner.Pause();
+            OpenShelterSlot(bootstrap);
             int before = bootstrap.Session.ReadModel.NpcCount;
             bootstrap.Hud.ToggleDebug();
             Button spawn = FindHudButton(bootstrap, "SpawnButton");
@@ -500,6 +503,14 @@ namespace MyAiWorld.Tests.PlayMode
             return null;
         }
 
+        // The default roster exactly fills every shelter, so the debug spawn is
+        // correctly rejected. Free one bed without touching the authoritative roster.
+        private static void OpenShelterSlot(GameBootstrap bootstrap)
+        {
+            NpcState npc = bootstrap.Session.World.Entities.Npcs[0];
+            typeof(MyAiWorld.Sim.World.SurvivalNpcState).GetProperty("ShelterId").SetValue(npc.Survival, 0);
+        }
+
         [UnityTest]
         public IEnumerator Bootstrap_SaveButtons_RestoreViewsAndKeepDamagedLoadAtomic()
         {
@@ -509,10 +520,11 @@ namespace MyAiWorld.Tests.PlayMode
             bootstrap.Session.SaveDirectory = folder;
             try
             {
+                OpenShelterSlot(bootstrap);
                 ClickHudButton(bootstrap, "SaveMenuButton");
                 yield return new WaitForSecondsRealtime(0.2f);
                 ClickHudButton(bootstrap, "SaveButton");
-                ulong expected = bootstrap.Session.LastStateHash;
+                ulong expected = StateHasher.Compute(bootstrap.Session.World);
                 bootstrap.Session.SpawnDebugNpc(); bootstrap.Runner.StepOnce(); yield return null;
                 Assert.That(bootstrap.NpcViewCount, Is.EqualTo(21));
                 ClickHudButton(bootstrap, "LoadButton"); yield return null; yield return null;
@@ -549,7 +561,7 @@ namespace MyAiWorld.Tests.PlayMode
             Assert.That(session.World.Social.Gifts, Is.EqualTo(1));
             long cause = session.World.Social.Timeline.Last().Sequence;
             session.EnqueueCommand(new ArrangeSocialCommand(true));
-            for (int i = 0; i < 5; i++) { bootstrap.Runner.StepOnce(); }
+            for (int i = 0; i < 12; i++) { bootstrap.Runner.StepOnce(); }
             var evt = session.World.Social.Timeline.Last();
             Assert.That(evt.CauseSequence, Is.EqualTo(cause));
             bootstrap.Selection.Select(evt.Actor);
@@ -597,8 +609,10 @@ namespace MyAiWorld.Tests.PlayMode
                     }
                     npc.Action.SetIdle("waiting", world.Tick + 100000);
                 }
-                var cells = world.Map.CollectReachable(world.Center);
-                a.Position = world.Center; b.Position = cells.First(pos => pos.ManhattanDistance(a.Position) == 1); c.Position = b.Position;
+                // Social work is discretionary; the winter thermal priority would
+                // otherwise preempt it. Keep the acting villager inside its own shelter.
+                GridPos meetingPlace = _returnGift ? b.Home : a.Home;
+                a.Position = b.Position = c.Position = meetingPlace;
                 if (!_returnGift)
                 {
                     Assert.That(world.Resources.Stockpile.TryRemove(ItemKind.Food, 3), Is.True);

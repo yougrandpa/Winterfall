@@ -121,13 +121,17 @@ namespace MyAiWorld.Sim.Systems
                     continue;
                 }
                 string reason;
-                if (!CheckPreconditions(world, npc, completion.Value, out reason) || !ApplyEffects(world, npc, completion.Value, events))
+                string effectFailure = "none";
+                if (!CheckPreconditions(world, npc, completion.Value, out reason) ||
+                    !ApplyEffects(world, npc, completion.Value, events, out effectFailure))
                 {
                     if (completion.Value.Type == PlanStepType.Greet || completion.Value.Type == PlanStepType.GiveFood)
                     {
                         npc.Social.NextInteractionTick = world.Tick + 30;
                     }
-                    FailPlan(world, npc, reason == "none" ? "effect_transfer_failed" : reason, events);
+                    string failure = reason != "none" ? reason :
+                        effectFailure != "none" ? effectFailure : "effect_transfer_failed";
+                    FailPlan(world, npc, failure, events);
                     continue;
                 }
                 events.Add(new SimEvent(SimEventKind.NpcActionCompleted, world.Tick, npc.Id,
@@ -388,8 +392,16 @@ namespace MyAiWorld.Sim.Systems
                 return;
             }
             AnimalState animal = world.Ecology.Find(step.ResourceId);
+            // A released shot must finish before the hunter re-evaluates ammo. Firing
+            // the last arrow is not a reason to abandon the hunt before it lands.
+            if (world.Combat.GetAttack(npc.Id) != null)
+            {
+                npc.Action.Label = "Hunt: attack";
+                return;
+            }
             if (!world.Ecology.CanHunt(animal) || animal.ReservedBy != npc.Id || !npc.HasHuntingTool ||
-                npc.Survival.Durability(HuntingSystem.Weapon(npc)) <= 0 || npc.Needs.Energy < 1800 || npc.Needs.Health < 3000)
+                npc.Survival.Durability(HuntingSystem.Weapon(npc)) <= 0 ||
+                npc.Needs.Energy < 1800 || npc.Needs.Health < 3000)
             {
                 FailPlan(world, npc, "hunt_prey_tool_energy_or_health_changed", events);
                 return;
@@ -615,8 +627,9 @@ namespace MyAiWorld.Sim.Systems
             return false;
         }
 
-        private static bool ApplyEffects(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events)
+        private static bool ApplyEffects(WorldState world, NpcState npc, PlanStep step, List<SimEvent> events, out string failure)
         {
+            failure = "none";
             if (ProductionSystem.IsProductionStep(step.Type)) { return ProductionSystem.Apply(world, npc, step); }
             FarmPlotState plot = world.Resources.FindPlot(step.ResourceId);
             switch (step.Type)
@@ -632,7 +645,8 @@ namespace MyAiWorld.Sim.Systems
                         step.Item, step.Quantity, step.UnitPrice), events);
                     if (!traded)
                     {
-                        npc.LastDecision.ReasonCode = world.Market.Ledger[world.Market.Ledger.Count - 1].Reason;
+                        failure = world.Market.Ledger[world.Market.Ledger.Count - 1].Reason;
+                        npc.LastDecision.ReasonCode = failure;
                     }
                     return traded;
                 case PlanStepType.Eat:

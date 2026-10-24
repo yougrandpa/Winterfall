@@ -490,6 +490,14 @@ namespace MyAiWorld.Sim.World
 
         public void Validate(WorldState world)
         {
+            if (!_initialized)
+            {
+                // A world assembled without ecology (tooling and focused tests) is a
+                // coherent empty ecology, not a populated state with missing habitats.
+                RequireEcology(Animals.Count == 0 && Carcasses.Count == 0 && Groups.Count == 0 &&
+                    Habitats.Count == 0 && Regions.Regions.Count == 0 && _patchColumns == 0 && _patchRows == 0);
+                return;
+            }
             RequireEcology(_initialized && _patchColumns == (world.Map.Width + PatchSize - 1) / PatchSize &&
                 _patchRows == (world.Map.Height + PatchSize - 1) / PatchSize &&
                 Habitats.Count == _patchColumns * _patchRows + Regions.Regions.Count &&

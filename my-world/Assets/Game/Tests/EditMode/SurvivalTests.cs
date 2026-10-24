@@ -12,15 +12,27 @@ namespace MyAiWorld.Tests.EditMode
     {
         private static WorldState EmptyWorld(int npcCount = 1)
         {
-            var config = new WorldConfigData(42, 16, 16, npcCount, GameCalendar.StartTick, 2, new[] { 1 });
+            // A warm spring noon keeps these focused tests independent of cold-weather
+            // survival priorities while still using the authoritative thermal calendar.
+            long start = GameCalendar.StartTick + 12L * GameCalendar.TicksPerDay + 6 * GameCalendar.MinutesPerHour;
+            var config = new WorldConfigData(42, 16, 16, npcCount, start, 2, new[] { 1 });
             var world = new WorldState(config, new WorldMap(16, 16), new DeterministicRng(42));
             for (int i = 0; i < npcCount; i++)
             {
                 world.Entities.AddNpc(new NpcState(world.AllocateEntityId(), new NpcIdentity("Test " + i, "Farmer", 30),
                     new Personality(), new GridPos(8 + i, 8), (ulong)(10 + i)));
             }
+            world.Campaign.Initialize(world);
+            EnvironmentSystem.Update(world);
 
             return world;
+        }
+
+        private static WorldConfigData WarmObservationConfig()
+        {
+            return new WorldConfigData(20261020, 64, 64, 20,
+                GameCalendar.StartTick + 12L * GameCalendar.TicksPerDay + 6 * GameCalendar.MinutesPerHour,
+                2, new[] { 1, 2, 4, 8 });
         }
 
         private static void StartPlan(NpcState npc, NpcGoalType goal, params PlanStep[] steps)
@@ -97,7 +109,23 @@ namespace MyAiWorld.Tests.EditMode
         [Test]
         public void DefaultWorld_IdleNpcs_WalkAndRestOutsideSharedCounter()
         {
-            WorldState world = WorldFactory.Create(WorldConfigData.CreateDefault());
+            // A settlement with its supplies met and no outstanding work is the
+            // condition under which discretionary walking is actually chosen.
+            long start = GameCalendar.StartTick + 12L * GameCalendar.TicksPerDay + 6 * GameCalendar.MinutesPerHour;
+            var world = new WorldState(new WorldConfigData(42, 16, 16, 20, start, 2, new[] { 1 }),
+                new WorldMap(16, 16), new DeterministicRng(42));
+            for (int i = 0; i < 20; i++)
+            {
+                var npc = new NpcState(world.AllocateEntityId(), new NpcIdentity("Idle " + i, "Farmer", 30),
+                    new Personality(), new GridPos(4 + i % 8, 4 + i / 8), (ulong)(10 + i));
+                npc.Needs.Hunger = npc.Needs.Thirst = npc.Needs.Fatigue = 9000;
+                world.Entities.AddNpc(npc);
+            }
+            world.Campaign.Initialize(world);
+            EnvironmentSystem.Update(world);
+            world.Materials.Initialize(world);
+            world.Resources.Stockpile.TryAdd(ItemKind.Food, 1000);
+            world.Resources.Stockpile.TryAdd(ItemKind.Water, 1000);
             var engine = new SimulationEngine();
             var walkers = new HashSet<EntityId>();
             int breaks = 0;
@@ -520,7 +548,13 @@ namespace MyAiWorld.Tests.EditMode
         [Test]
         public void DefaultWorld_SevenDays_UsesResourceLoopAndKeepsEveryNpcHealthy()
         {
-            WorldState world = WorldFactory.Create(WorldConfigData.CreateDefault());
+            WorldState world = WorldFactory.Create(WarmObservationConfig());
+            // Predators and retaliating boars are exercised by the combat and hunting
+            // tests. This run isolates the village resource loop, so the ecology roster
+            // is cleared and its biomass baseline rebased to the empty state.
+            world.Ecology.MutableAnimals.Clear();
+            world.Ecology.ReconcileGroups();
+            world.Ecology.Balance.InitialBiomass = EcologyBalance.CurrentBiomass(world.Ecology);
             var engine = new SimulationEngine();
             var ate = new HashSet<EntityId>();
             var drank = new HashSet<EntityId>();

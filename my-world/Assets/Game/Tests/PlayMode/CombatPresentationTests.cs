@@ -316,6 +316,7 @@ namespace MyAiWorld.Tests.PlayMode
                 Assert.That(game.Presenter.FindProjectileView(flying.Id), Is.Not.Null);
                 Assert.That(game.Presenter.FindProjectileView(embedded.Id).IsEmbedded, Is.True);
                 ulong hash = StateHasher.Compute(world);
+                int flyingX = flying.X, flyingY = flying.Y;
                 Assert.That(game.Session.Save(path), Is.True, game.Session.SaveStatus);
                 // Leave actual combat facts queued before load: Load must discard them, not reapply old flashes.
                 game.Runner.StepOnce(); game.Runner.StepOnce();
@@ -326,7 +327,7 @@ namespace MyAiWorld.Tests.PlayMode
                     Assert.That(game.Presenter.transform.GetComponentsInChildren<Transform>().Count(t => t.name == "CombatViews"), Is.EqualTo(1));
                     Assert.That(game.Presenter.PresentedCombatEventCount, Is.Zero); Assert.That(game.Presenter.CombatImpactViewCount, Is.Zero);
                     Assert.That(game.Presenter.FindProjectileView(flying.Id).transform.position,
-                        Is.EqualTo(ProjectileView.Position(flying.X, flying.Y)));
+                        Is.EqualTo(ProjectileView.Position(flyingX, flyingY)));
                     Assert.That(game.Presenter.FindNpcView(target.Id).CombatStage, Is.EqualTo(-1));
                     game.Selection.Select(target.Id); yield return null;
                     game.Session.ReadModel.GetDetails(target.Id); game.Session.ReadModel.Combat.GetAttack(target.Id);

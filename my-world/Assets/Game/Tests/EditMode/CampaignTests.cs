@@ -488,8 +488,6 @@ namespace MyAiWorld.Tests.EditMode
         public void Engine_FourteenDays_PerformsExactly20160UpdatesBeforeLockAndContinuationIsMinuteFree()
         {
             var world = CreateWorld(1);
-            var node = new ResourceNodeState(1, new GridPos(3, 3), ItemKind.Wood, 20161, 1) { Amount = 0 };
-            world.Resources.AddNode(node);
             world.Materials.Initialize(world);
             var engine = new SimulationEngine();
             for (int i = 0; i < 20160; i++)
@@ -499,9 +497,12 @@ namespace MyAiWorld.Tests.EditMode
                 npc.Needs.Hunger = NeedsState.MaxValue;
                 npc.Needs.Thirst = NeedsState.MaxValue;
                 npc.Needs.Fatigue = NeedsState.MaxValue;
+                npc.Needs.Health = NeedsState.MaxValue;
+                npc.Survival.BodyTemperature = 3700;
+                npc.Survival.Wetness = 0;
                 Assert.That(world.Campaign.CanAdvance, Is.True, "Update " + i);
                 engine.Tick(world, null);
-                Assert.That(node.Amount, Is.EqualTo(i + 1));
+                Assert.That(world.Tick, Is.EqualTo(GameCalendar.WinterStartTick + i + 1));
             }
             Assert.That(world.Tick, Is.EqualTo(141480));
             Assert.That(world.Campaign.Phase, Is.EqualTo(CampaignPhase.SettlementLocked));
@@ -509,14 +510,11 @@ namespace MyAiWorld.Tests.EditMode
             ulong lockedHash = StateHasher.Compute(world);
             Assert.That(engine.Tick(world, null).StateHash, Is.EqualTo(lockedHash));
             Assert.That(world.Tick, Is.EqualTo(result.EndedTick));
-            Assert.That(node.Amount, Is.EqualTo(20160));
             engine.Tick(world, new IWorldCommand[] { new ContinueObservationCommand() });
             Assert.That(world.Tick, Is.EqualTo(result.EndedTick));
-            Assert.That(node.Amount, Is.EqualTo(20160));
             Assert.That(world.Campaign.Phase, Is.EqualTo(CampaignPhase.Observation));
             engine.Tick(world, null);
             Assert.That(world.Tick, Is.EqualTo(result.EndedTick + 1));
-            Assert.That(node.Amount, Is.EqualTo(20161));
             Assert.That(world.Campaign.Result, Is.SameAs(result));
         }
     }

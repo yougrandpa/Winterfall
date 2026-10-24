@@ -188,6 +188,9 @@ namespace MyAiWorld.Sim.Ai
 
         private bool MeltSnow(WorldState world, NpcState npc, List<PlanStep> steps)
         {
+            // Melting is a fallback, not a bulk water industry: do not spend shelter
+            // heat converting snow into raw water the store already cannot process.
+            if (world.Resources.Stockpile.Count(ItemKind.RawWater) >= Math.Max(12, world.LivingCount * 2)) { return false; }
             int desired = Math.Min(6, Math.Min(world.Environment.SnowDepth, npc.Inventory.Capacity - npc.Inventory.TotalCount));
             if (desired <= 0) { return false; }
             foreach (ShelterState shelter in world.Survival.Shelters)
