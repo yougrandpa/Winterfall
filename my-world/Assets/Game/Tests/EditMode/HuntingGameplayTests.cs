@@ -14,7 +14,7 @@ namespace MyAiWorld.Tests.EditMode
 {
     public sealed class HuntingGameplayTests
     {
-        private static WorldState Arena(int count = 3)
+        internal static WorldState Arena(int count = 3)
         {
             var world = new WorldState(new WorldConfigData(42, 32, 32, count, 720, 2, new[]{1, 4, 8}), new WorldMap(32, 32), new DeterministicRng(42));
             for (int i = 0; i < count; i++)
@@ -55,20 +55,20 @@ namespace MyAiWorld.Tests.EditMode
             return world;
         }
 
-        private static AnimalState Prey(WorldState world, AnimalSpecies species = AnimalSpecies.Deer)
+        internal static AnimalState Prey(WorldState world, AnimalSpecies species = AnimalSpecies.Deer)
         {
             AnimalState animal = world.Ecology.Spawn(world, species, new GridPos(8, 6), AnimalDefinition.For(species).MaturityTicks + 1);
             world.Materials.Initialize(world);
             return animal;
         }
 
-        private static HuntTaskState Request(WorldState world, AnimalState prey, params EntityId[] members)
+        internal static HuntTaskState Request(WorldState world, AnimalState prey, params EntityId[] members)
         {
             Assert.That(HuntingCoordinator.TryRequest(world, prey.Id, members, true, new List<SimEvent>(), out string reason), Is.True, reason);
             return world.Hunting.ForTarget(prey.Id);
         }
 
-        private static void Conserved(WorldState world)
+        internal static void Conserved(WorldState world)
         {
             for (int i = 0; i < (int)ItemKind.Count; i++)
             {

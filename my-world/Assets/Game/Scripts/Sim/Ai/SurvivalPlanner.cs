@@ -328,7 +328,7 @@ namespace MyAiWorld.Sim.Ai
         {
             foreach (CarcassState carcass in world.Ecology.Carcasses)
             {
-                if (carcass.Region != -1 || !carcass.ReservedBy.IsNone ||
+                if (carcass.Region != -1 || !carcass.ReservedBy.IsNone || world.Hunting.ForTarget(carcass.Id) != null ||
                     carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount == 0 ||
                     npc.Inventory.TotalCount == npc.Inventory.Capacity || !HuntingSystem.Perceived(world, npc, carcass.Position) ||
                     !CanReach(world, npc.Position, carcass.Position)) { continue; }
@@ -336,7 +336,7 @@ namespace MyAiWorld.Sim.Ai
                 steps.Add(new PlanStep(PlanStepType.Hunt, carcass.Position, carcass.Id.Value, durationTicks: 120));
                 return true;
             }
-            if (!npc.HasHuntingTool || npc.Survival.Durability(HuntingSystem.Weapon(npc)) <= 0 ||
+            if (!HuntingCoordinator.Eligible(world, npc) ||
                 npc.Needs.Energy < 3000 || npc.Needs.Health < 3000 || npc.Inventory.TotalCount == npc.Inventory.Capacity)
             {
                 return false;
@@ -371,6 +371,7 @@ namespace MyAiWorld.Sim.Ai
                     return true;
                 }
             }
+            if (candidates.Count > 0) { world.Hunting.Cooldowns[npc.Id.Value] = world.Tick + HuntingRules.RetryTicks; }
             return false;
         }
 

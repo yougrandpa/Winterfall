@@ -180,9 +180,18 @@ namespace MyAiWorld.Sim.Systems
                         CancelUnreleased(world, attack.Attacker);
                         continue;
                     }
-                    attack.AimPosition = to;
-                    attack.FacingX = (to.X - from.X) * CombatState.UnitsPerCell;
-                    attack.FacingY = (to.Y - from.Y) * CombatState.UnitsPerCell;
+                    GridPos previousAim = attack.AimPosition;
+                    bool visible = HuntingSystem.Visible(world, from, to);
+                    if (attack.Kind == CombatAttackKind.Bow && world.Entities.TryGetNpc(attack.Attacker, out NpcState observer))
+                    {
+                        visible = HuntingSystem.Perceived(world, observer, to);
+                    }
+                    if (visible)
+                    {
+                        attack.AimPosition = to;
+                        attack.FacingX = (to.X - from.X) * CombatState.UnitsPerCell;
+                        attack.FacingY = (to.Y - from.Y) * CombatState.UnitsPerCell;
+                    }
                     if (world.Tick < attack.ReleaseTick) { continue; }
                     if (!attack.AttackerIsAnimal &&
                         (!world.Entities.TryGetNpc(attack.Attacker, out NpcState npc) || !Ready(npc) ||
@@ -194,15 +203,20 @@ namespace MyAiWorld.Sim.Systems
                     if (attack.Kind == CombatAttackKind.Bow)
                     {
                         world.Entities.TryGetNpc(attack.Attacker, out NpcState shooter);
+                        GridPos observedPrevious = visible ? previousAim : attack.AimPosition;
+                        GridPos aim = PredictAim(world, shooter, from, attack.AimPosition, observedPrevious, out int leadX, out int leadY);
+                        GridPos predicted = aim.Offset((int)Math.Round((double)leadX / CombatState.UnitsPerCell),
+                            (int)Math.Round((double)leadY / CombatState.UnitsPerCell));
                         if (shooter.Inventory.Count(ItemKind.Arrow) <= 0 ||
-                            !HuntingSystem.Visible(world, from, to) || !HuntingSystem.ClearShot(world, shooter.Id, from, to))
+                            !HuntingSystem.ClearShot(world, shooter.Id, from, aim) ||
+                            !HuntingSystem.ClearShot(world, shooter.Id, from, predicted))
                         {
                             CancelUnreleased(world, attack.Attacker);
                             continue;
                         }
                         // Initiation enforces range. A moving visible target may leave it during the draw;
                         // releasing toward the last visible point must not create an endless cancel/draw loop.
-                        ReleaseArrow(world, shooter, attack, from, to);
+                        ReleaseArrow(world, shooter, attack, from, aim, leadX, leadY, observedPrevious);
                     }
                     else
                     {
@@ -347,7 +361,22 @@ namespace MyAiWorld.Sim.Systems
                 animal.Species == AnimalSpecies.Fox ? 14 : 6;
         }
 
-        private static void ReleaseArrow(WorldState world, NpcState npc, CombatAttackState attack, GridPos from, GridPos to)
+        private static GridPos PredictAim(WorldState world, NpcState npc, GridPos from, GridPos seen, GridPos previous,
+            out int leadX, out int leadY)
+        {
+            int scale = CombatState.UnitsPerCell;
+            long dx = (long)(seen.X - from.X) * scale, dy = (long)(seen.Y - from.Y) * scale;
+            int flight = Math.Max(1, (int)((IntegerSqrt(dx * dx + dy * dy) + CombatState.ArrowSpeed - 1) / CombatState.ArrowSpeed));
+            int limit = HuntingRules.MaxPredictionCells * scale;
+            leadX = Math.Max(-limit, Math.Min(limit, (seen.X - previous.X) * scale * flight * npc.HuntingSkill / 200));
+            leadY = Math.Max(-limit, Math.Min(limit, (seen.Y - previous.Y) * scale * flight * npc.HuntingSkill / 200));
+            GridPos predicted = seen.Offset((int)Math.Round((double)leadX / scale), (int)Math.Round((double)leadY / scale));
+            if (!HuntingSystem.Visible(world, from, predicted)) { leadX = leadY = 0; }
+            return seen;
+        }
+
+        private static void ReleaseArrow(WorldState world, NpcState npc, CombatAttackState attack, GridPos from, GridPos to,
+            int leadX, int leadY, GridPos previous)
         {
             CombatState state = world.Combat;
             if (state.NextProjectileId == long.MaxValue) { throw new InvalidOperationException("Combat projectile IDs exhausted."); }
@@ -355,13 +384,9 @@ namespace MyAiWorld.Sim.Systems
             int x = from.X * scale + scale / 2, y = from.Y * scale + scale / 2;
             int dx = (to.X - from.X) * scale, dy = (to.Y - from.Y) * scale;
             long distance = IntegerSqrt((long)dx * dx + (long)dy * dy);
-            GridPos start = state.StartPosition(attack.Target, to);
-            int flight = Math.Max(1, (int)((distance + CombatState.ArrowSpeed - 1) / CombatState.ArrowSpeed));
-            // Imperfect linear prediction is fixed at release, never homing.
-            dx += (to.X - start.X) * scale * flight * npc.HuntingSkill / 200;
-            dy += (to.Y - start.Y) * scale * flight * npc.HuntingSkill / 200;
+            dx += leadX; dy += leadY;
             GridPos shooterStart = state.StartPosition(npc.Id, from);
-            int motion = shooterStart.ManhattanDistance(from) * 150 + start.ManhattanDistance(to) * (100 - npc.HuntingSkill) * 3;
+            int motion = shooterStart.ManhattanDistance(from) * 150 + previous.ManhattanDistance(to) * (100 - npc.HuntingSkill) * 3;
             EnvironmentState environment = world.Environment;
             int cold = Math.Max(0, 3500 - npc.Survival.BodyTemperature) / 3 + Math.Max(0, -environment.Temperature) / 30;
             int weather = environment.Weather == WeatherKind.Blizzard ? 350 : environment.Weather == WeatherKind.Snow ? 120 : 0;
@@ -429,7 +454,7 @@ namespace MyAiWorld.Sim.Systems
                 animal.Health -= actual;
                 animal.LastDamageSourceId = source;
                 animal.Fleeing = animal.Health > 0;
-                AnimalEncounterSystem.Hit(world, animal, source, sourceIsAnimal);
+                AnimalEncounterSystem.Hit(world, animal, source, sourceIsAnimal, projectileId);
                 killed = animal.Health == 0;
                 if (killed)
                 {

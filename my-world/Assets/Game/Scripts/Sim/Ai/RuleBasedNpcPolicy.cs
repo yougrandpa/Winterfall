@@ -265,12 +265,12 @@ namespace MyAiWorld.Sim.Ai
             if (context.World.Tick < context.World.Hunting.RetryAt(context.Npc.Id)) { return false; }
             foreach (CarcassState carcass in context.World.Ecology.Carcasses)
             {
-                if (carcass.Region == -1 && carcass.ReservedBy.IsNone &&
+                if (carcass.Region == -1 && carcass.ReservedBy.IsNone && context.World.Hunting.ForTarget(carcass.Id) == null &&
                     carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount > 0 &&
                     context.Npc.Inventory.TotalCount < context.Npc.Inventory.Capacity &&
                     HuntingSystem.Perceived(context.World, context.Npc, carcass.Position)) { return true; }
             }
-            if (!context.Npc.HasHuntingTool || context.Npc.Survival.Durability(HuntingSystem.Weapon(context.Npc)) <= 0)
+            if (!HuntingCoordinator.Eligible(context.World, context.Npc))
             {
                 return false;
             }

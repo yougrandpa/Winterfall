@@ -79,6 +79,8 @@ namespace MyAiWorld.Presentation.UI
             if (label.StartsWith("Hunt: pursue")) { return "接近猎物"; }
             if (label == "Hunt: gather") { return "集结与准备装备"; }
             if (label == "Hunt: flank") { return "侧翼截击"; }
+            if (label == "Hunt: dodge") { return "侧移躲避冲锋"; }
+            if (label == "Hunt: wait for lane") { return "等待射路与换位"; }
             if (label == "Hunt: cover") { return "掩护队友"; }
             if (label == "Hunt: return") { return "运送猎获回村"; }
             if (label == "Hunt: retreat") { return "撤离狩猎区域"; }

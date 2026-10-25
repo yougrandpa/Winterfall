@@ -44,6 +44,9 @@ namespace MyAiWorld.Sim.World
         public const int MaxStamina = 10000;
         public const int SprintCost = 1250;
         public const int StaminaRecovery = 400;
+        public const int PackRadius = 6;
+        public const int CoverTicks = 3;
+        public const int MaxPredictionCells = 2;
         public static int RequiredMembers(AnimalSpecies species) => species == AnimalSpecies.Wolf ? 3 : species == AnimalSpecies.Boar || species == AnimalSpecies.Deer ? 2 : 1;
         public static bool NeedsSpear(AnimalSpecies species) => species == AnimalSpecies.Boar || species == AnimalSpecies.Wolf;
     }

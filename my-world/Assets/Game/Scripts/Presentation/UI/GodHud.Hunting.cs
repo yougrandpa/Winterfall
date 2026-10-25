@@ -119,7 +119,10 @@ namespace MyAiWorld.Presentation.UI
             var text = new StringBuilder();
             if (target != null)
             {
-                text.Append(ChineseText.Species(target.Species)).Append(" #").Append(target.Id.Value).Append(" · 生命 ").Append(target.Health).Append("\n").Append(EncounterText(target.Encounter)).Append(" · 奔逃耐力 ").Append(target.Stamina / 100).Append('%').Append("\n建议 ").Append(HuntingRules.RequiredMembers(target.Species)).Append(" 人").Append(HuntingRules.NeedsSpear(target.Species) ? " · 需要持矛接应" : " · 注意射路");
+                string risk = target.Species == AnimalSpecies.Wolf ? "高 · 咬击与同群支援" :
+                    target.Species == AnimalSpecies.Boar ? "高 · 蓄力冲锋与近身反击" :
+                    target.Species == AnimalSpecies.Deer ? "中 · 快速逃跑与受困踢击" : "低 · 转向逃跑与脱离视线";
+                text.Append(ChineseText.Species(target.Species)).Append(" #").Append(target.Id.Value).Append(" · 生命 ").Append(target.Health).Append("\n").Append(EncounterText(target.Encounter)).Append(" · 奔逃耐力 ").Append(target.Stamina / 100).Append('%').Append("\n风险：").Append(risk).Append("\n建议 ").Append(HuntingRules.RequiredMembers(target.Species)).Append(" 人").Append(HuntingRules.NeedsSpear(target.Species) ? " · 需要持矛接应" : " · 注意射路");
             }
 
             if (task != null)
@@ -197,7 +200,9 @@ namespace MyAiWorld.Presentation.UI
                 }
 
                 );
-                button.GetComponentInChildren<UnityEngine.UI.Text>().text = (_chosenHunters.Contains(id) ? "✓ " : "＋ ") + candidate.Name + " · " + (candidate.HasSpear ? "矛" : "弓") + " · 技能 " + candidate.Skill;
+                string equipment = candidate.HasSpear ? "矛" : candidate.HasBow && candidate.HasArrows ? "弓" :
+                    candidate.HasBow ? "弓 · 待补箭" : candidate.CanPrepareBow ? "待领弓箭" : "待领矛";
+                button.GetComponentInChildren<UnityEngine.UI.Text>().text = (_chosenHunters.Contains(id) ? "✓ " : "＋ ") + candidate.Name + " · " + equipment + " · 技能 " + candidate.Skill;
             }
 
             for (; i < _huntCandidateButtons.Count; i++)

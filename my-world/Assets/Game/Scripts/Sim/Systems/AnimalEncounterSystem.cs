@@ -209,13 +209,34 @@ namespace MyAiWorld.Sim.Systems
             return false;
         }
 
-        internal static void Hit(WorldState world, AnimalState animal, EntityId source, bool isAnimal)
+        internal static void Hit(WorldState world, AnimalState animal, EntityId source, bool isAnimal, long projectileId = 0)
         {
-            if (animal.Region != -1 || animal.Health <= 0 || !CombatSystem.TryPosition(world, source, isAnimal, out GridPos cell))
+            if (animal.Region != -1 || animal.Health <= 0)
             {
                 return;
             }
 
+            GridPos cell = animal.Encounter.ThreatId == source && animal.Encounter.LastThreatPosition.IsValid ?
+                animal.Encounter.LastThreatPosition : animal.Position;
+            int sight = animal.Definition.Sight;
+            if (world.Environment.Daylight < 2000 && !animal.Definition.IsPredator) { sight = Math.Max(2, sight / 2); }
+            if (world.Environment.Weather == WeatherKind.Blizzard) { sight = Math.Max(1, sight / 3); }
+            if (CombatSystem.TryPosition(world, source, isAnimal, out GridPos perceived) &&
+                animal.Position.ManhattanDistance(perceived) <= sight && HuntingSystem.Visible(world, animal.Position, perceived))
+            {
+                cell = perceived;
+            }
+            else if (cell == animal.Position && projectileId > 0)
+            {
+                // An unseen shooter only reveals the direction of the incoming arrow, never their live position.
+                foreach (ProjectileState projectile in world.Combat.Projectiles)
+                {
+                    if (projectile.Id != projectileId) { continue; }
+                    GridPos incoming = animal.Position.Offset(-Math.Sign(projectile.VelocityX), -Math.Sign(projectile.VelocityY));
+                    if (world.Map.IsInside(incoming)) { cell = incoming; }
+                    break;
+                }
+            }
             animal.Encounter.ThreatId = source;
             animal.Encounter.ThreatIsAnimal = isAnimal;
             animal.Encounter.LastThreatPosition = cell;

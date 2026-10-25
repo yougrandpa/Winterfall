@@ -236,6 +236,7 @@ namespace MyAiWorld.Tests.PlayMode
 
             Assert.That(windup, Is.True, "The boar must visibly telegraph its charge.");
             Assert.That(attack, Is.True, "A prepared team must actually attack.");
+            Assert.That(world.Hunting.ForTarget(boar.Id)?.Stage, Is.Not.EqualTo(HuntStage.Retreating), "The team must still be hunting before the controlled injury.");
             Set(world.Entities.Npcs[0].Needs, "Health", 3900);
             for (int i = 0; i < 8; i++)
             {
@@ -244,6 +245,7 @@ namespace MyAiWorld.Tests.PlayMode
 
             game.Runner.Pause();
             Assert.That(world.Hunting.ForTarget(boar.Id)?.Stage, Is.EqualTo(HuntStage.Retreating));
+            Assert.That(world.Hunting.ForTarget(boar.Id)?.Reason, Does.Contain("受伤"));
             SurvivalPresentationTests.Capture(game, Path.Combine(folder, "team-retreat.png"), 1920, 1080);
         }
 
@@ -255,12 +257,6 @@ namespace MyAiWorld.Tests.PlayMode
             var rect = button.GetComponent<RectTransform>();
             var pointer = new PointerEventData(EventSystem.current)
             {position = RectTransformUtility.WorldToScreenPoint(raycaster.eventCamera, rect.TransformPoint(rect.rect.center)), button = PointerEventData.InputButton.Left, clickCount = 1};
-            if (button.GetComponent<CanvasRenderer>().absoluteDepth < 0)
-            {
-                ExecuteEvents.Execute(button.gameObject, pointer, ExecuteEvents.pointerClickHandler);
-                return;
-            }
-
             var hits = new List<RaycastResult>();
             EventSystem.current.RaycastAll(pointer, hits);
             Assert.That(hits.Count, Is.GreaterThan(0));

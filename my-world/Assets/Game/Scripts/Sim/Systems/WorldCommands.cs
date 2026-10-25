@@ -35,7 +35,11 @@ namespace MyAiWorld.Sim.Systems
         public string Describe() => "Request hunt " + TargetId.Value + " members " + string.Join(",", ParticipantIds);
         public bool Apply(WorldState world, CommandContext context)
         {
-            if (!world.Campaign.CanAdvance) { return false; }
+            if (!world.Campaign.CanAdvance)
+            {
+                context.Events.Add(new SimEvent(SimEventKind.CommandRejected, context.Tick, TargetId, "挑战已结算，无法发起狩猎"));
+                return false;
+            }
             bool result = HuntingCoordinator.TryRequest(world, TargetId, ParticipantIds, true, context.Events, out string reason);
             if (result && world.Campaign.Result == null) { world.Campaign.Assisted = true; }
             if (!result) { context.Events.Add(new SimEvent(SimEventKind.CommandRejected, context.Tick, TargetId, reason)); }
@@ -51,7 +55,13 @@ namespace MyAiWorld.Sim.Systems
         public bool Apply(WorldState world, CommandContext context)
         {
             HuntTaskState task = world.Hunting.Find(TaskId);
-            if (!world.Campaign.CanAdvance || task == null || task.Stage == HuntStage.Retreating) { return false; }
+            if (!world.Campaign.CanAdvance || task == null || task.Stage == HuntStage.Retreating)
+            {
+                string reason = !world.Campaign.CanAdvance ? "挑战已结算，无法变更狩猎" :
+                    task == null ? "狩猎任务不存在或已结束" : "队伍已在撤退";
+                context.Events.Add(new SimEvent(SimEventKind.CommandRejected, context.Tick, task?.TargetId ?? EntityId.None, reason));
+                return false;
+            }
             HuntingCoordinator.Retreat(world, task, "玩家取消狩猎", context.Events);
             if (world.Campaign.Result == null) { world.Campaign.Assisted = true; }
             return true;

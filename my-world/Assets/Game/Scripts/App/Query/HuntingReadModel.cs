@@ -94,12 +94,16 @@ namespace MyAiWorld.App.Query
 
     public sealed class HuntCandidateSnapshot
     {
-        internal HuntCandidateSnapshot(MyAiWorld.Sim.Agents.NpcState npc)
+        internal HuntCandidateSnapshot(WorldState world, MyAiWorld.Sim.Agents.NpcState npc)
         {
             Id = npc.Id;
             Name = npc.Name;
             Skill = npc.HuntingSkill;
             HasSpear = npc.Survival.Durability(ItemKind.Spear) > 0;
+            HasBow = npc.Survival.Durability(ItemKind.Bow) > 0;
+            HasArrows = npc.Inventory.Count(ItemKind.Arrow) > 0;
+            CanPrepareBow = HuntingCoordinator.CanPrepareWeapon(world, npc, ItemKind.Bow);
+            CanPrepareSpear = HuntingCoordinator.CanPrepareWeapon(world, npc, ItemKind.Spear);
         }
 
         public EntityId Id
@@ -121,6 +125,11 @@ namespace MyAiWorld.App.Query
         {
             get;
         }
+
+        public bool HasBow { get; }
+        public bool HasArrows { get; }
+        public bool CanPrepareBow { get; }
+        public bool CanPrepareSpear { get; }
     }
 
     public sealed class HuntingReadModel
@@ -139,7 +148,7 @@ namespace MyAiWorld.App.Query
             {
                 if (HuntingCoordinator.Eligible(world, npc))
                 {
-                    candidates.Add(new HuntCandidateSnapshot(npc));
+                    candidates.Add(new HuntCandidateSnapshot(world, npc));
                 }
             }
 

@@ -15,6 +15,10 @@ namespace MyAiWorld.CodeTests
 {
     internal sealed class CodeTestRunner : ITestListener
     {
+        // NUnit temporarily redirects Console; writing callbacks into that redirect recurses.
+        // Instance construction precedes runner.Run and therefore NUnit's redirection.
+        private readonly TextWriter _standardOutput = Console.Out;
+        private readonly TextWriter _standardError = Console.Error;
         private static int Main(string[] args)
         {
             try
@@ -117,12 +121,12 @@ namespace MyAiWorld.CodeTests
         }
 
         public void TestStarted(ITest test) { }
-        public void TestOutput(TestOutput output) { Console.Write(output.Text); }
+        public void TestOutput(TestOutput output) { _standardOutput.Write(output.Text); }
         public void TestFinished(ITestResult result)
         {
             if (!result.Test.IsSuite && result.ResultState.Status != TestStatus.Passed)
             {
-                Console.Error.WriteLine("{0}: {1}\n{2}\n{3}", result.ResultState, result.FullName, result.Message, result.StackTrace);
+                _standardError.WriteLine("{0}: {1}\n{2}\n{3}", result.ResultState, result.FullName, result.Message, result.StackTrace);
             }
         }
     }
