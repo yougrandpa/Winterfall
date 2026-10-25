@@ -321,9 +321,14 @@ namespace MyAiWorld.Tests.PlayMode
             Assert.That(model.StateHash, Is.EqualTo(hash));
             Assert.That(bootstrap.Hud.InspectorText, Does.Contain("钱包"));
             Assert.That(bootstrap.Hud.InspectorText, Does.Contain("狩猎工具 弓"));
-            for (int tick = 0; tick < 800; tick++)
+            // Real pursuit, escape, resupply and winter shelter can outlast the old 800-tick window.
+            // Keep the kill assertion and observe the unchanged default world for at most two days.
+            bootstrap.Session.SaveDirectory = Path.Combine(Application.temporaryCachePath, "DefaultHuntReview-" + Guid.NewGuid().ToString("N"));
+            for (int tick = 0; tick < 2 * GameCalendar.TicksPerDay &&
+                (tick < 800 || bootstrap.Session.World.Ecology.HuntKills == 0); tick++)
             {
                 bootstrap.Runner.StepOnce();
+                if (tick % 120 == 0) { yield return null; }
             }
             yield return new WaitForSecondsRealtime(0.25f);
             var after = model.EcologyEconomy;

@@ -47,6 +47,7 @@ namespace MyAiWorld.Sim.World
         public const int PackRadius = 6;
         public const int CoverTicks = 3;
         public const int MaxPredictionCells = 2;
+        public const int PathWaitTicks = 8;
         public static int RequiredMembers(AnimalSpecies species) => species == AnimalSpecies.Wolf ? 3 : species == AnimalSpecies.Boar || species == AnimalSpecies.Deer ? 2 : 1;
         public static bool NeedsSpear(AnimalSpecies species) => species == AnimalSpecies.Boar || species == AnimalSpecies.Wolf;
     }
@@ -178,6 +179,7 @@ namespace MyAiWorld.Sim.World
             internal set;
         }
 
+        // -1 means the team is approaching a marked location and has not acquired sight yet.
         public long LastSeenTick
         {
             get;

@@ -39,6 +39,7 @@ namespace MyAiWorld.Presentation.UI
             { "social_target_unreachable", "暂时无法接近社交对象" },
             { "none", "无" }, { "initial", "初到村庄" }, { "need_satisfaction_deficit", "优先满足当前需求" },
             { "profession_supply_strategy", "按职业补充物资" }, { "curiosity_and_diligence", "探索与勤劳倾向" },
+            { "player_requested_hunt", "响应玩家标记，参加狩猎队" }, { "cooperative_hunt", "加入狩猎队并按分工行动" },
             { "rest_bias", "倾向休息" }, { "no_valid_wander_target", "暂无可探索位置" },
             { "no_available_farm_work_or_supplies", "暂无农事或缺少物资" }, { "no_reachable_unreserved_resource", "暂无可达的空闲资源" },
             { "critical_need_interrupt", "紧急需求优先" }, { "deposit_items_missing_or_stock_full", "背包无物品或库存已满" },
@@ -81,6 +82,7 @@ namespace MyAiWorld.Presentation.UI
             if (label == "Hunt: flank") { return "侧翼截击"; }
             if (label == "Hunt: dodge") { return "侧移躲避冲锋"; }
             if (label == "Hunt: wait for lane") { return "等待射路与换位"; }
+            if (label == "Hunt: wait for path") { return "等待队员让路"; }
             if (label == "Hunt: cover") { return "掩护队友"; }
             if (label == "Hunt: return") { return "运送猎获回村"; }
             if (label == "Hunt: retreat") { return "撤离狩猎区域"; }

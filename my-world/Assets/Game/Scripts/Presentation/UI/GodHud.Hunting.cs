@@ -17,8 +17,11 @@ namespace MyAiWorld.Presentation.UI
         private readonly List<EntityId> _chosenHunters = new List<EntityId>();
         private bool _choosingHunters;
         private long _huntCommandTick = -1;
+        private EntityId _huntCommandTarget;
+        private bool _huntCancelPending;
         private EntityId? _huntDraftTarget;
         public string HuntingText => _huntDescription != null ? _huntDescription.text : "";
+        public string HuntingOrderFeedbackText => _huntOrderFeedback != null ? _huntOrderFeedback.text : "";
         public UnityEngine.UI.Button RequestHuntButton => _autoHunt;
         public UnityEngine.UI.Button CancelHuntButton => _cancelHunt;
         private void BuildHunting(Transform parent)
@@ -59,7 +62,7 @@ namespace MyAiWorld.Presentation.UI
 
         public void RequestSelectedHunt(bool specified)
         {
-            if (!_selection.SelectedAnimal.HasValue || CampaignLocked)
+            if (!_selection.SelectedAnimal.HasValue || CampaignLocked || _huntCommandTick >= 0)
             {
                 return;
             }
@@ -72,6 +75,8 @@ namespace MyAiWorld.Presentation.UI
 
             _session.EnqueueCommand(new RequestHuntCommand(_selection.SelectedAnimal.Value, specified ? new List<EntityId>(_chosenHunters) : null));
             _huntCommandTick = _session.LastTick;
+            _huntCommandTarget = _selection.SelectedAnimal.Value;
+            _huntCancelPending = false;
             _huntOrderFeedback.text = "指令待执行 · 恢复或单步后生效";
             _choosingHunters = false;
             RefreshHunting();
@@ -80,14 +85,17 @@ namespace MyAiWorld.Presentation.UI
         public void CancelSelectedHunt()
         {
             HuntTaskSnapshot task = SelectedHunt();
-            if (task == null || CampaignLocked)
+            if (task == null || CampaignLocked || _huntCommandTick >= 0)
             {
                 return;
             }
 
             _session.EnqueueCommand(new CancelHuntCommand(task.Id));
             _huntCommandTick = _session.LastTick;
-            _huntOrderFeedback.text = "撤退指令待执行";
+            _huntCommandTarget = task.TargetId;
+            _huntCancelPending = true;
+            _huntOrderFeedback.text = "停止指令待执行 · 恢复或单步后生效";
+            RefreshHunting();
         }
 
         private HuntTaskSnapshot SelectedHunt() => _selection.SelectedAnimal.HasValue ? _session.ReadModel.Hunting.ForTarget(_selection.SelectedAnimal.Value) : _selected.HasValue ? _session.ReadModel.Hunting.ForNpc(_selected.Value) : null;
@@ -146,11 +154,14 @@ namespace MyAiWorld.Presentation.UI
             _huntDescription.text = text.ToString();
             if (_huntCommandTick >= 0 && _session.LastTick > _huntCommandTick)
             {
+                long issuedAt = _huntCommandTick;
                 _huntCommandTick = -1;
-                _huntOrderFeedback.text = task != null ? "狩猎指令已处理" : "无法组队，请检查人数、距离、装备与需求";
+                _huntOrderFeedback.text = _huntCancelPending ? "已停止追猎 · 队员继续安全撤退" :
+                    task != null && task.Stage == HuntStage.Retreating ? "队伍已停止追猎，正在撤退" :
+                    task != null ? "狩猎指令已处理" : "无法组队，请检查人数、距离、装备与需求";
                 foreach (EventSnapshot evt in _session.ReadModel.RecentEvents)
                 {
-                    if (evt.Kind == SimEventKind.CommandRejected && evt.Tick >= _session.LastTick - 2)
+                    if (evt.Kind == SimEventKind.CommandRejected && evt.Source == _huntCommandTarget && evt.Tick >= issuedAt)
                     {
                         _huntOrderFeedback.text = evt.Message;
                     }
@@ -163,7 +174,7 @@ namespace MyAiWorld.Presentation.UI
             _requestTeam.gameObject.SetActive(canRequest && _choosingHunters);
             _requestTeam.interactable = _chosenHunters.Count > 0 && _huntCommandTick < 0;
             _cancelHunt.gameObject.SetActive(task != null);
-            _cancelHunt.interactable = task != null && task.Stage != HuntStage.Retreating && !CampaignLocked && _huntCommandTick < 0;
+            _cancelHunt.interactable = task != null && !CampaignLocked && _huntCommandTick < 0;
             if (!_choosingHunters)
             {
                 return;
@@ -211,7 +222,7 @@ namespace MyAiWorld.Presentation.UI
             }
         }
 
-        public static string StageText(HuntStage stage) => new[]{"集结准备", "接近围堵", "交战", "回收猎获", "返回村庄", "掩护撤退"}[(int)stage];
+        public static string StageText(HuntStage stage) => new[]{"集结准备", "接近围堵", "交战", "回收猎获", "返回村庄", "撤退回村"}[(int)stage];
         public static string RoleText(HuntRole role) => new[]{"弓手", "持矛接应", "侧翼截击"}[(int)role];
         private static string EncounterText(EncounterPhase phase) => new[]{"平静", "警觉", "逃跑", "反击", "脱战恢复"}[(int)phase];
     }

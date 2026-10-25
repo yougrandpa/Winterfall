@@ -138,6 +138,105 @@ namespace MyAiWorld.Tests.PlayMode
 
         [UnityTest]
         [Category("VisualReview")]
+        public IEnumerator AutomaticRetreat_StopButtonStillAcceptsAPlayerOrder()
+        {
+            SceneManager.LoadScene("Bootstrap");
+            yield return null;
+            yield return null;
+            var game = Object.FindObjectOfType<GameBootstrap>();
+            game.Runner.Pause();
+            var world = game.Session.World;
+            var npc = world.Entities.Npcs.First(n => n.Role == "Hunter");
+            var rabbit = world.Ecology.Animals.First(a => a.Region == -1 && a.Species == AnimalSpecies.Rabbit &&
+                a.Position.ManhattanDistance(npc.Home) > 6);
+            foreach (string need in new[] { "Health", "Hunger", "Thirst", "Fatigue" }) { Set(npc.Needs, need, 10000); }
+            Set(npc.Survival, "BodyTemperature", 3700);
+            Set(npc.Survival, "Wetness", 0);
+            Set(world.Environment, "Temperature", 2500);
+            Set(world.Environment, "Wind", 0);
+            npc.Position = rabbit.Position;
+            npc.Action.SetIdle("Controlled automatic hunt", world.Tick);
+            game.Session.ReadModel.Refresh(world, null, 0);
+            game.Selection.SelectAnimal(rabbit.Id);
+            yield return new WaitForSecondsRealtime(0.25f);
+            Click(game.Hud.RequestHuntButton);
+            game.Runner.StepOnce();
+            yield return new WaitForSecondsRealtime(0.25f);
+            var task = world.Hunting.ForTarget(rabbit.Id);
+            Assert.That(task, Is.Not.Null);
+            Assert.That(task.Member(npc.Id), Is.Not.Null);
+            Assert.That(task.Stage, Is.Not.EqualTo(HuntStage.Retreating));
+
+            Set(npc.Needs, "Health", 3900);
+            game.Runner.StepOnce();
+            yield return new WaitForSecondsRealtime(0.25f);
+            Assert.That(task.Stage, Is.EqualTo(HuntStage.Retreating));
+            Assert.That(game.Hud.CancelHuntButton.IsInteractable(), Is.True,
+                "A safety retreat must not prevent the player from stopping the remaining hunt/cover actions.");
+            ulong before = StateHasher.Compute(world);
+            Click(game.Hud.CancelHuntButton);
+            Assert.That(game.Session.QueuedCommandCount, Is.EqualTo(1));
+            Assert.That(StateHasher.Compute(world), Is.EqualTo(before));
+            game.Runner.StepOnce();
+            yield return new WaitForSecondsRealtime(0.25f);
+            Assert.That(game.Session.QueuedCommandCount, Is.Zero);
+            Assert.That(game.Hud.HuntingOrderFeedbackText, Does.Contain("已停止追猎"));
+            Assert.That(game.Session.ReadModel.RecentEvents.Any(e => e.Kind == SimEventKind.CommandRejected &&
+                e.Source == rabbit.Id && e.Tick >= world.Tick - 1), Is.False);
+            string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Progress", "Hunting"));
+            Directory.CreateDirectory(folder);
+            SurvivalPresentationTests.Capture(game, Path.Combine(folder, "stop-during-retreat.png"), 1920, 1080);
+        }
+
+        [UnityTest]
+        public IEnumerator DefaultWorld_StopOrdersApplyAtOneFourAndEightSpeed()
+        {
+            foreach (int speed in new[] { 1, 4, 8 })
+            {
+                SceneManager.LoadScene("Bootstrap");
+                yield return null;
+                yield return null;
+                var game = Object.FindObjectOfType<GameBootstrap>();
+                game.Runner.Pause();
+                var world = game.Session.World;
+                // Advance the default winter morning until villagers have finished warming up.
+                // No health, temperature, equipment, positions or world configuration are changed.
+                for (int i = 0; i < 240 && game.Session.ReadModel.Hunting.Candidates.Count == 0; i++)
+                {
+                    game.Runner.StepOnce();
+                    if (i % 16 == 0) { yield return null; }
+                }
+                var candidates = game.Session.ReadModel.Hunting.Candidates;
+                Assert.That(candidates.Count, Is.GreaterThan(0));
+                var rabbit = world.Ecology.Animals.Where(a => a.Species == AnimalSpecies.Rabbit &&
+                    world.Ecology.CanHunt(a) && a.ReservedBy.IsNone).OrderBy(a =>
+                    candidates.Min(c => world.Entities.Npcs.First(n => n.Id == c.Id).Position.ManhattanDistance(a.Position))).ThenBy(a => a.Id.Value).First();
+                game.Selection.SelectAnimal(rabbit.Id);
+                yield return new WaitForSecondsRealtime(0.25f);
+                Click(game.Hud.RequestHuntButton);
+                game.Runner.StepOnce();
+                yield return new WaitForSecondsRealtime(0.25f);
+                Assert.That(world.Hunting.ForTarget(rabbit.Id), Is.Not.Null, game.Hud.HuntingOrderFeedbackText);
+                ulong hash = StateHasher.Compute(world);
+                long issuedAt = game.Session.LastTick;
+                Click(game.Hud.CancelHuntButton);
+                Assert.That(game.Session.QueuedCommandCount, Is.EqualTo(1));
+                Assert.That(StateHasher.Compute(world), Is.EqualTo(hash));
+                game.Runner.SetSpeed(speed);
+                float until = Time.realtimeSinceStartup + 3f;
+                while (game.Session.LastTick == issuedAt && Time.realtimeSinceStartup < until) { yield return null; }
+                game.Runner.Pause();
+                yield return new WaitForSecondsRealtime(0.25f);
+                Assert.That(game.Session.LastTick, Is.GreaterThan(issuedAt), "The live editor must actually advance at " + speed + "x.");
+                Assert.That(game.Session.QueuedCommandCount, Is.Zero);
+                Assert.That(game.Hud.HuntingOrderFeedbackText, Does.Contain("已停止追猎"));
+                var task = world.Hunting.ForTarget(rabbit.Id);
+                Assert.That(task == null || task.Stage == HuntStage.Retreating, Is.True);
+            }
+        }
+
+        [UnityTest]
+        [Category("VisualReview")]
         public IEnumerator CooperativeBoarHunt_CapturesTelegraphAttackAndRetreat()
         {
             SceneManager.LoadScene("Bootstrap");

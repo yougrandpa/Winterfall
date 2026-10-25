@@ -97,5 +97,13 @@ namespace MyAiWorld.Sim.Ai
             ReplanCount++;
             StepIndex = _steps.Count;
         }
+
+        internal void Complete()
+        {
+            StepIndex = _steps.Count;
+            StepStarted = false;
+            FailedStepIndex = -1;
+            FailureReason = "none";
+        }
     }
 }

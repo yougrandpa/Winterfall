@@ -31,14 +31,15 @@ namespace MyAiWorld.Sim.Navigation
         private static readonly int[] DirectionX = { 0, 1, 0, -1 };
         private static readonly int[] DirectionY = { 1, 0, -1, 0 };
 
-        public PathResult FindPath(WorldMap map, GridPos start, GridPos goal, int maxExpandedNodes = 0)
+        public PathResult FindPath(WorldMap map, GridPos start, GridPos goal, int maxExpandedNodes = 0,
+            Func<GridPos, bool> canEnter = null)
         {
             if (map == null)
             {
                 throw new ArgumentNullException(nameof(map));
             }
 
-            if (!map.IsWalkable(start) || !map.IsWalkable(goal))
+            if (!map.IsWalkable(start) || !map.IsWalkable(goal) || canEnter != null && !canEnter(goal))
             {
                 return PathResult.NotFound(0);
             }
@@ -102,7 +103,7 @@ namespace MyAiWorld.Sim.Navigation
 
                     var next = new GridPos(nx, ny);
                     int moveCost = map.GetMoveCost(next);
-                    if (moveCost <= 0)
+                    if (moveCost <= 0 || canEnter != null && !canEnter(next))
                     {
                         continue;
                     }

@@ -397,8 +397,8 @@ namespace MyAiWorld.Tests.EditMode
 
         // One fixed-seed 14-day integration baseline complements focused mechanics
         // tests and the four-seed snapshot/resume determinism tests.
-        // Updated after the hunting completion pass preserved every behavioral and conservation assertion.
-        [TestCase(20261020, "8a5a6398b1237837")]
+        // Updated after bounded hunt waiting and urgent-survival handoff preserved all behavioral/conservation assertions.
+        [TestCase(20261020, "2275f8185d94410e")]
         [Category("LongRunning")]
         public void DefaultWorld_FourteenDays_ConservesResourcesAndCurrencyWithDistinctStrategies(int seed, string expectedHash)
         {
