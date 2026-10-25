@@ -121,6 +121,12 @@ namespace MyAiWorld.EditorTools
             Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode", null, "Hunting-Presentation", new[] { "MyAiWorld.Tests.PlayMode.HuntingPresentationTests" });
         }
 
+        [MenuItem("Tools/My AI World/Verification/Run Winter Farming Tests")]
+        public static void RunWinterFarming()
+        {
+            Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode", "WinterFarmingE2E", "Winter-Farming");
+        }
+
         private static void Run(TestMode mode, string assembly, string category = null, string reportName = null, string[] testNames = null)
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)

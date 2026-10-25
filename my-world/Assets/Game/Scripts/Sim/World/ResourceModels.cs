@@ -6,12 +6,12 @@ namespace MyAiWorld.Sim.World
 {
     public enum ItemKind
     {
-        Food, Water, Seed, RawWater, Wood, Stone, Fiber, Herb, Medicine, WheatSeed, BeanSeed, Bow, Spear, Hoe, Bucket,
+        Food, Water, SpinachSeed, RawWater, Wood, Stone, Fiber, Herb, Medicine, KaleSeed, LambsLettuceSeed, Bow, Spear, Hoe, Bucket,
         Arrow, RawMeat, Hide, WinterCoat, Fur, Feather, Count
     }
     public enum CropType
     {
-        None, Turnip, Wheat, Bean
+        None, Spinach, Kale, LambsLettuce
     }
     public enum CropStage
     {
@@ -40,6 +40,8 @@ namespace MyAiWorld.Sim.World
         {
             get { int total = 0; foreach (int amount in _amounts) { total += amount; } return total; }
         }
+        // Direct farm cargo is consumed first; only an actual stockpile deposit counts as delivery.
+        public int UndeliveredFarmFood { get; internal set; }
         public int Food => _amounts[0];
         public int Water => _amounts[1];
         public int Seeds => _amounts[2];
@@ -67,6 +69,7 @@ namespace MyAiWorld.Sim.World
                 return false;
             }
             _amounts[(int)item] -= amount;
+            if (item == ItemKind.Food) { UndeliveredFarmFood = Math.Max(0, UndeliveredFarmFood - amount); }
             return true;
         }
 
@@ -75,23 +78,33 @@ namespace MyAiWorld.Sim.World
 
     public sealed class CropDefinition
     {
-        public static readonly CropDefinition Turnip = new CropDefinition(CropType.Turnip, ItemKind.Seed, 720, 4, -400);
-        public static readonly CropDefinition Wheat = new CropDefinition(CropType.Wheat, ItemKind.WheatSeed, 1440, 8, -700);
-        public static readonly CropDefinition Bean = new CropDefinition(CropType.Bean, ItemKind.BeanSeed, 1000, 5, 500);
-        private CropDefinition(CropType type, ItemKind seed, int growth, int yield, int fertility)
+        // Game balance values, in effective daylight minutes and centi-degrees.
+        public static readonly CropDefinition Spinach = new CropDefinition(CropType.Spinach, ItemKind.SpinachSeed, 700, 450, 3, 2, 300, -800);
+        public static readonly CropDefinition Kale = new CropDefinition(CropType.Kale, ItemKind.KaleSeed, 1100, 700, 4, 3, 400, -1200);
+        public static readonly CropDefinition LambsLettuce = new CropDefinition(CropType.LambsLettuce, ItemKind.LambsLettuceSeed, 850, 550, 2, 2, 200, -1000);
+        public static readonly IReadOnlyList<CropDefinition> All = Array.AsReadOnly(new[] { Spinach, Kale, LambsLettuce });
+        private CropDefinition(CropType type, ItemKind seed, int growth, int regrowth, int yield, int harvests, int minimum, int tolerance)
         {
-            Type = type; Seed = seed; GrowthTicks = growth; Yield = yield; FertilityChange = fertility;
+            Type = type; Seed = seed; GrowthTicks = growth; RegrowthTicks = regrowth;
+            Yield = yield; MaxHarvests = harvests; MinimumTemperature = minimum; ColdTolerance = tolerance;
         }
         public CropType Type { get; }
         public ItemKind Seed { get; }
         public int GrowthTicks { get; }
+        public int RegrowthTicks { get; }
         public int WaterRequired => 1;
         public int Yield { get; }
-        public int SeedYield => 2;
-        public int FertilityChange { get; }
-        public static CropDefinition For(CropType type) => type == CropType.Wheat ? Wheat : type == CropType.Bean ? Bean : Turnip;
-        public static CropDefinition FromSeed(ItemKind item) => item == ItemKind.WheatSeed ? Wheat : item == ItemKind.BeanSeed ? Bean : Turnip;
+        public int SeedYield => 0;
+        public int MaxHarvests { get; }
+        public int MinimumTemperature { get; }
+        public int ColdTolerance { get; }
+        public int FertilityChange => -400;
+        public static CropDefinition For(CropType type) => type == CropType.Kale ? Kale : type == CropType.LambsLettuce ? LambsLettuce : Spinach;
+        public static CropDefinition FromSeed(ItemKind item) => item == ItemKind.KaleSeed ? Kale : item == ItemKind.LambsLettuceSeed ? LambsLettuce : Spinach;
     }
+
+    public enum FarmCropPolicy { Auto, Spinach, Kale, LambsLettuce, Fallow }
+    public enum GrowingBedHeatPolicy { Off, Normal, Priority }
 
     public sealed class ResourceNodeState
     {
@@ -132,7 +145,14 @@ namespace MyAiWorld.Sim.World
         public GridPos Position { get; }
         public CropType Crop { get; internal set; }
         public int GrowthTicks { get; internal set; }
-        public int GrowthRequired => CropDefinition.For(Crop).GrowthTicks;
+        public int GrowthRequired => HarvestCount == 0 ? CropDefinition.For(Crop).GrowthTicks : CropDefinition.For(Crop).RegrowthTicks;
+        public FarmCropPolicy Policy { get; internal set; }
+        public int BedId { get; internal set; }
+        public int HarvestCount { get; internal set; }
+        public int TotalHarvests { get; internal set; }
+        public long GrowthRemainder { get; internal set; }
+        public bool FinishAfterHarvest { get; internal set; }
+        public bool LostCrop { get; internal set; }
         public CropType PreviousCrop { get; internal set; }
         public int Damage { get; internal set; }
         public int HarvestYield => Math.Max(1, CropDefinition.For(Crop).Yield - Damage / 600);

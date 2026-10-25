@@ -68,6 +68,7 @@ namespace MyAiWorld.Sim.Systems
             EnvironmentSystem.Update(world);
             ThermalSystem.UpdateWorld(world);
             world.Ecology.UpdateResources(world);
+            GrowingBedSystem.Update(world);
             AgricultureSystem.Update(world);
             WaterSystem.Update(world);
             world.Ecology.Update(world, events);
@@ -598,11 +599,11 @@ namespace MyAiWorld.Sim.Systems
                     reason = "deposit_items_missing_or_stock_full";
                     break;
                 case PlanStepType.Plant:
-                    valid = plot != null && step.Target == plot.Position && plot.ReservedBy == npc.Id && plot.Crop == CropType.None && plot.Fertility >= 2000 && npc.Inventory.Count(step.Item) >= 1 && SurvivalRules.IsSeed(step.Item) && world.Date.Season != Season.Winter;
+                    valid = plot != null && step.Target == plot.Position && plot.ReservedBy == npc.Id && plot.Crop == CropType.None && plot.Fertility >= 2000 && npc.Inventory.Count(step.Item) >= 1 && SurvivalRules.IsSeed(step.Item) && AgricultureSystem.CanPlant(world, plot, CropDefinition.FromSeed(step.Item));
                     reason = "plant_requires_reserved_empty_fertile_plot_and_seed";
                     break;
                 case PlanStepType.Water:
-                    valid = plot != null && step.Target == plot.Position && plot.ReservedBy == npc.Id && plot.Crop != CropType.None && npc.Inventory.Count(step.Item) >= 1 && (step.Item == ItemKind.Water || step.Item == ItemKind.RawWater);
+                    valid = plot != null && step.Target == plot.Position && plot.ReservedBy == npc.Id && AgricultureSystem.CanWater(world, plot) && npc.Inventory.Count(step.Item) >= 1 && (step.Item == ItemKind.Water || step.Item == ItemKind.RawWater);
                     reason = "water_requires_reserved_crop_and_water";
                     break;
                 case PlanStepType.Harvest:
@@ -677,11 +678,13 @@ namespace MyAiWorld.Sim.Systems
                     world.Resources.ReleaseStep(npc.Id, ReservationKind.Stockpile, 0, step.Item);
                     break;
                 case PlanStepType.Deposit:
+                    int farmDelivery = step.Item == ItemKind.Food ? Math.Min(step.Quantity, npc.Inventory.UndeliveredFarmFood) : 0;
                     if (!Transfer(npc.Inventory, world.Resources.Stockpile, step.Item, step.Quantity))
                     {
                         return false;
                     }
                     world.Resources.ReleaseStep(npc.Id, ReservationKind.Stockpile, 0, step.Item);
+                    world.Survival.FarmFoodDelivered += farmDelivery;
                     break;
                 case PlanStepType.Gather:
                     ResourceNodeState node = world.Resources.FindNode(step.ResourceId);
@@ -703,7 +706,7 @@ namespace MyAiWorld.Sim.Systems
                     if (!npc.Inventory.TryRemove(step.Item, 1)) { return false; }
                     var planted = CropDefinition.FromSeed(step.Item);
                     world.Materials.Consume(step.Item, 1); plot.Crop = planted.Type;
-                    plot.GrowthTicks = 0; plot.Moisture = 0; plot.Damage = 0;
+                    plot.GrowthTicks = 0; plot.GrowthRemainder = 0; plot.HarvestCount = 0; plot.FinishAfterHarvest = false; plot.LostCrop = false; plot.Moisture = 0; plot.Damage = 0;
                     plot.Fertility = Math.Max(0, Math.Min(10000, plot.Fertility + planted.FertilityChange));
                     ProductionSystem.Wear(world, npc, ItemKind.Hoe);
                     events.Add(new SimEvent(SimEventKind.CropPlanted, world.Tick, npc.Id, npc.Name + " planted " + plot.Crop + " at " + plot.Position + "."));
@@ -717,11 +720,10 @@ namespace MyAiWorld.Sim.Systems
                     break;
                 case PlanStepType.Harvest:
                     int yield = plot.HarvestYield;
-                    var harvested = CropDefinition.For(plot.Crop);
-                    npc.Inventory.TryAdd(ItemKind.Food, yield); npc.Inventory.TryAdd(harvested.Seed, harvested.SeedYield);
-                    world.Materials.Produce(ItemKind.Food, yield); world.Materials.Produce(harvested.Seed, harvested.SeedYield);
-                    npc.HarvestedFood += yield; plot.PreviousCrop = plot.Crop; plot.Crop = CropType.None;
-                    plot.GrowthTicks = 0; plot.Moisture = 0; plot.Damage = 0;
+                    npc.Inventory.TryAdd(ItemKind.Food, yield);
+                    npc.Inventory.UndeliveredFarmFood += yield;
+                    world.Materials.Produce(ItemKind.Food, yield);
+                    npc.HarvestedFood += yield; AgricultureSystem.Harvest(plot);
                     ProductionSystem.Wear(world, npc, ItemKind.Hoe);
                     world.Resources.ReleaseStep(npc.Id, ReservationKind.FarmPlot, plot.Id, ItemKind.Food);
                     events.Add(new SimEvent(SimEventKind.CropHarvested, world.Tick, npc.Id, npc.Name + " harvested " + yield + " food at " + plot.Position + "."));

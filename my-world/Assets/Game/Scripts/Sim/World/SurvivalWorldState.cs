@@ -7,7 +7,7 @@ namespace MyAiWorld.Sim.World
 {
     public enum LifeState { Active, Downed, Recovering, Dead }
     public enum NpcDeathCause { None, Cold, Starvation, Thirst, Exhaustion, Disease, Combat, Unknown }
-    public enum FacilityKind { Workbench, Purifier, Cistern, Well, Irrigation }
+    public enum FacilityKind { Workbench, Purifier, Cistern, Well, Irrigation, GrowingBed }
 
     public static class SurvivalRules
     {
@@ -29,7 +29,7 @@ namespace MyAiWorld.Sim.World
         public const int SnowMeltHeatPerWater = 2;
         public const int MaxColdTicks = 14 * GameCalendar.TicksPerDay;
         public static bool IsTool(ItemKind item) => item >= ItemKind.Bow && item <= ItemKind.Bucket;
-        public static bool IsSeed(ItemKind item) => item == ItemKind.Seed || item == ItemKind.WheatSeed || item == ItemKind.BeanSeed;
+        public static bool IsSeed(ItemKind item) => item == ItemKind.SpinachSeed || item == ItemKind.KaleSeed || item == ItemKind.LambsLettuceSeed;
     }
 
     public sealed class SurvivalNpcState
@@ -104,6 +104,13 @@ namespace MyAiWorld.Sim.World
         public int Condition { get; internal set; } = 100;
         public EntityId ReservedBy { get; internal set; }
         public int WellNodeId { get; internal set; }
+        internal readonly List<int> MutablePlotIds = new List<int>();
+        public IReadOnlyList<int> PlotIds => MutablePlotIds.AsReadOnly();
+        public int Temperature { get; internal set; }
+        public int FuelTicks { get; internal set; }
+        public int HeatBudget { get; internal set; }
+        public int SnowDepth { get; internal set; }
+        public GrowingBedHeatPolicy HeatPolicy { get; internal set; } = GrowingBedHeatPolicy.Normal;
     }
 
     public sealed class GroundStockState
@@ -137,6 +144,7 @@ namespace MyAiWorld.Sim.World
         public int NextId { get; internal set; } = 1;
         public bool RefillWater { get; internal set; } = true;
         public int CropsLost { get; internal set; }
+        public long FarmFoodDelivered { get; internal set; }
         public long GroundCoins { get { long total = 0; foreach (var stock in Ground) { total += stock.Coins; } return total; } }
         public FacilityState FindFacility(int id) => MutableFacilities.Find(f => f.Id == id);
         public GroundStockState FindGround(int id) => MutableGround.Find(g => g.Id == id);
@@ -213,7 +221,8 @@ namespace MyAiWorld.Sim.World
             foreach (ProductionRecipe recipe in All) { if (recipe.Output == output && Available(recipe)) { return recipe; } }
             return For(output);
         }
-        public static int[] ConstructionCost(FacilityKind kind) => kind == FacilityKind.Workbench ?
+        public static int[] ConstructionCost(FacilityKind kind) => kind == FacilityKind.GrowingBed ?
+            new[] { (int)ItemKind.Wood, 4, (int)ItemKind.Stone, 2, (int)ItemKind.Fiber, 2 } : kind == FacilityKind.Workbench ?
             new[] { (int)ItemKind.Wood, 4, (int)ItemKind.Stone, 2 } :
             kind == FacilityKind.Purifier ? new[] { (int)ItemKind.Stone, 4, (int)ItemKind.Wood, 2 } :
             new[] { (int)ItemKind.Wood, 4, (int)ItemKind.Stone, 4 };

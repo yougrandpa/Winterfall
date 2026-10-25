@@ -18,6 +18,8 @@ namespace MyAiWorld.App.Observability
 
         public static SavedCommand Capture(IWorldCommand command)
         {
+            if (command is SetFarmPlotPolicyCommand farm) { return new SavedCommand { Kind = "farm_policy", Arguments = new[] { farm.PlotId, (int)farm.Policy } }; }
+            if (command is SetGrowingBedHeatPolicyCommand heat) { return new SavedCommand { Kind = "bed_heat_policy", Arguments = new[] { heat.BedId, (int)heat.Policy } }; }
             if (command is SpawnNpcCommand spawn)
             {
                 return new SavedCommand { Kind = "spawn", Arguments = spawn.RequestedCell.HasValue ? new[] { spawn.RequestedCell.Value.X, spawn.RequestedCell.Value.Y } : new int[0] };
@@ -43,6 +45,8 @@ namespace MyAiWorld.App.Observability
         }
         public IWorldCommand Restore()
         {
+            if (Kind == "farm_policy" && Arguments != null && Arguments.Length == 2 && Enum.IsDefined(typeof(FarmCropPolicy), Arguments[1])) { return new SetFarmPlotPolicyCommand(Arguments[0], (FarmCropPolicy)Arguments[1]); }
+            if (Kind == "bed_heat_policy" && Arguments != null && Arguments.Length == 2 && Enum.IsDefined(typeof(GrowingBedHeatPolicy), Arguments[1])) { return new SetGrowingBedHeatPolicyCommand(Arguments[0], (GrowingBedHeatPolicy)Arguments[1]); }
             if (Kind == "spawn" && Arguments != null && (Arguments.Length == 0 || Arguments.Length == 2))
             {
                 return Arguments.Length == 0 ? new SpawnNpcCommand() : new SpawnNpcCommand(new GridPos(Arguments[0], Arguments[1]));
@@ -80,7 +84,7 @@ namespace MyAiWorld.App.Observability
 
     public static class SaveStore
     {
-        public const int CurrentVersion = 6;
+        public const int CurrentVersion = 7;
         private const int MaxBytes = 96 * 1024 * 1024;
         private sealed class Envelope
         {
@@ -122,7 +126,7 @@ namespace MyAiWorld.App.Observability
         {
             if (new FileInfo(path).Length > MaxBytes) { throw new InvalidDataException("Save exceeds size limit."); }
             var envelope = JsonConvert.DeserializeObject<Envelope>(File.ReadAllText(path));
-            if (envelope != null && envelope.Version != CurrentVersion) { throw new InvalidDataException("旧版存档不支持本次狩猎规则，请重新开局；旧文件已保留。"); }
+            if (envelope != null && envelope.Version != CurrentVersion) { throw new InvalidDataException("旧版存档不支持本次冬日种植与生态规则，请重新开局；旧文件已保留。"); }
             if (envelope == null || envelope.Version != CurrentVersion || envelope.Payload == null || envelope.Checksum != Digest(envelope.Payload))
             {
                 throw new InvalidDataException("Unsupported or damaged save.");

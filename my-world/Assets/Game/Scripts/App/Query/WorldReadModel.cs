@@ -273,10 +273,14 @@ namespace MyAiWorld.App.Query
 
     public sealed class FarmPlotSnapshot
     {
-        internal FarmPlotSnapshot(FarmPlotState plot)
+        internal FarmPlotSnapshot(WorldState world, FarmPlotState plot)
         {
             Id = plot.Id;
             Cell = plot.Position;
+            Policy = plot.Policy; BedId = plot.BedId; HarvestCount = plot.HarvestCount; TotalHarvests = plot.TotalHarvests;
+            SoilTemperature = GrowingBedSystem.SoilTemperature(world, plot); SnowDepth = GrowingBedSystem.Snow(world, plot);
+            Covered = GrowingBedSystem.Protected(GrowingBedSystem.Bed(world, plot));
+            Status = AgricultureSystem.Status(world, plot); FinishAfterHarvest = plot.FinishAfterHarvest; LostCrop = plot.LostCrop;
             Stage = plot.Stage; Crop = plot.Crop; Damage = plot.Damage; PreviousCrop = plot.PreviousCrop;
             GrowthTicks = plot.GrowthTicks;
             GrowthRequired = plot.GrowthRequired;
@@ -289,6 +293,16 @@ namespace MyAiWorld.App.Query
         public GridPos Cell { get; }
         public CropStage Stage { get; }
         public CropType Crop { get; }
+        public FarmCropPolicy Policy { get; }
+        public int BedId { get; }
+        public int HarvestCount { get; }
+        public int TotalHarvests { get; }
+        public int SoilTemperature { get; }
+        public int SnowDepth { get; }
+        public bool Covered { get; }
+        public bool LostCrop { get; }
+        public bool FinishAfterHarvest { get; }
+        public string Status { get; }
         public CropType PreviousCrop { get; }
         public int Damage { get; }
         public int GrowthTicks { get; }
@@ -538,7 +552,7 @@ namespace MyAiWorld.App.Query
             var plots = world.Resources.FarmPlots;
             for (int i = 0; i < plots.Count; i++)
             {
-                var plot = new FarmPlotSnapshot(plots[i]);
+                var plot = new FarmPlotSnapshot(world, plots[i]);
                 _farmPlots.Add(plot);
                 if (plot.Stage == CropStage.Mature)
                 {

@@ -119,6 +119,7 @@ namespace MyAiWorld.Sim.Ai
                 ItemKind tool = target.Role == "Hunter" ? (target.Personality.Caution >= 50 ? ItemKind.Bow : ItemKind.Spear) : target.Role == "Farmer" ? ItemKind.Hoe : ItemKind.Bucket;
                 if (target.Survival.Durability(tool) < 15 && world.Resources.Stockpile.Count(tool) < 2 && Recipe(world, npc, ProductionRecipe.For(tool), steps)) { return true; }
             }
+            if (npc.Role == "Builder" && FarmBedWork(world, npc, steps)) { return true; }
             FacilityKind[] order = { FacilityKind.Purifier, FacilityKind.Workbench, FacilityKind.Cistern, FacilityKind.Well, FacilityKind.Irrigation };
             foreach (FacilityKind kind in order)
             {
@@ -182,6 +183,32 @@ namespace MyAiWorld.Sim.Ai
                 Move(steps, shelter.Entrance);
                 steps.Add(new PlanStep(PlanStepType.DeliverFuel, shelter.Entrance, shelter.Id, ItemKind.Wood, amount, 2));
                 return true;
+            }
+            return false;
+        }
+
+        private bool FarmBedWork(WorldState world, NpcState npc, List<PlanStep> steps)
+        {
+            var beds = new List<FacilityState>();
+            foreach (var bed in world.Survival.Facilities) { if (GrowingBedSystem.NeedsWork(world, bed)) { beds.Add(bed); } }
+            beds.Sort((a, b) => { int p = b.HeatPolicy.CompareTo(a.HeatPolicy); return p != 0 ? p : a.Id.CompareTo(b.Id); });
+            foreach (var bed in beds)
+            {
+                if (!CanReach(world, npc.Position, bed.WorkCell)) { continue; }
+                if (!bed.Complete)
+                {
+                    if (StageOrWork(world, npc, bed, ProductionRecipe.ConstructionCost(bed.Kind), PlanStepType.Build, ItemKind.Food, steps)) { return true; }
+                }
+                else if (bed.Condition <= 30)
+                {
+                    if (StageOrWork(world, npc, bed, new[] { (int)ItemKind.Wood, 1 }, PlanStepType.Maintain, ItemKind.Wood, steps)) { return true; }
+                }
+                else if (bed.SnowDepth >= GrowingBedSystem.SnowWorkThreshold && ClaimFacility(world, npc, bed))
+                {
+                    Move(steps, bed.WorkCell); steps.Add(new PlanStep(PlanStepType.ClearBedSnow, bed.WorkCell, bed.Id, durationTicks: 6)); return true;
+                }
+                else if (bed.HeatPolicy != GrowingBedHeatPolicy.Off &&
+                    StageOrWork(world, npc, bed, new[] { (int)ItemKind.Wood, 3 }, PlanStepType.Wait, ItemKind.Wood, steps)) { return true; }
             }
             return false;
         }

@@ -257,7 +257,7 @@ namespace MyAiWorld.Tests.EditMode
                     WorldState current = session.World;
                     Assert.That(session.Load(path), Is.False); Assert.That(session.World, Is.SameAs(current));
                     Assert.That(File.ReadAllText(path), Is.EqualTo(legacy));
-                    Assert.That(session.SaveDirectory, Does.EndWith("saves-hunting-v6"));
+                    Assert.That(session.SaveDirectory, Does.EndWith("saves-winter-farming-v7"));
                 }
             }
             finally { Directory.Delete(folder, true); }

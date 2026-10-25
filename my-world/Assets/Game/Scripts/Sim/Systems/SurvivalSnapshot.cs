@@ -16,12 +16,14 @@ namespace MyAiWorld.Sim.Systems
         internal static void Write(BinaryWriter w, WorldState world)
         {
             var state = world.Survival;
-            w.Write(state.NextId); w.Write(state.RefillWater); w.Write(state.CropsLost);
+            w.Write(state.NextId); w.Write(state.RefillWater); w.Write(state.CropsLost); w.Write(state.FarmFoodDelivered);
             w.Write(state.Facilities.Count);
             foreach (var f in state.Facilities)
             {
                 w.Write(f.Id); w.Write((int)f.Kind); WorldSnapshot.WritePos(w, f.Position); WorldSnapshot.WritePos(w, f.WorkCell);
                 w.Write(f.PendingRecipeId); w.Write(f.Progress); w.Write(f.Condition); w.Write(f.ReservedBy.Value); w.Write(f.WellNodeId); WorldSnapshot.WriteInventory(w, f.Inventory);
+                w.Write(f.MutablePlotIds.Count); foreach (int id in f.MutablePlotIds) { w.Write(id); }
+                w.Write(f.Temperature); w.Write(f.FuelTicks); w.Write(f.HeatBudget); w.Write(f.SnowDepth); w.Write((int)f.HeatPolicy);
             }
             w.Write(state.Ground.Count);
             foreach (var g in state.Ground)
@@ -46,12 +48,12 @@ namespace MyAiWorld.Sim.Systems
                 w.Write((int)n.DeathCause);
                 foreach (int durability in n.Tools) { w.Write(durability); }
             }
-            foreach (var p in world.Resources.FarmPlots) { w.Write((int)p.PreviousCrop); w.Write(p.Damage); }
+            foreach (var p in world.Resources.FarmPlots) { w.Write((int)p.PreviousCrop); w.Write(p.Damage); w.Write((int)p.Policy); w.Write(p.BedId); w.Write(p.HarvestCount); w.Write(p.TotalHarvests); w.Write(p.GrowthRemainder); w.Write(p.FinishAfterHarvest); w.Write(p.LostCrop); }
         }
         internal static void Read(BinaryReader r, WorldState world)
         {
             var state = world.Survival;
-            state.NextId = r.ReadInt32(); state.RefillWater = r.ReadBoolean(); state.CropsLost = r.ReadInt32();
+            state.NextId = r.ReadInt32(); state.RefillWater = r.ReadBoolean(); state.CropsLost = r.ReadInt32(); state.FarmFoodDelivered = r.ReadInt64(); WorldSnapshot.Require(state.FarmFoodDelivered >= 0);
             int count = WorldSnapshot.ReadCount(r, 1000);
             for (int i = 0; i < count; i++)
             {
@@ -60,9 +62,21 @@ namespace MyAiWorld.Sim.Systems
                 WorldSnapshot.Require(f.PendingRecipeId == 0 || ProductionRecipe.ById(f.PendingRecipeId) != null && ProductionRecipe.ById(f.PendingRecipeId).Facility == f.Kind);
                 f.Progress = r.ReadInt32(); f.Condition = r.ReadInt32(); f.ReservedBy = new EntityId(r.ReadInt32()); f.WellNodeId = r.ReadInt32();
                 WorldSnapshot.ReadInventory(r, f.Inventory);
+                int plotCount = WorldSnapshot.ReadCount(r, 4);
+                for (int j = 0; j < plotCount; j++)
+                {
+                    int id = r.ReadInt32();
+                    WorldSnapshot.Require(world.Resources.FindPlot(id) != null && !f.MutablePlotIds.Contains(id));
+                    f.MutablePlotIds.Add(id);
+                }
+                f.Temperature = r.ReadInt32(); f.FuelTicks = r.ReadInt32(); f.HeatBudget = r.ReadInt32(); f.SnowDepth = r.ReadInt32(); f.HeatPolicy = (GrowingBedHeatPolicy)r.ReadInt32();
+                WorldSnapshot.Require(f.Temperature >= EnvironmentState.MinTemperature && f.Temperature <= EnvironmentState.MaxTemperature &&
+                    f.FuelTicks >= 0 && f.FuelTicks <= GrowingBedSystem.FuelDuration && f.HeatBudget >= 0 && f.HeatBudget <= f.FuelTicks * GrowingBedSystem.HeatPerTick &&
+                    f.SnowDepth >= 0 && f.SnowDepth <= EnvironmentState.MaxSnowDepth && Enum.IsDefined(typeof(GrowingBedHeatPolicy), f.HeatPolicy) &&
+                    (f.Kind == FacilityKind.GrowingBed ? plotCount > 0 : plotCount == 0));
                 WorldSnapshot.Require(f.Id > 0 && state.FindFacility(f.Id) == null && Enum.IsDefined(typeof(FacilityKind), f.Kind) &&
                     f.Progress >= 0 && f.Progress <= SurvivalRules.ConstructionTicks && f.Condition >= 0 && f.Condition <= 100 &&
-                    world.Map.IsInside(f.Position) && !world.Map.IsWalkable(f.Position) && world.Map.IsWalkable(f.WorkCell) && f.Position.ManhattanDistance(f.WorkCell) == 1 && Owner(world, f.ReservedBy));
+                    world.Map.IsInside(f.Position) && world.Map.IsWalkable(f.WorkCell) && (f.Kind == FacilityKind.GrowingBed ? f.Position == f.WorkCell && world.Resources.FindPlot(f.MutablePlotIds[0]).Position == f.Position : !world.Map.IsWalkable(f.Position) && f.Position.ManhattanDistance(f.WorkCell) == 1) && Owner(world, f.ReservedBy));
                 WorldSnapshot.Require(f.WellNodeId == 0 || world.Resources.FindNode(f.WellNodeId) != null);
                 state.MutableFacilities.Add(f);
             }
@@ -111,8 +125,21 @@ namespace MyAiWorld.Sim.Systems
                         npc.Plan.CurrentStep?.Type == PlanStepType.Hunt && npc.Plan.CurrentStep.ResourceId == n.HuntDropId) &&
                     n.Rescues >= 0 && n.Crafted >= 0 && n.Built >= 0 && n.WaterProduced >= 0);
             }
+            var boundPlots = new System.Collections.Generic.HashSet<int>();
+            foreach (var f in state.Facilities)
+            {
+                foreach (int id in f.MutablePlotIds) { WorldSnapshot.Require(boundPlots.Add(id)); }
+            }
             foreach (var p in world.Resources.FarmPlots)
-            { p.PreviousCrop = (CropType)r.ReadInt32(); p.Damage = r.ReadInt32(); WorldSnapshot.Require(Enum.IsDefined(typeof(CropType), p.PreviousCrop) && p.Damage >= 0 && p.Damage < SurvivalRules.CropDeathDamage); }
+            {
+                p.PreviousCrop = (CropType)r.ReadInt32(); p.Damage = r.ReadInt32(); p.Policy = (FarmCropPolicy)r.ReadInt32();
+                p.BedId = r.ReadInt32(); p.HarvestCount = r.ReadInt32(); p.TotalHarvests = r.ReadInt32(); p.GrowthRemainder = r.ReadInt64(); p.FinishAfterHarvest = r.ReadBoolean(); p.LostCrop = r.ReadBoolean();
+                var bed = state.FindFacility(p.BedId);
+                WorldSnapshot.Require(Enum.IsDefined(typeof(CropType), p.PreviousCrop) && Enum.IsDefined(typeof(FarmCropPolicy), p.Policy) && p.Damage >= 0 && p.Damage < SurvivalRules.CropDeathDamage &&
+                    (p.BedId == 0 ? !boundPlots.Contains(p.Id) : bed != null && bed.Kind == FacilityKind.GrowingBed && bed.MutablePlotIds.Contains(p.Id)) &&
+                    p.HarvestCount >= 0 && p.HarvestCount < CropDefinition.For(p.Crop).MaxHarvests && p.TotalHarvests >= p.HarvestCount && p.GrowthTicks <= p.GrowthRequired &&
+                    p.GrowthRemainder >= 0 && p.GrowthRemainder < 100000000 && (p.Crop != CropType.None || p.HarvestCount == 0 && !p.FinishAfterHarvest));
+            }
             int max = 0;
             foreach (var f in state.Facilities) { max = Math.Max(max, f.Id); }
             foreach (var g in state.Ground) { max = Math.Max(max, g.Id); }

@@ -234,15 +234,15 @@ namespace MyAiWorld.Tests.EditMode
             FacilityState facility = Facility(world, FacilityKind.Workbench);
             facility.ReservedBy = npc.Id;
             Inputs(facility.Inventory, ProductionRecipe.For(ItemKind.Arrow));
-            facility.Inventory.TryAdd(ItemKind.Seed, facility.Inventory.Capacity - facility.Inventory.TotalCount);
+            facility.Inventory.TryAdd(ItemKind.SpinachSeed, facility.Inventory.Capacity - facility.Inventory.TotalCount);
             world.Materials.Initialize(world);
             var craft = new PlanStep(PlanStepType.Craft, facility.WorkCell, facility.Id, ItemKind.Arrow);
             Assert.That(ProductionSystem.Apply(world, npc, craft), Is.False);
             Assert.That(facility.Inventory.Count(ItemKind.Wood), Is.EqualTo(1));
             Assert.That(facility.Inventory.TotalCount, Is.EqualTo(120));
             Conserved(world);
-            facility.Inventory.TryRemove(ItemKind.Seed, 3);
-            npc.Inventory.TryAdd(ItemKind.Seed, 3);
+            facility.Inventory.TryRemove(ItemKind.SpinachSeed, 3);
+            npc.Inventory.TryAdd(ItemKind.SpinachSeed, 3);
             Assert.That(ProductionSystem.Apply(world, npc, craft), Is.True);
             Assert.That(facility.Inventory.TotalCount, Is.EqualTo(120));
             Conserved(world);

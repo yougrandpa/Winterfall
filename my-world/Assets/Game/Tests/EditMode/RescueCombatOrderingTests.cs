@@ -103,7 +103,7 @@ namespace MyAiWorld.Tests.EditMode
                 patient.Position = patient.Home;
                 patient.Survival.Life = LifeState.Recovering;
                 patient.Needs.Health = 1500;
-                patient.Inventory.TryAdd(ItemKind.Seed, patient.Inventory.Capacity);
+                patient.Inventory.TryAdd(ItemKind.SpinachSeed, patient.Inventory.Capacity);
                 rescuer.Position = patient.Home.Offset(0, -1);
                 world.Materials.Initialize(world);
             }
@@ -332,7 +332,7 @@ namespace MyAiWorld.Tests.EditMode
             rescuer.Position = patient.Home.Offset(0, -1);
             patient.Survival.BodyTemperature = 3400;
             patient.Survival.Wetness = 7000;
-            if (fullBag) { patient.Inventory.TryAdd(ItemKind.Seed, patient.Inventory.Capacity); }
+            if (fullBag) { patient.Inventory.TryAdd(ItemKind.SpinachSeed, patient.Inventory.Capacity); }
             var shelter = new ShelterState(world.Survival.NextId++, patient.Home.Offset(0, 1), patient.Home, 1);
             shelter.Temperature = 0;
             world.Map.SetTile(shelter.Position, TileType.House);

@@ -18,6 +18,7 @@ namespace MyAiWorld.Presentation.Rendering
 
         private readonly Dictionary<int, SpriteRenderer> _resourceViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<EntityId, AnimalView> _animalViews = new Dictionary<EntityId, AnimalView>();
+        private readonly Dictionary<int, SpriteRenderer> _bedPlotViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<int, SpriteRenderer> _cropViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<int, SpriteRenderer> _facilityViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<int, SpriteRenderer> _carcassViews = new Dictionary<int, SpriteRenderer>();
@@ -187,7 +188,7 @@ namespace MyAiWorld.Presentation.Rendering
                 if (child != null) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             }
             foreach (Tile tile in _ownedTiles) { Destroy(tile); }
-            _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear(); _carcassViews.Clear(); _lootViews.Clear();
+            _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _bedPlotViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear(); _carcassViews.Clear(); _lootViews.Clear();
             _resourceTick = -1; _selected = null;
             if (_canopyFader != null) { _canopyFader.Clear(); }
             _campDressing = null;
@@ -688,6 +689,12 @@ namespace MyAiWorld.Presentation.Rendering
             {
                 if (!_facilityViews.TryGetValue(facility.Id, out SpriteRenderer view)) { view = CreateResourceView("Facility_" + facility.Id, facility.Cell, null); _facilityViews.Add(facility.Id, view); }
                 view.sprite = _art.Get("facility_" + (int)facility.Kind + "_" + (facility.Complete ? 1 : 0));
+                if (facility.Kind == FacilityKind.GrowingBed)
+                {
+                    foreach (var bed in model.Survival.GrowingBeds)
+                    { if (bed.Id == facility.Id) { view.sprite = _art.Get("winter_heater_" + (!bed.Complete ? 0 : bed.FuelTicks > 0 ? 2 : 1)); break; } }
+                    view.transform.position = CellCenter(facility.Cell) + new Vector3(-0.28f, -0.22f, 0);
+                }
                 view.color = facility.Condition <= 30 ? new Color(1f, 0.7f, 0.55f) : Color.white;
             }
             var remaining = new HashSet<int>();
@@ -764,7 +771,15 @@ namespace MyAiWorld.Presentation.Rendering
             for (int i = 0; i < model.FarmPlots.Count; i++)
             {
                 FarmPlotSnapshot plot = model.FarmPlots[i];
-                Sprite sprite = _art.Get((plot.Crop == CropType.Wheat || plot.Crop == CropType.Bean ? "crop_type_" + (int)plot.Crop + "_" : "crop_") + (int)plot.Stage + "_" + (plot.Moisture <= 0 ? 1 : 0));
+                Sprite sprite = plot.Crop == CropType.None ? (plot.LostCrop ? _art.Get("winter_crop_1_0_2") : null) :
+                    _art.Get("winter_crop_" + (int)plot.Crop + "_" + (int)plot.Stage + "_" + (plot.Damage > 600 ? 2 : plot.Moisture == 0 ? 1 : 0));
+                if (plot.BedId != 0)
+                {
+                    if (!_bedPlotViews.TryGetValue(plot.Id, out SpriteRenderer cover))
+                    { cover = CreateResourceView("BedPlot_" + plot.Id, plot.Cell, null); _bedPlotViews.Add(plot.Id, cover); }
+                    cover.sprite = _art.Get("winter_bed_" + (plot.Covered ? 1 : 0) + "_" + (plot.SnowDepth >= 3000 ? 2 : plot.SnowDepth >= 600 ? 1 : 0));
+                    cover.sortingOrder = -7999;
+                }
                 SpriteRenderer renderer;
                 if (!_cropViews.TryGetValue(plot.Id, out renderer))
                 {

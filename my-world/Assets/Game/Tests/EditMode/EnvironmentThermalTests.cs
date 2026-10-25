@@ -609,7 +609,7 @@ namespace MyAiWorld.Tests.EditMode
             world.Survival.MutableFacilities.Add(cistern);
             world.Survival.MutableFacilities.Add(irrigation);
             cistern.Inventory.TryAdd(ItemKind.RawWater, 1);
-            var plot = new FarmPlotState(1, new GridPos(12, 10)) { Crop = CropType.Bean };
+            var plot = new FarmPlotState(1, new GridPos(12, 10)) { Crop = CropType.LambsLettuce };
             world.Resources.AddPlot(plot);
             world.Materials.Initialize(world);
             WaterSystem.Update(world);

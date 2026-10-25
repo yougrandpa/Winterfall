@@ -7,7 +7,7 @@ namespace MyAiWorld.Sim.Ai
     public enum PlanStepType
     {
         Move, TakeFromStock, Eat, Drink, Sleep, Gather, Deposit, Plant, Water, Harvest, Wait, Hunt, Buy, Sell, Greet, GiveFood,
-        Deliver, TakeFacility, Build, Craft, Maintain, Equip, Pickup, Rescue, DrinkRaw, Treat, WarmUp, DeliverFuel, MeltSnow
+        Deliver, TakeFacility, Build, Craft, Maintain, Equip, Pickup, Rescue, DrinkRaw, Treat, WarmUp, DeliverFuel, MeltSnow, ClearBedSnow
     }
 
     public sealed class PlanStep
@@ -17,7 +17,7 @@ namespace MyAiWorld.Sim.Ai
             Type = type;
             Target = target;
             ResourceId = resourceId;
-            Item = item == ItemKind.Food && type == PlanStepType.Plant ? ItemKind.Seed : item == ItemKind.Food && type == PlanStepType.Water ? ItemKind.Water : item;
+            Item = item == ItemKind.Food && type == PlanStepType.Plant ? ItemKind.SpinachSeed : item == ItemKind.Food && type == PlanStepType.Water ? ItemKind.Water : item;
             Quantity = quantity;
             DurationTicks = durationTicks;
             UnitPrice = unitPrice;
@@ -40,8 +40,8 @@ namespace MyAiWorld.Sim.Ai
             Type == PlanStepType.Sleep ? "at home" : Type == PlanStepType.Gather ? "at reserved node; yield available; bag space" :
             Type == PlanStepType.TakeFromStock ? "at stock; reserved stock available; bag space" :
             Type == PlanStepType.Deposit ? "at stock; bag items; stock space" :
-            Type == PlanStepType.Plant ? "at reserved empty plot; carry seed; fertile soil" :
-            Type == PlanStepType.Water ? "at reserved planted plot; carry water" :
+            Type == PlanStepType.Plant ? "reserved empty plot; matching policy and seed; fertile thawed soil" :
+            Type == PlanStepType.Water ? "reserved planted plot; carry water; thawed soil" :
             Type == PlanStepType.Harvest ? "at reserved mature plot; bag space" : "wait elapsed";
         public string Effects => Type == PlanStepType.Eat ? "consume 1 food; food satisfaction +4500" :
             Type == PlanStepType.Drink ? "consume 1 water; water satisfaction +5500" :
@@ -52,9 +52,9 @@ namespace MyAiWorld.Sim.Ai
             Type == PlanStepType.Gather ? "node decreases; inventory increases" :
             Type == PlanStepType.TakeFromStock ? "stock decreases; inventory increases" :
             Type == PlanStepType.Deposit ? "inventory decreases; stock increases" :
-            Type == PlanStepType.Plant ? "consume seed; start turnip; fertility -400" :
+            Type == PlanStepType.Plant ? "consume selected winter seed; start crop; fertility -400" :
             Type == PlanStepType.Water ? "consume water; moisture +900" :
-            Type == PlanStepType.Harvest ? "crop removed; gain food + seeds" :
+            Type == PlanStepType.Harvest ? "gain food; use fertility; regrow within harvest limit; no seeds" :
             Type == PlanStepType.Move ? "position becomes target" : "planning retries";
         public string Summary => Type + " at " + Target +
             ((Type == PlanStepType.Buy || Type == PlanStepType.Sell) ? " " + Quantity + " " + Item + " @" + UnitPrice :

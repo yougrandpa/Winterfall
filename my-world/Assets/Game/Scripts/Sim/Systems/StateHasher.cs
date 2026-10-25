@@ -9,7 +9,7 @@ namespace MyAiWorld.Sim.Systems
 {
     public static class StateHasher
     {
-        public const int Version = 8;
+        public const int Version = 9;
         private const ulong FnvOffset = 14695981039346656037UL;
         private const ulong FnvPrime = 1099511628211UL;
 
@@ -137,6 +137,7 @@ namespace MyAiWorld.Sim.Systems
                 hash = Mix(hash, npc.Role);
                 hash = Mix(hash, npc.Identity.Age);
                 hash = MixInventory(hash, npc.Inventory);
+                hash = Mix(hash, npc.Inventory.UndeliveredFarmFood);
                 hash = Mix(hash, npc.Coins);
                 hash = Mix(hash, npc.HasHuntingTool ? 1 : 0);
                 hash = Mix(hash, npc.HuntingSkill);

@@ -17,6 +17,7 @@ namespace MyAiWorld.Tests.PlayMode
     public sealed class SurvivalPresentationTests
     {
         [UnityTest]
+        [Category("WinterFarmingE2E")]
         public IEnumerator Production_SelectionSnapshotsArtAndRestore_AreVisibleAndReadOnly()
         {
             SceneManager.LoadScene("Bootstrap"); yield return null; yield return null;
@@ -26,27 +27,28 @@ namespace MyAiWorld.Tests.PlayMode
             try
             {
                 var before = game.Session.ReadModel.Survival;
-                for (int i = 0; i < 1800; i++) { game.Runner.StepOnce(); }
+                for (int i = 0; i < 3 * GameCalendar.TicksPerDay; i++) { game.Runner.StepOnce(); }
                 yield return null; yield return null;
                 var model = game.Session.ReadModel;
-                Assert.That(before.Facilities.Count, Is.Zero);
-                Assert.That(model.Survival.Facilities.Count(f => f.Complete), Is.EqualTo(5));
+                Assert.That(before.Facilities.All(f => f.Kind == FacilityKind.GrowingBed && !f.Complete), Is.True);
+                Assert.That(before.GrowingBeds.Count, Is.EqualTo(3));
+                Assert.That(model.Survival.GrowingBeds.All(b => b.Complete), Is.True, "The default winter start should build all three finite beds within three days.");
                 var art = game.Presenter.Art;
                 foreach (var facility in model.Survival.Facilities)
                 {
-                    Assert.That(art.Get("facility_" + (int)facility.Kind + "_1"), Is.Not.Null);
+                    Assert.That(art.Get(facility.Kind == FacilityKind.GrowingBed ? "winter_heater_1" : "facility_" + (int)facility.Kind + "_1"), Is.Not.Null);
                     game.Selection.SelectCell(facility.Cell); yield return new WaitForSecondsRealtime(0.25f);
                     Assert.That(game.Hud.ResourceText, Does.Contain("选中"));
                     Assert.That(game.Presenter.transform.Find("Resources/Facility_" + facility.Id).GetComponent<SpriteRenderer>().sprite, Is.Not.Null);
                 }
-                foreach (string key in new[] { "animal_2_0_0_0", "crop_type_2_3_0", "crop_type_3_3_0", "work_effect_3_0", "ground_stock" }) { Assert.That(art.Get(key), Is.Not.Null, key); }
+                foreach (string key in new[] { "animal_2_0_0_0", "winter_crop_2_3_0", "winter_crop_3_3_0", "work_effect_3_0", "ground_stock" }) { Assert.That(art.Get(key), Is.Not.Null, key); }
                 game.Selection.SelectCell(model.FarmPlots[0].Cell); yield return new WaitForSecondsRealtime(0.25f);
                 Assert.That(game.Hud.ResourceText, Does.Contain("选中农田"));
                 ulong hash = StateHasher.Compute(game.Session.World);
                 string path = Path.Combine(folder, "world.json"); Assert.That(game.Session.Save(path), Is.True);
                 Assert.That(game.Runner.Load(path), Is.True); yield return null; yield return null;
                 Assert.That(StateHasher.Compute(game.Session.World), Is.EqualTo(hash));
-                Assert.That(game.Presenter.transform.Find("Resources").GetComponentsInChildren<SpriteRenderer>().Count(r => r.name.StartsWith("Facility_")), Is.EqualTo(5));
+                Assert.That(game.Presenter.transform.Find("Resources").GetComponentsInChildren<SpriteRenderer>().Count(r => r.name.StartsWith("Facility_")), Is.EqualTo(model.Survival.Facilities.Count));
                 game.Selection.Select(game.Session.ReadModel.Npcs[4].Id);
                 if (game.Hud.OpenGlobalPanel != 0) { game.Hud.ToggleGlobalPanel(0); }
                 yield return new WaitForSecondsRealtime(0.25f);

@@ -9922,6 +9922,102 @@ MonoBehaviour:
     sprite: {fileID: -5655972132471589417, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
   - key: well
     sprite: {fileID: 7032131227818722396, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
+  - key: winter_bed_0_0
+    sprite: {fileID: 6623296653172388396, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_bed_0_1
+    sprite: {fileID: -7332375839410532768, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_bed_0_2
+    sprite: {fileID: 425210548393046977, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_bed_1_0
+    sprite: {fileID: -2985433312757781446, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_bed_1_1
+    sprite: {fileID: -8288447836848521475, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_bed_1_2
+    sprite: {fileID: -6410164225786907017, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_0_0
+    sprite: {fileID: 6679124789069783332, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_0_1
+    sprite: {fileID: 553768176320871706, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_0_2
+    sprite: {fileID: -7686822412511949104, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_1_0
+    sprite: {fileID: -4307273337792113104, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_1_1
+    sprite: {fileID: 7894630218964617905, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_1_2
+    sprite: {fileID: -9177827310522236336, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_2_0
+    sprite: {fileID: -1027056368653464886, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_2_1
+    sprite: {fileID: -4782204933313558559, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_2_2
+    sprite: {fileID: -720114147242856720, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_3_0
+    sprite: {fileID: 6108357234256611120, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_3_1
+    sprite: {fileID: 5597680733913290770, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_1_3_2
+    sprite: {fileID: 888526745066578602, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_0_0
+    sprite: {fileID: 7292804647162301465, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_0_1
+    sprite: {fileID: 3833911474863859252, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_0_2
+    sprite: {fileID: -4366070784430474261, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_1_0
+    sprite: {fileID: -1665657483049762572, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_1_1
+    sprite: {fileID: 3497249458255986578, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_1_2
+    sprite: {fileID: -2403150659300115584, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_2_0
+    sprite: {fileID: -8461860344796971643, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_2_1
+    sprite: {fileID: -4216491497231737526, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_2_2
+    sprite: {fileID: -4612312654419393160, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_3_0
+    sprite: {fileID: 825381602470529987, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_3_1
+    sprite: {fileID: -7950354636171526405, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_2_3_2
+    sprite: {fileID: 2818611031407426784, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_0_0
+    sprite: {fileID: -8151741396239667956, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_0_1
+    sprite: {fileID: -7205901151174194107, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_0_2
+    sprite: {fileID: -4565279961648912855, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_1_0
+    sprite: {fileID: -2650569702489057674, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_1_1
+    sprite: {fileID: -2823811128142039888, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_1_2
+    sprite: {fileID: 4621735649546223252, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_2_0
+    sprite: {fileID: 4889852285115592025, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_2_1
+    sprite: {fileID: 4673903934288724211, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_2_2
+    sprite: {fileID: -1896510639562210638, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_3_0
+    sprite: {fileID: -3395330797564879237, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_3_1
+    sprite: {fileID: 8915384576179918443, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_crop_3_3_2
+    sprite: {fileID: -8055001475235352403, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_heater_0
+    sprite: {fileID: -3084670959759409824, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_heater_1
+    sprite: {fileID: -5226471614923116689, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_heater_2
+    sprite: {fileID: -1618318269806192207, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_seed_1
+    sprite: {fileID: 0, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_seed_2
+    sprite: {fileID: -4037573987151029422, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
+  - key: winter_seed_3
+    sprite: {fileID: 8295621504072722965, guid: b1109b0c1eea34511a05e2c6237cee61, type: 3}
   - key: woodpile
     sprite: {fileID: -1541108672356063061, guid: 7c74c27ea3d3e43e1b6545891e2b1de8, type: 3}
   - key: work_effect_0_0

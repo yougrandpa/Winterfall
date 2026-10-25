@@ -24,6 +24,7 @@ namespace MyAiWorld.Sim.Systems
                 case PlanStepType.DrinkRaw:
                 case PlanStepType.Treat:
                 case PlanStepType.DeliverFuel:
+                case PlanStepType.ClearBedSnow:
                 case PlanStepType.MeltSnow:
                     return true;
                 default:
@@ -50,7 +51,7 @@ namespace MyAiWorld.Sim.Systems
             foreach (GroundStockState ground in world.Survival.Ground) { if (!ground.Empty && ground.ReservedBy.IsNone) { return true; } }
             if (npc.Role != "Builder" && npc.Role != "Trader" && npc.Role != "Gatherer")
             { return world.Resources.Stockpile.Water < Math.Max(4, world.LivingCount / 2); }
-            if (world.Survival.Facilities.Count < 5 || world.Survival.RefillWater || world.Resources.Stockpile.Count(ItemKind.Medicine) < Math.Max(4, world.LivingCount / 2)) { return true; }
+            if (world.Survival.Facility(FacilityKind.Irrigation) == null || world.Survival.RefillWater || world.Resources.Stockpile.Count(ItemKind.Medicine) < Math.Max(4, world.LivingCount / 2)) { return true; }
             foreach (var facility in world.Survival.Facilities)
             { if (!facility.Complete || facility.Condition <= 30 || facility.Inventory.Water > 0 || facility.Inventory.Count(ItemKind.Medicine) > 0) { return true; } }
             foreach (var target in world.Entities.Npcs)
@@ -176,8 +177,14 @@ namespace MyAiWorld.Sim.Systems
             if (step.Type == PlanStepType.Pickup) { var g = world.Survival.FindGround(step.ResourceId); return g != null && g.ReservedBy == npc.Id && !g.Empty; }
             var f = world.Survival.FindFacility(step.ResourceId);
             if (f == null || f.WorkCell != npc.Position || f.ReservedBy != npc.Id) { return false; }
+            if (f.Kind == FacilityKind.GrowingBed && (step.Type == PlanStepType.Deliver || step.Type == PlanStepType.Build))
+            {
+                if (!GrowingBedSystem.Active(world, f)) { return false; }
+                if (step.Type == PlanStepType.Deliver && f.Complete && f.Condition > 30 && f.HeatPolicy == GrowingBedHeatPolicy.Off) { return false; }
+            }
             if (step.Type == PlanStepType.Deliver) { return step.Quantity > 0 && npc.Inventory.Count(step.Item) >= step.Quantity && step.Quantity <= f.Inventory.Capacity - f.Inventory.TotalCount; }
             if (step.Type == PlanStepType.TakeFacility) { return step.Quantity > 0 && f.Inventory.Count(step.Item) >= step.Quantity && step.Quantity <= npc.Inventory.Capacity - npc.Inventory.TotalCount; }
+            if (step.Type == PlanStepType.ClearBedSnow) { return f.Kind == FacilityKind.GrowingBed && f.Complete && f.Condition > 0 && f.SnowDepth > 0; }
             if (step.Type == PlanStepType.Build) { return !f.Complete && HasInputs(f.Inventory, ProductionRecipe.ConstructionCost(f.Kind)); }
             if (step.Type == PlanStepType.Maintain) { return f.Complete && f.Inventory.Count(ItemKind.Wood) >= 1; }
             if (step.Type != PlanStepType.Craft) { return false; }
@@ -260,6 +267,7 @@ namespace MyAiWorld.Sim.Systems
                     world.Resources.AddNode(well); f.WellNodeId = id;
                 }
             }
+            else if (step.Type == PlanStepType.ClearBedSnow) { f.SnowDepth = 0; }
             else if (step.Type == PlanStepType.Maintain) { Consume(world, f.Inventory, new[] { (int)ItemKind.Wood, 1 }); f.Condition = 100; }
             else
             {

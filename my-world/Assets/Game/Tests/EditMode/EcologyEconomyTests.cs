@@ -83,13 +83,13 @@ namespace MyAiWorld.Tests.EditMode
                 case "invalid_side": side = (TradeSide)99; break;
                 case "price_changed": price++; break;
                 case "insufficient_coins": npc.Coins = 0; break;
-                case "bag_full": npc.Inventory.TryAdd(ItemKind.Seed, npc.Inventory.Capacity); break;
+                case "bag_full": npc.Inventory.TryAdd(ItemKind.SpinachSeed, npc.Inventory.Capacity); break;
                 case "market_stock_short": world.Market.Inventory.TryRemove(item, 30); break;
                 case "seller_stock_short": side = TradeSide.Sell; break;
                 case "treasury_short": side = TradeSide.Sell; npc.Inventory.TryAdd(item, 1); world.Market.Treasury = 0; break;
                 case "market_full":
                     side = TradeSide.Sell; npc.Inventory.TryAdd(item, 1);
-                    world.Market.Inventory.TryAdd(ItemKind.Seed, world.Market.Inventory.Capacity - world.Market.Inventory.TotalCount);
+                    world.Market.Inventory.TryAdd(ItemKind.SpinachSeed, world.Market.Inventory.Capacity - world.Market.Inventory.TotalCount);
                     break;
                 case "not_at_market": npc.Position = npc.Position.Offset(1, 0); break;
                 case "large_quantity": quantity = int.MaxValue; price = int.MaxValue; break;
@@ -211,7 +211,7 @@ namespace MyAiWorld.Tests.EditMode
             switch (scenario)
             {
                 case "tool": npc.HasHuntingTool = false; break;
-                case "capacity": npc.Inventory.TryAdd(ItemKind.Seed, npc.Inventory.Capacity); break;
+                case "capacity": npc.Inventory.TryAdd(ItemKind.SpinachSeed, npc.Inventory.Capacity); break;
                 case "energy": npc.Needs.Fatigue = 1500; break;
                 case "critical_need": npc.Needs.Thirst = 100; break;
             }
@@ -284,7 +284,7 @@ namespace MyAiWorld.Tests.EditMode
                 Assert.That(world.Ecology.Count(AnimalSpecies.Rabbit), Is.InRange(0, EcologyState.SpeciesCapacity));
                 Assert.That(world.Ecology.Count(AnimalSpecies.Boar), Is.InRange(0, EcologyState.SpeciesCapacity));
             }
-            Assert.That(world.Ecology.Births, Is.GreaterThan(0));
+            Assert.That(world.Ecology.TotalDeaths, Is.GreaterThan(0), "Winter populations must change through real mortality, not mandatory fast births.");
             foreach (AnimalState animal in world.Ecology.Animals)
             {
                 if (animal.Region >= 0) { continue; }
@@ -398,13 +398,15 @@ namespace MyAiWorld.Tests.EditMode
 
         // One fixed-seed 14-day integration baseline complements focused mechanics
         // tests and the four-seed snapshot/resume determinism tests.
-        // Hunting v6: stamina, prepared supplies, sensory threats, generic loot and real returns.
+        // Winter farming v7: cold-hardy crops, finite winter food and species breeding windows.
         // Updated only after all 14-day behavior, material/currency and real-kill assertions passed.
-        [TestCase(20261020, "2d1d15c4fce4a6d5")]
+        [TestCase(20261020, "eb7b0fb2124e4614")]
         [Category("LongRunning")]
         public void DefaultWorld_FourteenDays_ConservesResourcesAndCurrencyWithDistinctStrategies(int seed, string expectedHash)
         {
-            WorldState world = Create(seed);
+            var defaults = WorldConfigData.CreateDefault();
+            WorldState world = WorldFactory.Create(new WorldConfigData(seed, defaults.Width, defaults.Height, defaults.NpcCount,
+                defaults.StartTick, defaults.TicksPerSecondAt1x, defaults.SpeedMultipliers, defaults.ChallengeDays));
             var engine = new SimulationEngine();
             var eaten = new HashSet<EntityId>();
             var drunk = new HashSet<EntityId>();
@@ -470,19 +472,20 @@ namespace MyAiWorld.Tests.EditMode
                 if (npc.Role == "Gatherer") { gathererHarvest += npc.HarvestedFood; gathererGather += npc.GatheredFood; }
                 if (npc.Role == "Hunter") { kills += npc.HuntKills; }
             }
+            Console.WriteLine("Strategies: farmer=" + farmerHarvest + " gatherer=" + gathererGather + " kills=" + kills + " births=" + world.Ecology.Births + " deaths=" + world.Ecology.TotalDeaths + " sold=" + world.Market.Sold(ItemKind.Food) + " greetings=" + world.Social.Greetings + " gifts=" + world.Social.Gifts);
             Assert.That(farmerHarvest, Is.GreaterThan(gathererHarvest), "Farmers should specialize in crops.");
             Assert.That(gathererGather, Is.GreaterThan(farmerGather), "Gatherers should specialize in renewable food.");
-            Assert.That(kills, Is.GreaterThan(0));
+            Assert.That(kills, Is.GreaterThan(0), "Hunters must complete real kills.");
             int majority = Math.Max(1, world.Entities.Npcs.Count / 2);
             Assert.That(eaten.Count, Is.GreaterThanOrEqualTo(majority));
             Assert.That(drunk.Count, Is.GreaterThanOrEqualTo(majority));
             Assert.That(slept.Count, Is.GreaterThanOrEqualTo(majority));
-            Assert.That(world.Ecology.Births, Is.GreaterThan(0));
+            Assert.That(world.Ecology.TotalDeaths, Is.GreaterThan(0), "Winter populations must change through real mortality, not mandatory fast births.");
             Assert.That(world.Market.FilledCount, Is.GreaterThan(100));
             Assert.That(world.Market.Bought(ItemKind.Food), Is.GreaterThan(0));
             Assert.That(world.Market.Sold(ItemKind.Food), Is.GreaterThan(0));
             Assert.That(world.Social.Greetings, Is.GreaterThan(0));
-            Assert.That(world.Social.Gifts, Is.GreaterThan(0));
+            Assert.That(world.Social.Gifts, Is.GreaterThan(0), "Social food gifts should occur.");
             Assert.That(world.Social.Timeline.Count, Is.LessThanOrEqualTo(SocialState.TimelineLimit));
             foreach (NpcState npc in world.Entities.Npcs) { Assert.That(npc.Social.Memories.Count, Is.LessThanOrEqualTo(NpcSocialState.MemoryLimit)); }
             ReconcileLedger(world);

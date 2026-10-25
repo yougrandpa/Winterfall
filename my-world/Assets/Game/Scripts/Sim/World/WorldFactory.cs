@@ -69,8 +69,9 @@ namespace MyAiWorld.Sim.World
             PopulateResources(world, reachable, rootSeed);
             world.Market.Inventory.TryAdd(ItemKind.Food, 30);
             world.Market.Inventory.TryAdd(ItemKind.Water, 30);
-            world.Market.Inventory.TryAdd(ItemKind.Seed, 30);
+            world.Market.Inventory.TryAdd(ItemKind.SpinachSeed, 30);
             world.Ecology.Initialize(world, reachable);
+            GrowingBedSystem.Initialize(world);
             world.Campaign.Initialize(world);
             world.Materials.Initialize(world);
             return world;
@@ -358,12 +359,12 @@ namespace MyAiWorld.Sim.World
                 world.Resources.AddNode(new ResourceNodeState(i + 1, candidates[rawCursor], item, 30, 60));
                 rawCursor++;
             }
-            world.Resources.Stockpile.TryAdd(ItemKind.WheatSeed, 30);
-            world.Resources.Stockpile.TryAdd(ItemKind.BeanSeed, 30);
+            world.Resources.Stockpile.TryAdd(ItemKind.KaleSeed, 40);
+            world.Resources.Stockpile.TryAdd(ItemKind.LambsLettuceSeed, 40);
             world.Resources.Stockpile.TryAdd(ItemKind.Medicine, 4);
             world.Resources.Stockpile.TryAdd(ItemKind.Food, 20);
             world.Resources.Stockpile.TryAdd(ItemKind.Water, 20);
-            world.Resources.Stockpile.TryAdd(ItemKind.Seed, 60);
+            world.Resources.Stockpile.TryAdd(ItemKind.SpinachSeed, 40);
             for (int i = 0; i < world.Entities.Npcs.Count; i++)
             {
                 world.Entities.Npcs[i].Inventory.TryAdd(ItemKind.Food, 1);

@@ -61,7 +61,7 @@ namespace MyAiWorld.App.Observability
 
             var replay = new ReplayData
             {
-                FormatVersion = 7,
+                FormatVersion = 8,
                 InitialSnapshot = _initialSnapshot,
                 StateHashVersion = StateHasher.Version,
                 Seed = _config.Seed,

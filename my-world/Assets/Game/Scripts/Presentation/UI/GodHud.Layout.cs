@@ -345,6 +345,7 @@ namespace MyAiWorld.Presentation.UI
         {
             var content = Detail(root, "ResourceOverview", "村庄物资", "bag", 0);
             _resourceScroll = content.GetComponentInParent<ScrollRect>();
+            BuildFarming(content);
             HudLayout.Section(content, "公共仓库");
             _resourceCells = HudLayout.Grid(content, "Stockpile", new[] { "物品", "库存", "野外" }, 3);
             AddMetric(content, "stockCell", "仓库位置");

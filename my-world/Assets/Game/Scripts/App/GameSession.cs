@@ -53,11 +53,24 @@ namespace MyAiWorld.App
         public int PathFailureCount { get; private set; }
         public int AppliedCommandCount { get; private set; }
         public int QueuedCommandCount => _commandQueue.Count;
+        public IReadOnlyList<FarmingPolicyOrderSnapshot> PendingFarmingPolicies
+        {
+            get
+            {
+                var pending = new List<FarmingPolicyOrderSnapshot>();
+                foreach (var command in _commandQueue)
+                {
+                    if (command is SetFarmPlotPolicyCommand plot) { pending.Add(new FarmingPolicyOrderSnapshot(false, plot.PlotId, (int)plot.Policy)); }
+                    else if (command is SetGrowingBedHeatPolicyCommand bed) { pending.Add(new FarmingPolicyOrderSnapshot(true, bed.BedId, (int)bed.Policy)); }
+                }
+                return pending.AsReadOnly();
+            }
+        }
         public string LogPath => Log != null ? Log.FilePath : null;
         public int WorldRevision { get; private set; }
         public string SaveStatus { get; private set; } = "尚未存档";
         public bool LastSaveSucceeded { get; private set; }
-        public string SaveDirectory { get; set; } = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "saves-hunting-v6");
+        public string SaveDirectory { get; set; } = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "saves-winter-farming-v7");
         public string ManualSavePath => Path.Combine(SaveDirectory, "manual.json");
         public string AutoSavePath => Path.Combine(SaveDirectory, "auto.json");
         public string ReplayPath => Replay != null ? Replay.FilePath : null;

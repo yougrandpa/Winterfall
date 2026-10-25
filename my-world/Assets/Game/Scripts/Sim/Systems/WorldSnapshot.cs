@@ -12,7 +12,7 @@ namespace MyAiWorld.Sim.Systems
     // Explicit wire format. Never serialize engine objects, backing fields or CLR type names.
     public static partial class WorldSnapshot
     {
-        public const int CurrentVersion = 6;
+        public const int CurrentVersion = 7;
 
         public static byte[] Capture(WorldState world, int version = CurrentVersion)
         {
@@ -106,7 +106,7 @@ namespace MyAiWorld.Sim.Systems
                     var p = new FarmPlotState(r.ReadInt32(), ReadPos(r));
                     p.Crop = (CropType)r.ReadInt32(); p.GrowthTicks = r.ReadInt32(); p.Moisture = r.ReadInt32();
                     p.Fertility = r.ReadInt32(); plotOwners.Add(new EntityId(r.ReadInt32()));
-                    Require(p.Id > 0 && world.Resources.FindPlot(p.Id) == null && world.Map.IsWalkable(p.Position) && p.Crop >= CropType.None && p.Crop <= CropType.Bean && p.GrowthTicks >= 0 && p.GrowthTicks <= p.GrowthRequired && p.Moisture >= 0 && p.Moisture <= 1800 && p.Fertility >= 0 && p.Fertility <= 10000);
+                    Require(p.Id > 0 && world.Resources.FindPlot(p.Id) == null && world.Map.IsWalkable(p.Position) && p.Crop >= CropType.None && p.Crop <= CropType.LambsLettuce && p.GrowthTicks >= 0 && p.GrowthTicks <= p.GrowthRequired && p.Moisture >= 0 && p.Moisture <= 1800 && p.Fertility >= 0 && p.Fertility <= 10000);
                     world.Resources.AddPlot(p);
                 }
                 count = ReadCount(r);
@@ -183,7 +183,7 @@ namespace MyAiWorld.Sim.Systems
             WritePos(w, n.Position); w.Write(n.RngState);
             w.Write(n.Personality.Diligence); w.Write(n.Personality.Caution); w.Write(n.Personality.Sociability); w.Write(n.Personality.Curiosity);
             w.Write(n.Needs.Hunger); w.Write(n.Needs.Thirst); w.Write(n.Needs.Fatigue); w.Write(n.Needs.Health); w.Write(n.Needs.Safety);
-            WriteInventory(w, n.Inventory);
+            WriteInventory(w, n.Inventory); w.Write(n.Inventory.UndeliveredFarmFood);
             w.Write(n.Coins); w.Write(n.HasHuntingTool); w.Write(n.HuntingSkill); w.Write(n.HuntKills);
             w.Write(n.HarvestedFood); w.Write(n.GatheredFood); w.Write(n.Purchases); w.Write(n.Sales);
             w.Write((int)n.Action.Type); w.Write(n.Action.Label); WritePos(w, n.Action.Target); w.Write(n.Action.EndTick);
@@ -208,7 +208,8 @@ namespace MyAiWorld.Sim.Systems
             var personality = new Personality { Diligence = r.ReadInt32(), Caution = r.ReadInt32(), Sociability = r.ReadInt32(), Curiosity = r.ReadInt32() };
             var n = new NpcState(id, identity, personality, home, rng) { Position = pos };
             n.Needs.Hunger = r.ReadInt32(); n.Needs.Thirst = r.ReadInt32(); n.Needs.Fatigue = r.ReadInt32(); n.Needs.Health = r.ReadInt32(); n.Needs.Safety = r.ReadInt32();
-            ReadInventory(r, n.Inventory);
+            ReadInventory(r, n.Inventory); n.Inventory.UndeliveredFarmFood = r.ReadInt32();
+            Require(n.Inventory.UndeliveredFarmFood >= 0 && n.Inventory.UndeliveredFarmFood <= n.Inventory.Food);
             n.Coins = r.ReadInt64(); n.HasHuntingTool = r.ReadBoolean(); n.HuntingSkill = r.ReadInt32(); n.HuntKills = r.ReadInt32();
             n.HarvestedFood = r.ReadInt32(); n.GatheredFood = r.ReadInt32(); n.Purchases = r.ReadInt32(); n.Sales = r.ReadInt32();
             n.Action.Type = (NpcActionType)r.ReadInt32(); n.Action.Label = r.ReadString(); n.Action.Target = ReadPos(r); n.Action.EndTick = r.ReadInt64();

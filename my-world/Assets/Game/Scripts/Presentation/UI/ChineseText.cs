@@ -11,7 +11,7 @@ namespace MyAiWorld.Presentation.UI
     {
         private static readonly string[] Roles = { "农夫", "采集者", "猎人", "商人", "建造者" };
         private static readonly string[] Actions = { "休息", "行走", "进食", "饮水", "睡眠", "采集", "工作" };
-        private static readonly string[] Steps = { "前往", "领取库存", "进食", "饮水", "回家睡眠", "采集", "存放", "播种", "浇水", "收获", "等待", "狩猎", "购买", "出售", "问候", "赠送食物", "运输材料", "领取产物", "建造", "加工", "维护", "装备工具", "回收物资", "救援", "饮用生水", "服药", "回家取暖", "补充燃料", "融雪取水" };
+        private static readonly string[] Steps = { "前往", "领取库存", "进食", "饮水", "回家睡眠", "采集", "存放", "播种", "浇水", "收获", "等待", "狩猎", "购买", "出售", "问候", "赠送食物", "运输材料", "领取产物", "建造", "加工", "维护", "装备工具", "回收物资", "救援", "饮用生水", "服药", "回家取暖", "补充燃料", "融雪取水", "清理菜床积雪" };
         private static readonly string[] Goals = { "休息", "漫步", "补充食物", "补充饮水", "恢复精力", "采集食物", "采集饮水", "照料农田", "村庄生产", "救援村民", "治疗疾病", "狩猎", "交易", "问候邻居", "帮助邻居", "回家取暖" };
         private static readonly string[] Events = { "重伤倒地", "救援完成", "村民逝世", "世界已建立", "动物出生", "动物自然死亡", "猎获动物", "猎人受伤", "交易成交", "交易未成交", "居民抵达", "选择目标", "开始行动", "完成行动", "道路无法到达", "指令被拒绝", "新的一天", "季节更替", "开始计划", "计划失败", "计划中断", "采集资源", "播种作物", "农田浇水", "收获作物", "需求告急", "友好问候", "赠送食物", "寒冬挑战结束" };
         private static readonly Dictionary<string, string> Reasons = new Dictionary<string, string>
@@ -62,9 +62,37 @@ namespace MyAiWorld.Presentation.UI
         public static string Action(NpcActionType action) => Actions[(int)action];
         public static string Step(PlanStepType step) => Steps[(int)step];
         public static string Goal(NpcGoalType goal) => Goals[(int)goal];
-        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "萝卜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "小麦种子", "豆种", "弓", "矛", "锄头", "水桶", "箭矢", "生肉", "兽皮", "冬衣", "毛皮", "羽毛" }[(int)item];
-        public static string Crop(CropType crop) => new[] { "休耕", "萝卜", "小麦", "豆类" }[(int)crop];
-        public static string Facility(FacilityKind kind) => new[] { "工作台", "净水炉", "蓄水池", "水井", "灌溉设施" }[(int)kind];
+        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "菠菜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "羽衣甘蓝种子", "羊生菜种子", "弓", "矛", "锄头", "水桶", "箭矢", "生肉", "兽皮", "冬衣", "毛皮", "羽毛" }[(int)item];
+        public static string Crop(CropType crop) => new[] { "未种植", "耐寒菠菜", "羽衣甘蓝", "羊生菜" }[(int)crop];
+        public static string Facility(FacilityKind kind) => new[] { "工作台", "净水炉", "蓄水池", "水井", "灌溉设施", "保温菜床" }[(int)kind];
+        public static string FarmPolicy(FarmCropPolicy policy) => new[] { "自动", "菠菜", "羽衣甘蓝", "羊生菜", "休耕" }[(int)policy];
+        public static string BedHeatPolicy(GrowingBedHeatPolicy policy) => new[] { "关闭", "普通", "优先" }[(int)policy];
+        public static string FarmStatus(string status)
+        {
+            switch (status)
+            {
+                case "fallow": return "休耕恢复土壤";
+                case "no_seeds": return "种子耗尽 · 冬季采叶不返种";
+                case "bed_construction": return "等待材料与菜床施工";
+                case "bed_maintenance": return "围护待修";
+                case "bed_snow": return "等待清雪";
+                case "bed_embers": return "停添柴 · 余火燃尽";
+                case "bed_off": return "供暖关闭";
+                case "bed_idle": return "无待种作物 · 待机";
+                case "bed_no_fuel": return "断燃料 · 逐渐降温";
+                case "bed_warming": return "加温中";
+                case "bed_warm": return "保温中";
+                case "ready_to_plant": return "可播种";
+                case "soil_too_cold": return "土温不足 · 暂停播种或生长";
+                case "ready_to_harvest": return "可收获 · 仍需防冻";
+                case "snow_covered": return "积雪遮光 · 等待清雪";
+                case "snow_shaded": return "覆雪减光 · 生长减缓";
+                case "no_daylight": return "夜间停长";
+                case "dry_soil": return "缺水停长";
+                case "regrowing": return "采后重新生长";
+                default: return "正在生长";
+            }
+        }
         public static string Life(LifeState life) => new[] { "健康活动", "倒地待援", "卧床恢复", "已逝世" }[(int)life];
         public static string Weather(WeatherKind weather) => new[] { "晴", "降雪", "暴风雪", "寒潮" }[(int)weather];
         public static string Supply(SupplyStatus status) => new[] { "", "耗尽", "紧张", "充足" }[(int)status];
@@ -139,9 +167,9 @@ namespace MyAiWorld.Presentation.UI
                 case PlanStepType.Drink: return "携带饮水 → 消耗 1 饮水，水分 +55%";
                 case PlanStepType.Sleep: return "到达住所 → 逐分钟恢复精力";
                 case PlanStepType.Gather: return "预留资源且背包有空间 → 采集入包";
-                case PlanStepType.Plant: return "空田、种子与肥力 → 播种萝卜";
-                case PlanStepType.Water: return "作物与饮水 → 补充土壤水分";
-                case PlanStepType.Harvest: return "成熟作物且背包有空间 → 获得食物与种子";
+                case PlanStepType.Plant: return "可播方针、未冻土壤与对应种子 → 播种耐寒蔬菜";
+                case PlanStepType.Water: return "未冻作物与水 → 优先用生水补充土壤水分";
+                case PlanStepType.Harvest: return "成熟作物且背包有空间 → 采收食物，保留可复采植株";
                 case PlanStepType.Hunt: return "武器、弹药、体力与猎物预留 → 追逐攻击；命中并非保证，猎获需回收和加工";
                 case PlanStepType.Buy: return "报价、货币与市场库存 → 物品入包";
                 case PlanStepType.Sell: return "报价、背包物品与国库 → 获得货币";

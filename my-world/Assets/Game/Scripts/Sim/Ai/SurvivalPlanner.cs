@@ -268,13 +268,22 @@ namespace MyAiWorld.Sim.Ai
 
         private bool Farm(WorldState world, NpcState npc, List<PlanStep> steps)
         {
+            if (SupplyShelter(world, npc, steps)) { return true; }
+            // Resume delivery after a survival interruption before starting new farm work.
+            if (npc.Inventory.UndeliveredFarmFood > 0 && CanReach(world, npc.Position, world.Resources.StockpilePosition) &&
+                world.Resources.Stockpile.Capacity - world.Resources.Stockpile.TotalCount >= npc.Inventory.UndeliveredFarmFood)
+            {
+                AddDeposit(world, steps, ItemKind.Food, npc.Inventory.UndeliveredFarmFood);
+                return true;
+            }
+            if (FarmBedWork(world, npc, steps)) { return true; }
             var candidates = new List<FarmPlotState>();
             foreach (var plot in world.Resources.FarmPlots)
-            { if (plot.ReservedBy.IsNone && AgricultureSystem.NeedsWork(world, plot)) { candidates.Add(plot); } }
+            { if (plot.ReservedBy.IsNone && AgricultureSystem.NeedsWork(world, plot, npc)) { candidates.Add(plot); } }
             candidates.Sort((a, b) =>
             {
-                int pa = a.Crop != CropType.None && a.Stage != CropStage.Mature && a.Moisture < 180 ? 0 : a.Stage == CropStage.Mature ? 1 : 2;
-                int pb = b.Crop != CropType.None && b.Stage != CropStage.Mature && b.Moisture < 180 ? 0 : b.Stage == CropStage.Mature ? 1 : 2;
+                int pa = a.Stage == CropStage.Mature ? 0 : a.Crop != CropType.None && a.Moisture < 180 ? 1 : 2;
+                int pb = b.Stage == CropStage.Mature ? 0 : b.Crop != CropType.None && b.Moisture < 180 ? 1 : 2;
                 return pa != pb ? pa.CompareTo(pb) : CompareTargets(npc.Position, a.Position, a.Id, b.Position, b.Id);
             });
             foreach (var first in candidates)
@@ -282,14 +291,14 @@ namespace MyAiWorld.Sim.Ai
                 if (!CanReach(world, npc.Position, first.Position)) { continue; }
                 bool harvest = first.Stage == CropStage.Mature;
                 bool planting = first.Crop == CropType.None;
-                var crop = AgricultureSystem.ChooseCrop(world, first);
+                var crop = AgricultureSystem.ChooseCrop(world, first, npc);
                 var selected = new List<FarmPlotState>();
                 int outputSpace = 0;
                 foreach (var plot in candidates)
                 {
                     if (selected.Count >= 4 || plot.Position.ManhattanDistance(first.Position) > 4 ||
                         (plot.Stage == CropStage.Mature) != harvest || (plot.Crop == CropType.None) != planting ||
-                        (planting && AgricultureSystem.ChooseCrop(world, plot).Type != crop.Type) || !CanReach(world, first.Position, plot.Position)) { continue; }
+                        (planting && (AgricultureSystem.ChooseCrop(world, plot, npc)?.Type != crop?.Type || selected.Count >= npc.Inventory.Count(crop.Seed) + world.Resources.AvailableStock(crop.Seed))) || !CanReach(world, first.Position, plot.Position)) { continue; }
                     int required = harvest ? plot.HarvestYield + CropDefinition.For(plot.Crop).SeedYield : planting ? 2 : 1;
                     if (outputSpace + required > npc.Inventory.Capacity - npc.Inventory.TotalCount) { continue; }
                     if (!world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.FarmPlot, plot.Id, ItemKind.Food, 0, plot.Position))) { continue; }

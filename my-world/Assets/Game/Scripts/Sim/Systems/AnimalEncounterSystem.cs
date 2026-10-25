@@ -200,7 +200,7 @@ namespace MyAiWorld.Sim.Systems
                         state.Stamina = Math.Min(HuntingRules.MaxStamina, state.Stamina + 200);
                     }
 
-                    state.NextStepTick = world.Tick + (sprint ? 1 : 2);
+                    state.NextStepTick = world.Tick + WinterEcologyRules.MoveInterval(world, animal, sprint ? 1 : 2);
                 }
 
                 return true;

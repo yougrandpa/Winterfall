@@ -10,7 +10,7 @@ namespace MyAiWorld.EditorTools
 {
     // Integer raster drawing is the editable source. No UnityEngine.Random or simulation RNG.
     // Cold island palette: desaturated blue-grey, ink green and a small amount of campfire warmth.
-    public static class PastoralArtGenerator
+    public static partial class PastoralArtGenerator
     {
         private const string Root = "Assets/Game/Resources/Pastoral/";
         private static readonly Color32 Outline = C(27, 37, 36);
@@ -238,6 +238,8 @@ namespace MyAiWorld.EditorTools
             }
             config.sprites = Targets
                 .SelectMany(target => AssetDatabase.LoadAllAssetsAtPath(Root + target.FileName).OfType<Sprite>())
+                // Keep the independent winter farming atlas when refreshing base art.
+                .Concat(AssetDatabase.LoadAllAssetsAtPath(Root + "WinterFarmingAtlas.png").OfType<Sprite>())
                 .OrderBy(sprite => sprite.name, StringComparer.Ordinal)
                 .Select(sprite => new PastoralArtConfig.Entry { key = sprite.name, sprite = sprite })
                 .ToArray();

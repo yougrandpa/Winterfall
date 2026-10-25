@@ -261,6 +261,7 @@ namespace MyAiWorld.Presentation.UI
             }
             _production.End();
 
+            RefreshFarming();
             _inspection.Begin();
             if (_selection.SelectedCell.HasValue)
             {

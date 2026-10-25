@@ -128,8 +128,8 @@ namespace MyAiWorld.Tests.EditMode
             AnimalState boar = world.Ecology.Spawn(world, AnimalSpecies.Boar, world.Center, AnimalDefinition.Boar.MaturityTicks);
             NpcState npc = WorldFactory.SpawnNpc(world, world.Center, true, new List<SimEvent>());
             Assert.That(npc, Is.Not.Null);
-            npc.Inventory.TryAdd(ItemKind.Seed, npc.Inventory.Capacity - 1);
-            world.Materials.Produce(ItemKind.Seed, npc.Inventory.Capacity - 1);
+            npc.Inventory.TryAdd(ItemKind.SpinachSeed, npc.Inventory.Capacity - 1);
+            world.Materials.Produce(ItemKind.SpinachSeed, npc.Inventory.Capacity - 1);
             boar.ReservedBy = npc.Id;
             boar.LastDamageSourceId = npc.Id;
             boar.DeathCause = AnimalDeathCause.Hunt;
@@ -257,7 +257,7 @@ namespace MyAiWorld.Tests.EditMode
             }
             Assert.That(world.Ecology.Births, Is.Zero, "No four-hour spontaneous birth.");
             Assert.That(mother.PregnancyLitter, Is.GreaterThan(0));
-            for (int i = 240; i < 6 * GameCalendar.TicksPerDay; i++)
+            for (int i = 240; i < AnimalDefinition.Rabbit.GestationTicks + 2 * GameCalendar.TicksPerDay; i++)
             {
                 Tick(world, events, combat: false);
             }
@@ -356,7 +356,7 @@ namespace MyAiWorld.Tests.EditMode
             int age = mother.AgeTicks;
             long consumed = world.Ecology.Balance.PlantEaten;
             var events = new List<SimEvent>();
-            for (int i = 0; i < 6 * GameCalendar.TicksPerDay; i++)
+            for (int i = 0; i < AnimalDefinition.Rabbit.GestationTicks + 2 * GameCalendar.TicksPerDay; i++)
             {
                 Tick(world, events, combat: false);
             }

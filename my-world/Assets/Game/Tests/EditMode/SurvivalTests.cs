@@ -226,7 +226,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(npc.Inventory.Food, Is.Zero);
             Assert.That(world.Resources.Stockpile.Food, Is.EqualTo(7));
 
-            world.Resources.Stockpile.TryAdd(ItemKind.Seed, world.Resources.Stockpile.Capacity - 7);
+            world.Resources.Stockpile.TryAdd(ItemKind.SpinachSeed, world.Resources.Stockpile.Capacity - 7);
             npc.Inventory.TryAdd(ItemKind.Food, 3);
             StartPlan(npc, NpcGoalType.Rest, new PlanStep(PlanStepType.Deposit, npc.Position, quantity: 3));
             TickResult failure = new SimulationEngine().Tick(world, null);
@@ -353,13 +353,13 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
-        public void CropLifecycle_RequiresSeedAndWater_GrowsThenHarvestsFoodAndSeeds()
+        public void CropLifecycle_RequiresSeedAndWater_HarvestsFoodWithoutReturningSeeds()
         {
             WorldState world = EmptyWorld();
             NpcState npc = world.Entities.Npcs[0];
             var plot = new FarmPlotState(1, npc.Position);
             world.Resources.AddPlot(plot);
-            npc.Inventory.TryAdd(ItemKind.Seed, 1);
+            npc.Inventory.TryAdd(ItemKind.SpinachSeed, 1);
             npc.Inventory.TryAdd(ItemKind.Water, 1);
             world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.FarmPlot, plot.Id, ItemKind.Food, 0, plot.Position));
             int fertility = plot.Fertility;
@@ -378,18 +378,19 @@ namespace MyAiWorld.Tests.EditMode
             FinishPlan(world, npc);
             Assert.That(npc.Inventory.Water, Is.Zero);
             Assert.That(plot.Moisture, Is.GreaterThan(0));
-            for (int i = 0; i < plot.GrowthRequired; i++) { world.Resources.Update(); AgricultureSystem.Update(world); }
+            world.Environment.Daylight = 10000; world.Environment.Temperature = 1200;
+            for (int i = 0; i < plot.GrowthRequired; i++) { world.Resources.Update(); AgricultureSystem.Update(world); world.Tick++; }
             Assert.That(plot.Stage, Is.EqualTo(CropStage.Mature));
 
             world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.FarmPlot, plot.Id, ItemKind.Food, 0, plot.Position));
             StartPlan(npc, NpcGoalType.Farm, new PlanStep(PlanStepType.Harvest, plot.Position, plot.Id));
             FinishPlan(world, npc);
-            Assert.That(plot.Stage, Is.EqualTo(CropStage.Empty));
-            Assert.That(npc.Inventory.Food, Is.EqualTo(CropDefinition.Turnip.Yield));
-            Assert.That(npc.Inventory.Seeds, Is.EqualTo(CropDefinition.Turnip.SeedYield));
+            Assert.That(plot.Stage, Is.EqualTo(CropStage.Seedling));
+            Assert.That(npc.Inventory.Food, Is.EqualTo(CropDefinition.Spinach.Yield));
+            Assert.That(npc.Inventory.Seeds, Is.EqualTo(CropDefinition.Spinach.SeedYield));
             int depleted = plot.Fertility;
             for (int i = 0; i < 20; i++) { world.Resources.Update(); AgricultureSystem.Update(world); }
-            Assert.That(plot.Fertility, Is.GreaterThan(depleted));
+            Assert.That(plot.Fertility, Is.EqualTo(depleted), "A regrowing plant is not fallow land.");
             Assert.That(plot.Fertility, Is.LessThanOrEqualTo(10000));
         }
 
@@ -433,15 +434,15 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
-        public void Harvest_InsufficientBagSpace_LeavesCropAndBothOutputsUntouched()
+        public void Harvest_InsufficientBagSpace_LeavesCropAndFoodUntouched()
         {
             WorldState world = EmptyWorld();
             NpcState npc = world.Entities.Npcs[0];
             var plot = new FarmPlotState(1, npc.Position);
-            plot.Crop = CropType.Turnip;
+            plot.Crop = CropType.Spinach;
             plot.GrowthTicks = plot.GrowthRequired;
             world.Resources.AddPlot(plot);
-            npc.Inventory.TryAdd(ItemKind.Water, npc.Inventory.Capacity - 5);
+            npc.Inventory.TryAdd(ItemKind.Water, npc.Inventory.Capacity - (plot.HarvestYield - 1));
             world.Resources.TryReserve(new ResourceReservation(npc.Id, ReservationKind.FarmPlot, plot.Id, ItemKind.Food, 0, plot.Position));
             StartPlan(npc, NpcGoalType.Farm, new PlanStep(PlanStepType.Harvest, plot.Position, plot.Id));
 
@@ -451,7 +452,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(plot.Stage, Is.EqualTo(CropStage.Mature));
             Assert.That(npc.Inventory.Food, Is.Zero);
             Assert.That(npc.Inventory.Seeds, Is.Zero);
-            Assert.That(npc.Inventory.Water, Is.EqualTo(npc.Inventory.Capacity - 5));
+            Assert.That(npc.Inventory.Water, Is.EqualTo(npc.Inventory.Capacity - (plot.HarvestYield - 1)));
             Assert.That(plot.ReservedBy.IsNone, Is.True);
         }
 
@@ -462,7 +463,7 @@ namespace MyAiWorld.Tests.EditMode
             WorldState world = EmptyWorld();
             NpcState npc = world.Entities.Npcs[0];
             int carriedSeeds = npc.Inventory.Capacity;
-            npc.Inventory.TryAdd(ItemKind.Seed, carriedSeeds);
+            npc.Inventory.TryAdd(ItemKind.SpinachSeed, carriedSeeds);
             world.Resources.Stockpile.TryAdd(needed, 4);
             if (needed == ItemKind.Food) { npc.Needs.Hunger = 3000; }
             else { npc.Needs.Thirst = 3000; }
@@ -505,7 +506,7 @@ namespace MyAiWorld.Tests.EditMode
             NpcState npc = world.Entities.Npcs[0];
             var node = new ResourceNodeState(1, new GridPos(4, 4), ItemKind.Food, 5, 1000);
             var plot = new FarmPlotState(1, new GridPos(5, 5));
-            plot.Crop = CropType.Turnip;
+            plot.Crop = CropType.Spinach;
             world.Resources.AddNode(node);
             world.Resources.AddPlot(plot);
             world.Resources.Stockpile.TryAdd(ItemKind.Food, 5);

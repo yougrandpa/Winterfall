@@ -88,22 +88,21 @@ namespace MyAiWorld.Tests.EditMode
             ProductionSystem.Apply(world, npc, new PlanStep(PlanStepType.Treat, npc.Position)); Assert.That(npc.Survival.DiseaseTicks, Is.Zero); Conserved(world);
         }
         [Test]
-        public void Crops_DroughtWinterRotationAndRest_HaveDifferentOutcomes()
+        public void Crops_DroughtColdAndRest_HaveDifferentOutcomes()
         {
-            var world = Empty(0); var plot = new FarmPlotState(1, new GridPos(3, 3)) { Crop = CropType.Wheat, Moisture = 1000, Fertility = 5000 };
-            world.Resources.AddPlot(plot);
-            Assert.That(AgricultureSystem.ChooseCrop(world, plot).Type, Is.EqualTo(CropType.Bean));
+            var world = Empty(0); var plot = new FarmPlotState(1, new GridPos(3, 3)) { Crop = CropType.Kale, Moisture = 1000, Fertility = 5000 };
+            world.Resources.AddPlot(plot); world.Environment.Daylight = 10000; world.Environment.Temperature = 1200;
             AgricultureSystem.Update(world); Assert.That(plot.GrowthTicks, Is.EqualTo(1));
-            world.Tick = 84 * 1440 + 1; AgricultureSystem.Update(world); Assert.That(plot.GrowthTicks, Is.EqualTo(1));
-            plot.Moisture = 0;
-            for (int i = 0; i < SurvivalRules.CropDeathDamage; i++) { AgricultureSystem.Update(world); world.Tick++; }
+            world.Environment.Temperature = -500; AgricultureSystem.Update(world); Assert.That(plot.GrowthTicks, Is.EqualTo(1));
+            world.Environment.Temperature = 1200; plot.Moisture = 0;
+            for (int i = 0; i < SurvivalRules.CropDeathDamage * 3 + 100; i++) { AgricultureSystem.Update(world); world.Tick++; }
             Assert.That(plot.Crop, Is.EqualTo(CropType.None)); Assert.That(world.Survival.CropsLost, Is.EqualTo(1)); Assert.That(plot.Fertility, Is.GreaterThan(5000));
         }
         [Test]
         public void Farming_BoundedBatch_ReservesNoMoreThanFourAndReleasesOnInterrupt()
         {
             var world = Empty(); var npc = world.Entities.Npcs[0];
-            for (int i = 0; i < 6; i++) { world.Resources.AddPlot(new FarmPlotState(i + 1, npc.Position.Offset(i % 3, i / 3)) { Crop = CropType.Turnip, Moisture = 10 }); }
+            for (int i = 0; i < 6; i++) { world.Resources.AddPlot(new FarmPlotState(i + 1, npc.Position.Offset(i % 3, i / 3)) { Crop = CropType.Spinach, Moisture = 10 }); }
             npc.Inventory.TryAdd(ItemKind.RawWater, 4); world.Materials.Initialize(world);
             var planner = new SurvivalPlanner(new GridPathfinder());
             Assert.That(planner.TryBuild(world, npc, new NpcDecision(NpcGoalType.Farm, npc.Position, 80, npc.RngState, NpcDecisionTrace.Empty), out string failure), Is.True, failure);
@@ -180,7 +179,7 @@ namespace MyAiWorld.Tests.EditMode
         {
             var world = Empty(2); var victim = world.Entities.Npcs[0]; var helper = world.Entities.Npcs[1];
             victim.Survival.Life = LifeState.Recovering; victim.Needs.Health = 1500; victim.Needs.Hunger = 1000; victim.Needs.Thirst = 1000;
-            if (fullBag) { victim.Inventory.TryAdd(ItemKind.Seed, victim.Inventory.Capacity); }
+            if (fullBag) { victim.Inventory.TryAdd(ItemKind.SpinachSeed, victim.Inventory.Capacity); }
             helper.Inventory.TryAdd(ItemKind.Water, 1); helper.Inventory.TryAdd(ItemKind.Food, 1); world.Materials.Initialize(world);
             Assert.That(HealthSystem.NeedsRescue(victim), Is.True);
             var planner = new SurvivalPlanner(new GridPathfinder());
@@ -221,7 +220,7 @@ namespace MyAiWorld.Tests.EditMode
             var world = Empty(); var cistern = Facility(world, FacilityKind.Cistern); cistern.ReservedBy = EntityId.None;
             var irrigation = new FacilityState(world.Survival.NextId++, FacilityKind.Irrigation, new GridPos(20, 17), new GridPos(20, 16)) { Progress = SurvivalRules.ConstructionTicks };
             world.Survival.MutableFacilities.Add(irrigation); world.Map.SetTile(irrigation.Position, TileType.Rock);
-            var plot = new FarmPlotState(1, new GridPos(21, 18)) { Crop = CropType.Bean, Moisture = 0 }; world.Resources.AddPlot(plot);
+            var plot = new FarmPlotState(1, new GridPos(21, 18)) { Crop = CropType.LambsLettuce, Moisture = 0 }; world.Resources.AddPlot(plot);
             cistern.Inventory.TryAdd(ItemKind.RawWater, 1); world.Resources.Stockpile.TryAdd(ItemKind.Water, 8); world.Materials.Initialize(world);
             WaterSystem.Update(world); Assert.That(plot.Moisture, Is.EqualTo(900)); Assert.That(world.Resources.Stockpile.Water, Is.EqualTo(8)); Conserved(world);
             plot.Moisture = 0; WaterSystem.Update(world); Assert.That(plot.Moisture, Is.Zero); Conserved(world);

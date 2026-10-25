@@ -516,9 +516,9 @@ namespace MyAiWorld.Tests.EditMode
         {
             WorldState world = Empty(); AnimalState prey = Prey(world, 7, 5); NpcState npc = world.Entities.Npcs[0];
             Arrow(world, new GridPos(5, 5), 4 * 1024); Minute(world); npc.Position = prey.Position;
-            npc.Inventory.TryAdd(ItemKind.Seed, 7); world.Materials.Initialize(world);
+            npc.Inventory.TryAdd(ItemKind.SpinachSeed, 7); world.Materials.Initialize(world);
             Assert.That(CombatSystem.RecoverArrows(world, npc, prey.Position), Is.Zero); Assert.That(world.Combat.Count(ItemKind.Arrow), Is.EqualTo(1));
-            npc.Inventory.TryRemove(ItemKind.Seed, 1); world.Materials.Consume(ItemKind.Seed, 1);
+            npc.Inventory.TryRemove(ItemKind.SpinachSeed, 1); world.Materials.Consume(ItemKind.SpinachSeed, 1);
             Assert.That(CombatSystem.RecoverArrows(world, npc, prey.Position), Is.EqualTo(1)); Assert.That(world.Combat.Projectiles, Is.Empty); Conserved(world);
         }
 

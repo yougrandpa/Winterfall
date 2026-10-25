@@ -148,7 +148,9 @@ namespace MyAiWorld.Sim.World
             {
                 InventoryState source = order.Side == TradeSide.Buy ? Inventory : npc.Inventory;
                 InventoryState target = order.Side == TradeSide.Buy ? npc.Inventory : Inventory;
+                int farmDelivery = order.Side == TradeSide.Sell && order.Item == ItemKind.Food ? Math.Min(order.Quantity, source.UndeliveredFarmFood) : 0;
                 source.TryRemove(order.Item, order.Quantity);
+                world.Survival.FarmFoodDelivered += farmDelivery;
                 target.TryAdd(order.Item, order.Quantity);
                 npc.Coins = record.WalletAfter;
                 Treasury = record.TreasuryAfter;
@@ -194,6 +196,6 @@ namespace MyAiWorld.Sim.World
             }
         }
 
-        private static bool ValidItem(ItemKind item) => item >= ItemKind.Food && item <= ItemKind.Seed;
+        private static bool ValidItem(ItemKind item) => item >= ItemKind.Food && item <= ItemKind.SpinachSeed;
     }
 }

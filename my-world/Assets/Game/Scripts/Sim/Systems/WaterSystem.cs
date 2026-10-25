@@ -9,7 +9,7 @@ namespace MyAiWorld.Sim.Systems
     {
         internal static int CollectionAmount(WorldState world, NpcState npc)
         {
-            int dry = 0; foreach (var plot in world.Resources.FarmPlots) { if (plot.Crop != CropType.None && plot.Moisture < 180) { dry++; } }
+            int dry = 0; foreach (var plot in world.Resources.FarmPlots) { if (AgricultureSystem.CanWater(world, plot) && plot.Moisture < 180) { dry++; } }
             int missing = Math.Max(1, Math.Max(12, world.LivingCount * 2) + dry - world.Resources.Stockpile.Count(ItemKind.RawWater));
             int cost = int.MaxValue;
             foreach (var node in world.Resources.Nodes)
@@ -68,7 +68,7 @@ namespace MyAiWorld.Sim.Systems
             FarmPlotState targetPlot = null;
             foreach (var plot in world.Resources.FarmPlots)
             {
-                if (plot.Crop == CropType.None || plot.Stage == CropStage.Mature || plot.Moisture >= 180 || !plot.ReservedBy.IsNone || plot.Position.ManhattanDistance(irrigation.Position) > 7) { continue; }
+                if (!AgricultureSystem.CanWater(world, plot) || plot.Stage == CropStage.Mature || plot.Moisture >= 180 || !plot.ReservedBy.IsNone || plot.Position.ManhattanDistance(irrigation.Position) > 7) { continue; }
                 if (targetPlot == null || plot.Moisture < targetPlot.Moisture) { targetPlot = plot; }
             }
             if (targetPlot != null && cistern.Inventory.TryRemove(ItemKind.RawWater, 1))

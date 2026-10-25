@@ -254,8 +254,8 @@ namespace MyAiWorld.Tests.EditMode
             world.Resources.AddNode(new ResourceNodeState(3, new GridPos(5, 3), ItemKind.Wood, 100, 1));
             world.Resources.AddPlot(new FarmPlotState(1, new GridPos(6, 3))
             {
-                Crop = CropType.Wheat,
-                GrowthTicks = CropDefinition.Wheat.GrowthTicks
+                Crop = CropType.Kale,
+                GrowthTicks = CropDefinition.Kale.GrowthTicks
             });
             world.Tick = world.Campaign.DeadlineTick;
             world.Campaign.Evaluate(world);

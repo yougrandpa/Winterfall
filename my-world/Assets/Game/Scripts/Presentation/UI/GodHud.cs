@@ -323,7 +323,9 @@ namespace MyAiWorld.Presentation.UI
 
         private void OnCellSelected(GridPos cell)
         {
-            if (OpenGlobalPanel != 0) { return; }
+            bool farmland = false;
+            foreach (var plot in _session.ReadModel.FarmPlots) { if (plot.Cell == cell) { farmland = true; break; } }
+            if (OpenGlobalPanel != 0) { if (!farmland) { return; } ToggleGlobalPanel(0); }
             RefreshResources();
             Canvas.ForceUpdateCanvases(); _resourceScroll.verticalNormalizedPosition = 1f;
         }

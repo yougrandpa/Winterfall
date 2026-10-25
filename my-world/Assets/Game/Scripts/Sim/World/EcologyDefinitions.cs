@@ -67,13 +67,13 @@ namespace MyAiWorld.Sim.World
     {
         private const int Day = GameCalendar.TicksPerDay;
         private const int Year = GameCalendar.DaysPerYear * Day;
-        public static readonly AnimalDefinition Rabbit = new AnimalDefinition(30, 3, 8, 250, 3 * Year, 14 * Day, 4 * Day, 7 * Day, 3, 700, 120, 35, 15, -1000, 18, 6, 3, 4, 3, 0, 1);
-        public static readonly AnimalDefinition Boar = new AnimalDefinition(90, 10, 35, 800, 9 * Year, 56 * Day, 12 * Day, 14 * Day, 3, 2000, 260, 95, 30, -1500, 25, 10, 5, 7, 1, 0, 2);
-        public static readonly AnimalDefinition Deer = new AnimalDefinition(65, 12, 12, 450, 12 * Year, 70 * Day, 18 * Day, 14 * Day, 1, 2500, 350, 85, 35, -2000, 20, 12, 4, 10, 4, 0, 3);
-        public static readonly AnimalDefinition Vole = new AnimalDefinition(12, 1, 1, 60, 2 * Year, 7 * Day, 3 * Day, 4 * Day, 4, 250, 55, 18, 8, -500, 15, 3, 2, 3, 3, 0, 0);
-        public static readonly AnimalDefinition Fox = new AnimalDefinition(45, 4, 20, 450, 6 * Year, 42 * Day, 10 * Day, 12 * Day, 2, 1100, 200, 60, 20, -2500, 12, 8, 4, 8, 1, 0x09, 1);
-        public static readonly AnimalDefinition Wolf = new AnimalDefinition(110, 7, 60, 1100, 10 * Year, 70 * Day, 14 * Day, 18 * Day, 2, 1800, 300, 100, 30, -3000, 14, 12, 6, 11, 1, 0x07, 2);
-        public static readonly AnimalDefinition Raven = new AnimalDefinition(22, 2, 4, 120, 15 * Year, 56 * Day, 8 * Day, 10 * Day, 2, 550, 100, 25, 10, -1500, 40, 10, 3, 8, 1, 0, 0);
+        public static readonly AnimalDefinition Rabbit = new AnimalDefinition(30, 3, 8, 250, 3 * Year, 14 * Day, 9 * Day, 7 * Day, 3, 700, 120, 35, 15, -1000, 18, 6, 3, 4, 3, 0, 1);
+        public static readonly AnimalDefinition Boar = new AnimalDefinition(90, 10, 35, 800, 9 * Year, 56 * Day, 35 * Day, 14 * Day, 3, 2000, 260, 95, 30, -1500, 25, 10, 5, 7, 8, 0, 2);
+        public static readonly AnimalDefinition Deer = new AnimalDefinition(65, 12, 12, 450, 12 * Year, 70 * Day, 70 * Day, 19 * Day, 1, 2500, 350, 85, 35, -2000, 20, 12, 4, 10, 4, 0, 3);
+        public static readonly AnimalDefinition Vole = new AnimalDefinition(12, 1, 1, 60, 2 * Year, 7 * Day, 3 * Day, 4 * Day, 4, 250, 55, 18, 8, -500, 15, 3, 2, 3, 11, 0, 0);
+        public static readonly AnimalDefinition Fox = new AnimalDefinition(45, 4, 20, 450, 6 * Year, 42 * Day, 16 * Day, 12 * Day, 2, 1100, 200, 60, 20, -2500, 12, 8, 4, 8, 8, 0x09, 1);
+        public static readonly AnimalDefinition Wolf = new AnimalDefinition(110, 7, 60, 1100, 10 * Year, 70 * Day, 19 * Day, 18 * Day, 2, 1800, 300, 100, 30, -3000, 14, 12, 6, 11, 8, 0x07, 2);
+        public static readonly AnimalDefinition Raven = new AnimalDefinition(22, 2, 4, 120, 15 * Year, 56 * Day, 6 * Day, 10 * Day, 2, 550, 100, 25, 10, -1500, 40, 10, 3, 8, 3, 0, 0);
 
         private AnimalDefinition(int health, int foodYield, int risk, int injury, int lifespan,
             int maturity, int gestation, int nursing, int litter, int mass, int newbornMass,

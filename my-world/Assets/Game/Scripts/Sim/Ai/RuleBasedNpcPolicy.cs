@@ -90,11 +90,12 @@ namespace MyAiWorld.Sim.Ai
                 NpcGoalType.Drink, NpcGoalType.Eat, NpcGoalType.Sleep,
                 NpcGoalType.Farm, NpcGoalType.GatherFood, NpcGoalType.GatherWater, NpcGoalType.Rest, NpcGoalType.Hunt, NpcGoalType.Trade
             };
-            bool farmWork = false;
+            bool farmWork = npc.Inventory.UndeliveredFarmFood > 0;
+            foreach (var bed in context.World.Survival.Facilities) { if (GrowingBedSystem.NeedsWork(context.World, bed)) { farmWork = true; break; } }
             for (int i = 0; i < context.World.Resources.FarmPlots.Count; i++)
             {
                 FarmPlotState plot = context.World.Resources.FarmPlots[i];
-                if (plot.ReservedBy.IsNone && AgricultureSystem.NeedsWork(context.World, plot))
+                if (plot.ReservedBy.IsNone && AgricultureSystem.NeedsWork(context.World, plot, npc))
                 {
                     farmWork = true;
                     break;

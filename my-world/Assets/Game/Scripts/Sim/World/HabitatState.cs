@@ -37,6 +37,8 @@ namespace MyAiWorld.Sim.World
             SoilFertility = 7000;
             MineralRemaining = cells * 40;
             RngState = rng;
+            FruitFood = Shrubs.Biomass / 5; SeedFood = Shrubs.Biomass / 20;
+            RootFood = Herbaceous.Biomass / 3; BrowseFood = Shrubs.Biomass / 3; TwigFood = Trees.Biomass / 20;
         }
 
         public int Id { get; }
@@ -46,6 +48,12 @@ namespace MyAiWorld.Sim.World
         public VegetationState Herbaceous { get; }
         public VegetationState Shrubs { get; }
         public VegetationState Trees { get; }
+        // Edible shares of existing vegetation, never an additional biomass pool.
+        public int FruitFood { get; internal set; }
+        public int SeedFood { get; internal set; }
+        public int RootFood { get; internal set; }
+        public int BrowseFood { get; internal set; }
+        public int TwigFood { get; internal set; }
         public int WaterCapacity { get; internal set; }
         public int Water { get; internal set; }
         public int SnowWater { get; internal set; }
@@ -58,22 +66,75 @@ namespace MyAiWorld.Sim.World
         public int Shelter => LandCells == 0 ? 0 : Math.Min(10000,
             (int)((long)(Shrubs.Biomass + Trees.Biomass) * 10000 / Math.Max(1, Shrubs.Capacity + Trees.Capacity)));
         public long PlantBiomass => (long)Herbaceous.Biomass + Shrubs.Biomass + Trees.Biomass;
-        public long AvailablePlantFood(AnimalSpecies species, Season season)
+        public long AvailablePlantFood(AnimalSpecies species, Season season) => PlantFood(species, season, int.MaxValue, false);
+        internal int ConsumePlantFood(AnimalSpecies species, Season season, int wanted) => PlantFood(species, season, wanted, true);
+        public int AvailableFruit => SnowDepth >= 8000 ? 0 : Math.Min(FruitFood, Shrubs.Biomass);
+        internal int ConsumeFruit(int wanted)
         {
-            if (species == AnimalSpecies.Vole)
+            int taken = Math.Min(wanted, AvailableFruit); FruitFood -= taken; Shrubs.Biomass -= taken; return taken;
+        }
+        private int PlantFood(AnimalSpecies species, Season season, int wanted, bool consume)
+        {
+            if (AnimalDefinition.For(species).IsPredator) { return 0; }
+            int total = 0;
+            int herbLeft = Herbaceous.Biomass, shrubLeft = Shrubs.Biomass, treeLeft = Trees.Biomass;
+            bool buried = species == AnimalSpecies.Vole;
+            int access = buried ? 10000 : Math.Max(0, 10000 - SnowDepth);
+            bool winter = season == Season.Winter;
+            if (species == AnimalSpecies.Rabbit || species == AnimalSpecies.Deer || buried)
             {
-                return Herbaceous.Biomass;
+                int grass = Math.Max(0, Herbaceous.Biomass - RootFood);
+                int taken = (int)Math.Min(wanted - total, (long)grass * access / 10000);
+                if (consume) { Herbaceous.Biomass -= taken; } herbLeft -= taken; total += taken;
             }
-            if (species == AnimalSpecies.Raven)
+            if (species == AnimalSpecies.Boar || buried)
+            { total += TakeShare(Herbaceous, ref herbLeft, RootFood, access, wanted - total, consume, 0); }
+            if (species == AnimalSpecies.Boar || species == AnimalSpecies.Raven || buried)
+            { total += TakeShare(Shrubs, ref shrubLeft, SeedFood, buried ? 10000 : access, wanted - total, consume, 1); }
+            if (species == AnimalSpecies.Boar || species == AnimalSpecies.Raven)
+            { total += TakeShare(Shrubs, ref shrubLeft, FruitFood, access, wanted - total, consume, 2); }
+            if (species == AnimalSpecies.Rabbit || species == AnimalSpecies.Deer)
             {
-                return Math.Min(Shrubs.Biomass, Shrubs.SeedBank / 10);
+                total += TakeShare(Shrubs, ref shrubLeft, BrowseFood, 10000, wanted - total, consume, 3);
+                if (winter || SnowDepth > 0) { total += TakeShare(Trees, ref treeLeft, TwigFood, 10000, wanted - total, consume, 4); }
             }
-            if (AnimalDefinition.For(species).IsPredator)
+            return total;
+        }
+        private int TakeShare(VegetationState vegetation, ref int remaining, int share, int access, int wanted, bool consume, int kind)
+        {
+            int taken = (int)Math.Min(wanted, (long)Math.Min(share, remaining) * access / 10000);
+            remaining -= taken;
+            if (!consume) { return taken; }
+            vegetation.Biomass -= taken;
+            switch (kind)
             {
-                return 0;
+                case 0: RootFood -= taken; break;
+                case 1: SeedFood -= taken; break;
+                case 2: FruitFood -= taken; break;
+                case 3: BrowseFood -= taken; break;
+                case 4: TwigFood -= taken; break;
             }
-            long herb = (long)Herbaceous.Biomass * Math.Max(500, 10000 - SnowDepth) / 10000;
-            return herb + Shrubs.Biomass + (species == AnimalSpecies.Deer && (season == Season.Winter || SnowDepth > 0) ? Trees.Biomass / 2 : 0);
+            return taken;
+        }
+        // Logging, herb gathering and natural turnover remove the edible portion
+        // with its parent biomass; later winter growth cannot revive spent fruit.
+        internal void RemoveBiomass(VegetationKind kind, int amount)
+        {
+            var vegetation = Vegetation(kind);
+            int before = vegetation.Biomass;
+            int remaining = Math.Max(0, before - amount);
+            if (before > 0)
+            {
+                if (kind == VegetationKind.Herbaceous) { RootFood = (int)((long)RootFood * remaining / before); }
+                else if (kind == VegetationKind.Shrub)
+                {
+                    FruitFood = (int)((long)FruitFood * remaining / before);
+                    SeedFood = (int)((long)SeedFood * remaining / before);
+                    BrowseFood = (int)((long)BrowseFood * remaining / before);
+                }
+                else { TwigFood = (int)((long)TwigFood * remaining / before); }
+            }
+            vegetation.Biomass = remaining;
         }
         public int AvailableWater(int temperature)
         {

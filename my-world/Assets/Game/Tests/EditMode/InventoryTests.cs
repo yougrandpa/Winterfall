@@ -13,7 +13,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(inventory.TryAdd(ItemKind.Food, 3), Is.True);
             Assert.That(inventory.TryAdd(ItemKind.Water, 2), Is.True);
             Assert.That(inventory.TotalCount, Is.EqualTo(5));
-            Assert.That(inventory.TryAdd(ItemKind.Seed, 1), Is.False);
+            Assert.That(inventory.TryAdd(ItemKind.SpinachSeed, 1), Is.False);
             Assert.That(inventory.TryAdd(ItemKind.Food, int.MaxValue), Is.False);
 
             Assert.That(inventory.Food, Is.EqualTo(3));
@@ -27,7 +27,7 @@ namespace MyAiWorld.Tests.EditMode
         {
             var inventory = new InventoryState(10);
             inventory.TryAdd(ItemKind.Food, 4);
-            inventory.TryAdd(ItemKind.Seed, 2);
+            inventory.TryAdd(ItemKind.SpinachSeed, 2);
 
             Assert.That(inventory.TryRemove(ItemKind.Food, 5), Is.False);
             Assert.That(inventory.TryRemove(ItemKind.Water, 1), Is.False);
@@ -60,7 +60,7 @@ namespace MyAiWorld.Tests.EditMode
             int expectedFood = 0;
             int expectedWater = 0;
             int expectedSeed = 0;
-            ItemKind[] items = { ItemKind.Food, ItemKind.Water, ItemKind.Seed };
+            ItemKind[] items = { ItemKind.Food, ItemKind.Water, ItemKind.SpinachSeed };
 
             for (int operation = 0; operation < 1000; operation++)
             {
@@ -77,7 +77,7 @@ namespace MyAiWorld.Tests.EditMode
                 {
                     case ItemKind.Food: expectedFood += delta; break;
                     case ItemKind.Water: expectedWater += delta; break;
-                    case ItemKind.Seed: expectedSeed += delta; break;
+                    case ItemKind.SpinachSeed: expectedSeed += delta; break;
                 }
 
                 Assert.That(inventory.Count(item), Is.EqualTo(before + delta));

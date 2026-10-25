@@ -55,8 +55,8 @@ namespace MyAiWorld.Sim.Systems
                 if (world.Tick >= animal.NextMoveTick)
                 {
                     Move(world, animal);
-                    animal.NextMoveTick = world.Tick + Math.Max(3, animal.Definition.MoveTicks /
-                        (animal.Fleeing || animal.Behavior == AnimalBehavior.Hunt ? 2 : 1));
+                    animal.NextMoveTick = world.Tick + WinterEcologyRules.MoveInterval(world, animal, Math.Max(3, animal.Definition.MoveTicks /
+                        (animal.Fleeing || animal.Behavior == AnimalBehavior.Hunt ? 2 : 1)));
                 }
             }
             UpdateCarcasses(world);
@@ -97,7 +97,7 @@ namespace MyAiWorld.Sim.Systems
             int cold = Math.Max(0, definition.ColdTolerance - temperature - protection + world.Environment.Wind * 5);
             int targetTemperature = Math.Max(2000, 3800 - cold / 2);
             animal.CoreTemperature += (targetTemperature - animal.CoreTemperature) / 4;
-            int metabolism = Math.Max(1, (definition.MetabolismPerHour + cold / 40 +
+            int metabolism = Math.Max(1, (definition.MetabolismPerHour + cold / 40 + WinterEcologyRules.SnowCost(world, animal) +
                 (animal.PregnancyLitter > 0 ? definition.MetabolismPerHour / 4 : 0)) * dt / 60);
             if (animal.LifeStage == AnimalLifeStage.Infant)
             {
@@ -197,35 +197,10 @@ namespace MyAiWorld.Sim.Systems
                     break;
                 }
             }
-            int carrionEaten = eaten;
             if (!animal.Definition.IsPredator && appetite > 0)
             {
-                VegetationState primary = animal.Species == AnimalSpecies.Raven ? patch.Shrubs : patch.Herbaceous;
-                int access = animal.Species == AnimalSpecies.Vole ? 10000 : Math.Max(500, 10000 - patch.SnowDepth);
-                int grazing = Math.Min(primary.Biomass, appetite * access / 10000);
-                if (animal.Species == AnimalSpecies.Raven)
-                {
-                    grazing = Math.Min(grazing, primary.SeedBank / 10);
-                    primary.SeedBank = Math.Max(0, primary.SeedBank - grazing);
-                }
-                primary.Biomass -= grazing;
-                eaten += grazing;
-                appetite -= grazing;
-                if (appetite > 0 && animal.Species != AnimalSpecies.Vole && animal.Species != AnimalSpecies.Raven)
-                {
-                    int browse = Math.Min(patch.Shrubs.Biomass, appetite);
-                    patch.Shrubs.Biomass -= browse;
-                    eaten += browse;
-                    appetite -= browse;
-                    if (appetite > 0 && animal.Species == AnimalSpecies.Deer && (world.Date.Season == Season.Winter || patch.SnowDepth > 0))
-                    {
-                        int twigs = Math.Min(patch.Trees.Biomass, appetite / 2);
-                        patch.Trees.Biomass -= twigs;
-                        eaten += twigs;
-                        appetite -= twigs;
-                    }
-                }
-                int plantEaten = eaten - carrionEaten;
+                int plantEaten = patch.ConsumePlantFood(animal.Species, world.Date.Season, appetite);
+                eaten += plantEaten;
                 animal.Energy += plantEaten;
                 world.Ecology.Balance.PlantEaten += plantEaten;
                 animal.Behavior = AnimalBehavior.Forage;
@@ -262,12 +237,12 @@ namespace MyAiWorld.Sim.Systems
             }
             foreach (FarmPlotState plot in world.Resources.FarmPlots)
             {
-                if (plot.Crop != CropType.None && plot.ReservedBy.IsNone &&
+                if (plot.Crop != CropType.None && !GrowingBedSystem.Protected(GrowingBedSystem.Bed(world, plot)) &&
                     plot.Position.ManhattanDistance(animal.Position) <= 1)
                 {
                     // Unharvested crops are not materialized food. Damage reduces
                     // future yield, but does not invent a second biomass pool.
-                    plot.Damage = Math.Min(1800, plot.Damage + dt);
+                    AgricultureSystem.ApplyDamage(world, plot, dt);
                     return;
                 }
             }
@@ -367,7 +342,7 @@ namespace MyAiWorld.Sim.Systems
                             population++;
                         }
                     }
-                    int resourceCap = BirthSafetyCapacity(ecology, mother);
+                    int resourceCap = BirthSafetyCapacity(world, mother);
                     if (population >= resourceCap || ecology.Animals.Count >= 2048)
                     {
                         ecology.Balance.BirthsBlockedByCapacity++;
@@ -401,7 +376,7 @@ namespace MyAiWorld.Sim.Systems
                 return;
             }
             if (mother.LifeStage != AnimalLifeStage.Adult || mother.ReproductionCooldown > 0 ||
-                !definition.BreedsIn(world.Date.Season) || mother.Energy < definition.EnergyCapacity * 3 / 4 ||
+                !WinterEcologyRules.CanBreed(world, mother) || mother.Energy < definition.EnergyCapacity * 3 / 4 ||
                 mother.Health < definition.Health * 4 / 5 || mother.Hydration < 1000 ||
                 mother.MigrationDestination >= 0 || ecology.FindHabitat(mother.HabitatId).Shelter < 1500)
             {
@@ -440,8 +415,9 @@ namespace MyAiWorld.Sim.Systems
             mate.ReproductionCooldown = GameCalendar.TicksPerDay;
         }
 
-        private static int BirthSafetyCapacity(EcologyState ecology, AnimalState parent)
+        private static int BirthSafetyCapacity(WorldState world, AnimalState parent)
         {
+            EcologyState ecology = world.Ecology;
             long food = 0;
             if (parent.Definition.IsPredator)
             {
@@ -466,7 +442,7 @@ namespace MyAiWorld.Sim.Systems
                 {
                     if (patch.Region == parent.Region)
                     {
-                        food += parent.Species == AnimalSpecies.Raven ? patch.Shrubs.Biomass : patch.PlantBiomass;
+                        food += patch.AvailablePlantFood(parent.Species, world.Date.Season);
                     }
                 }
             }
@@ -553,7 +529,7 @@ namespace MyAiWorld.Sim.Systems
                 return;
             }
             if (animal.CoreTemperature < 3400 || world.Environment.Weather == WeatherKind.Blizzard &&
-                animal.Species == AnimalSpecies.Raven)
+                animal.Energy > animal.Definition.EnergyCapacity / 3)
             {
                 animal.Behavior = AnimalBehavior.Shelter;
                 ChooseHabitatTarget(world, animal, true);
@@ -870,22 +846,30 @@ namespace MyAiWorld.Sim.Systems
                     ecology.Balance.MineralProduced += 100;
                     converted = true;
                 }
+                else if (node.Item == ItemKind.Food)
+                {
+                    HabitatPatchState fruit = patch.AvailableFruit >= mass ? patch : FindFruitPool(ecology, patch, mass);
+                    if (patch.SnowDepth < 8000 && fruit != null && fruit.ConsumeFruit(mass) == mass)
+                    { ecology.Balance.MaterialBiomassProduced += mass; converted = true; }
+                }
                 else if (mass > 0)
                 {
-                    VegetationState vegetation = node.Item == ItemKind.Wood ? patch.Trees :
-                        node.Item == ItemKind.Food ? patch.Shrubs : patch.Herbaceous;
+                    VegetationKind kind = node.Item == ItemKind.Wood ? VegetationKind.Tree : VegetationKind.Herbaceous;
+                    HabitatPatchState pool = patch;
+                    VegetationState vegetation = pool.Vegetation(kind);
                     // A fixed node may sit on a small forest edge whose local patch is
                     // exhausted long before the surrounding region is. Draw from the
                     // nearest patch that still holds the same functional group, so the
                     // harvest stays inside one finite, auditable biomass pool.
                     if (vegetation.Biomass < mass)
                     {
-                        vegetation = FindBiomassPool(ecology, patch, vegetation.Kind, mass) ?? vegetation;
+                        pool = FindBiomassPool(ecology, patch, kind, mass) ?? patch;
+                        vegetation = pool.Vegetation(kind);
                     }
                     if (vegetation.Biomass >= mass &&
                         (node.Item != ItemKind.Food || patch.SnowDepth < 8000))
                     {
-                        vegetation.Biomass -= mass;
+                        pool.RemoveBiomass(kind, mass);
                         ecology.Balance.MaterialBiomassProduced += mass;
                         converted = true;
                     }
@@ -898,6 +882,18 @@ namespace MyAiWorld.Sim.Systems
                     ecology.Balance.NodeConversions[(int)node.Item]++;
                 }
             }
+        }
+
+        private static HabitatPatchState FindFruitPool(EcologyState ecology, HabitatPatchState local, int amount)
+        {
+            HabitatPatchState best = null; int distance = int.MaxValue;
+            foreach (var candidate in ecology.Habitats)
+            {
+                if (candidate.Region != local.Region || candidate.AvailableFruit < amount) { continue; }
+                int d = candidate.Origin.ManhattanDistance(local.Origin);
+                if (d < distance) { best = candidate; distance = d; }
+            }
+            return best;
         }
 
         private static HabitatPatchState FindWaterPool(EcologyState ecology, HabitatPatchState local)
@@ -918,10 +914,10 @@ namespace MyAiWorld.Sim.Systems
             return best;
         }
 
-        private static VegetationState FindBiomassPool(EcologyState ecology, HabitatPatchState local,
+        private static HabitatPatchState FindBiomassPool(EcologyState ecology, HabitatPatchState local,
             VegetationKind kind, int mass)
         {
-            VegetationState best = null;
+            HabitatPatchState best = null;
             int bestDistance = int.MaxValue;
             foreach (HabitatPatchState candidate in ecology.Habitats)
             {
@@ -933,7 +929,7 @@ namespace MyAiWorld.Sim.Systems
                 if (distance < bestDistance)
                 {
                     bestDistance = distance;
-                    best = pool;
+                    best = candidate;
                 }
             }
             return best;
@@ -1002,6 +998,17 @@ namespace MyAiWorld.Sim.Systems
                     grown = 0;
                 }
                 vegetation.Biomass += grown;
+                if (world.Date.Season != Season.Winter && grown > 0)
+                {
+                    if (kind == VegetationKind.Herbaceous) { patch.RootFood = Math.Min(vegetation.Capacity / 3, patch.RootFood + grown / 3); }
+                    if (kind == VegetationKind.Shrub)
+                    {
+                        patch.BrowseFood = Math.Min(vegetation.Capacity / 3, patch.BrowseFood + grown / 3);
+                        if (world.Date.Season == Season.Summer || world.Date.Season == Season.Autumn)
+                        { patch.FruitFood = Math.Min(vegetation.Capacity / 5, patch.FruitFood + grown / 5); patch.SeedFood = Math.Min(vegetation.Capacity / 20, patch.SeedFood + grown / 20); }
+                    }
+                    if (kind == VegetationKind.Tree) { patch.TwigFood = Math.Min(vegetation.Capacity / 20, patch.TwigFood + grown / 20); }
+                }
                 int growthWater = (grown + 3) / 4;
                 patch.Water -= growthWater;
                 balance.WaterUsed += growthWater;
@@ -1013,7 +1020,7 @@ namespace MyAiWorld.Sim.Systems
                 }
                 int turnover = world.Date.Season == Season.Autumn ? (int)((long)vegetation.Biomass * dt / (28 * GameCalendar.TicksPerDay)) :
                     world.Date.Season == Season.Winter && kind == VegetationKind.Herbaceous ? (int)((long)vegetation.Biomass * dt / (28 * GameCalendar.TicksPerDay)) : 0;
-                vegetation.Biomass -= turnover;
+                patch.RemoveBiomass(kind, turnover);
                 patch.Litter += turnover;
             }
             long decomposed = Math.Min(patch.Litter, Math.Max(1, patch.LandCells * dt / (temperature < 0 ? 240 : 60)));

@@ -9,7 +9,7 @@ namespace MyAiWorld.Sim.World
 {
     public sealed partial class EcologyState
     {
-        private const int EcologySnapshotVersion = 2;
+        private const int EcologySnapshotVersion = 3;
 
         public byte[] Capture()
         {
@@ -71,6 +71,7 @@ namespace MyAiWorld.Sim.World
                 writer.Write(patch.SnowWater);
                 writer.Write(patch.SnowDepth);
                 writer.Write(patch.SoilFertility);
+                writer.Write(patch.FruitFood); writer.Write(patch.SeedFood); writer.Write(patch.RootFood); writer.Write(patch.BrowseFood); writer.Write(patch.TwigFood);
                 writer.Write(patch.Litter);
                 writer.Write(patch.MineralRemaining);
                 writer.Write(patch.RngState);
@@ -183,6 +184,9 @@ namespace MyAiWorld.Sim.World
                 patch.SnowWater = reader.ReadInt32();
                 patch.SnowDepth = reader.ReadInt32();
                 patch.SoilFertility = reader.ReadInt32();
+                patch.FruitFood = reader.ReadInt32(); patch.SeedFood = reader.ReadInt32(); patch.RootFood = reader.ReadInt32(); patch.BrowseFood = reader.ReadInt32(); patch.TwigFood = reader.ReadInt32();
+                RequireEcology(patch.FruitFood >= 0 && patch.FruitFood <= patch.Shrubs.Capacity / 5 && patch.SeedFood >= 0 && patch.SeedFood <= patch.Shrubs.Capacity / 20 &&
+                    patch.RootFood >= 0 && patch.RootFood <= patch.Herbaceous.Capacity / 3 && patch.BrowseFood >= 0 && patch.BrowseFood <= patch.Shrubs.Capacity / 3 && patch.TwigFood >= 0 && patch.TwigFood <= patch.Trees.Capacity / 20);
                 patch.Litter = reader.ReadInt64();
                 patch.MineralRemaining = reader.ReadInt32();
                 patch.RngState = reader.ReadUInt64();
