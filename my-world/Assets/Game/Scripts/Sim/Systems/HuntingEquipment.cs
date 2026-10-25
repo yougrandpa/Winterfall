@@ -48,7 +48,7 @@ namespace MyAiWorld.Sim.Systems
                             if (weapon == ItemKind.Bow) { bows++; } else { spears++; }
                         }
                     }
-                    if (weapon == ItemKind.Bow && npc.Inventory.Count(ItemKind.Arrow) == 0) { arrows++; score += 2; }
+                    if (weapon == ItemKind.Bow && npc.Inventory.Count(ItemKind.Arrow) < HuntingRules.ArrowsPerArcher) { arrows += HuntingRules.ArrowsPerArcher - npc.Inventory.Count(ItemKind.Arrow); score += 2; }
                     if (weapon == ItemKind.Spear) { score++; }
                 }
                 if (HuntingRules.NeedsSpear(species) && !spearRole || bows > world.Resources.AvailableStock(ItemKind.Bow) ||
@@ -67,43 +67,5 @@ namespace MyAiWorld.Sim.Systems
                 npc.Survival.Durability(ItemKind.Bow) > 0 && npc.Inventory.Count(ItemKind.Arrow) > 0;
         }
 
-        internal static bool Prepare(WorldState world, NpcState npc, HuntMemberState member, HuntTaskState task,
-            out bool unavailable)
-        {
-            unavailable = false;
-            if (Ready(npc, member)) { return true; }
-            ItemKind weapon = member.Role == HuntRole.Spear ? ItemKind.Spear : ItemKind.Bow;
-            ItemKind item = npc.Survival.Durability(weapon) == 0 ? weapon : ItemKind.Arrow;
-            if (item != ItemKind.Arrow && npc.Inventory.TryRemove(item, 1))
-            {
-                npc.Survival.SetTool(item, SurvivalRules.ToolDurability);
-                return Ready(npc, member);
-            }
-            if (world.Resources.AvailableStock(item) == 0) { unavailable = true; return false; }
-            if (npc.Position.ManhattanDistance(world.Resources.StockpilePosition) > 1) { return false; }
-            if (item != ItemKind.Arrow)
-            {
-                world.Resources.Stockpile.TryRemove(item, 1);
-                npc.Survival.SetTool(item, SurvivalRules.ToolDurability);
-            }
-            else
-            {
-                int neededByOthers = 0;
-                foreach (HuntMemberState other in task.Members)
-                {
-                    if (other.NpcId != npc.Id && other.Role != HuntRole.Spear &&
-                        world.Entities.TryGetNpc(other.NpcId, out NpcState partner) && partner.Inventory.Count(ItemKind.Arrow) == 0)
-                    {
-                        neededByOthers++;
-                    }
-                }
-                int amount = Math.Min(4, Math.Min(npc.Inventory.Capacity - npc.Inventory.TotalCount,
-                    world.Resources.AvailableStock(ItemKind.Arrow) - neededByOthers));
-                if (amount <= 0) { unavailable = true; return false; }
-                world.Resources.Stockpile.TryRemove(ItemKind.Arrow, amount);
-                npc.Inventory.TryAdd(ItemKind.Arrow, amount);
-            }
-            return Ready(npc, member);
-        }
     }
 }

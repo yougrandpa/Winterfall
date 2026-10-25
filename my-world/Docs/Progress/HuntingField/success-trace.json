@@ -1,0 +1,52 @@
+{
+    "taskId": 1,
+    "target": 67,
+    "participants": [
+        1,
+        2
+    ],
+    "items": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        10,
+        2,
+        0,
+        0,
+        0
+    ],
+    "returnTicks": [
+        61254,
+        61257
+    ],
+    "returnCells": [
+        "(33,32)",
+        "(32,31)"
+    ],
+    "stages": [
+        "Gathering",
+        "Approaching",
+        "Engaging",
+        "Retrieving",
+        "Returning"
+    ],
+    "ticks": 57,
+    "success": true,
+    "prepared": true,
+    "attack": true,
+    "corpse": true,
+    "reason": "猎获已入库，全队返村"
+}

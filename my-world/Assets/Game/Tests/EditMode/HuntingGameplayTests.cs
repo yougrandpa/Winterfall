@@ -48,6 +48,9 @@ namespace MyAiWorld.Tests.EditMode
                 }
             }
 
+            world.Resources.Stockpile.TryAdd(ItemKind.Food, 100);
+            world.Resources.Stockpile.TryAdd(ItemKind.Water, 100);
+            world.Resources.Stockpile.TryAdd(ItemKind.WinterCoat, 100);
             world.Campaign.Initialize(world);
             world.Environment.Temperature = 1000;
             world.Environment.Daylight = 10000;
@@ -138,6 +141,7 @@ namespace MyAiWorld.Tests.EditMode
         {
             WorldState world = Arena(1);
             AnimalState rabbit = Prey(world, AnimalSpecies.Rabbit);
+            world.Entities.Npcs[0].Position = rabbit.Position.Offset(-2, 0);
             rabbit.NextDecisionTick = world.Tick + 30;
             rabbit.NextMoveTick = world.Tick + 18;
             GridPos start = rabbit.Position;

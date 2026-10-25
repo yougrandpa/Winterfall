@@ -1,0 +1,50 @@
+{
+    "taskId": 1,
+    "target": 45,
+    "participants": [
+        3,
+        13
+    ],
+    "items": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    ],
+    "returnTicks": [
+        121454,
+        121510
+    ],
+    "returnCells": [
+        "(38,36)",
+        "(25,35)"
+    ],
+    "stages": [
+        "Gathering",
+        "Approaching",
+        "Retreating"
+    ],
+    "ticks": 190,
+    "success": false,
+    "prepared": true,
+    "attack": false,
+    "corpse": false,
+    "reason": "追猎超时 · 返村结束"
+}

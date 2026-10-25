@@ -8,13 +8,22 @@ namespace MyAiWorld.App.Query
 {
     public sealed class HuntMemberSnapshot
     {
-        internal HuntMemberSnapshot(HuntMemberState member)
+        internal HuntMemberSnapshot(WorldState world, HuntMemberState member)
         {
+            if (world.Entities.TryGetNpc(member.NpcId, out var npc))
+            { Stamina = npc.Survival.Stamina; Energy = npc.Needs.Energy; Motion = npc.Survival.HuntMotion; Activity = npc.Action.Label; Food = npc.Inventory.Food; Water = npc.Inventory.Water; Coat = npc.Survival.CoatDurability > 0; }
             NpcId = member.NpcId;
             Role = member.Role;
             WorkCell = member.WorkCell;
         }
 
+        public int Stamina { get; }
+        public int Energy { get; }
+        public HuntMotion Motion { get; }
+        public string Activity { get; }
+        public int Food { get; }
+        public int Water { get; }
+        public bool Coat { get; }
         public EntityId NpcId
         {
             get;
@@ -33,8 +42,12 @@ namespace MyAiWorld.App.Query
 
     public sealed class HuntTaskSnapshot
     {
-        internal HuntTaskSnapshot(HuntTaskState task)
+        internal HuntTaskSnapshot(WorldState world, HuntTaskState task)
         {
+            int pending = 0; foreach (var person in task.Returns) { if (!person.Returned && !person.Dead) { pending++; } }
+            var participants = new List<EntityId>(); foreach (var person in task.Returns) { participants.Add(person.NpcId); }
+            Participants = participants.AsReadOnly();
+            PendingReturns = pending;
             Id = task.Id;
             TargetId = task.TargetId;
             LeaderId = task.LeaderId;
@@ -45,12 +58,14 @@ namespace MyAiWorld.App.Query
             var members = new List<HuntMemberSnapshot>();
             foreach (HuntMemberState member in task.Members)
             {
-                members.Add(new HuntMemberSnapshot(member));
+                members.Add(new HuntMemberSnapshot(world, member));
             }
 
             Members = members.AsReadOnly();
         }
 
+        public IReadOnlyList<EntityId> Participants { get; }
+        public int PendingReturns { get; }
         public int Id
         {
             get;
@@ -136,10 +151,11 @@ namespace MyAiWorld.App.Query
     {
         public HuntingReadModel(WorldState world)
         {
+            RecentResults = new List<HuntResultState>(world.Hunting.RecentResults).AsReadOnly();
             var tasks = new List<HuntTaskSnapshot>();
             foreach (HuntTaskState task in world.Hunting.Tasks)
             {
-                tasks.Add(new HuntTaskSnapshot(task));
+                tasks.Add(new HuntTaskSnapshot(world, task));
             }
 
             Tasks = tasks.AsReadOnly();
@@ -155,6 +171,7 @@ namespace MyAiWorld.App.Query
             Candidates = candidates.AsReadOnly();
         }
 
+        public IReadOnlyList<HuntResultState> RecentResults { get; }
         public IReadOnlyList<HuntTaskSnapshot> Tasks
         {
             get;
@@ -182,6 +199,7 @@ namespace MyAiWorld.App.Query
         {
             foreach (var task in Tasks)
             {
+                foreach (EntityId participant in task.Participants) { if (participant == id) { return task; } }
                 foreach (var member in task.Members)
                 {
                     if (member.NpcId == id)

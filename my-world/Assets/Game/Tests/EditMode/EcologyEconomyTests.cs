@@ -183,7 +183,8 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(npc.Inventory.Food, Is.Zero);
             Assert.That(prey.ReservedBy.IsNone, Is.True);
             Assert.That(npc.HuntingSkill, Is.GreaterThan(skill));
-            Assert.That(npc.Needs.Energy, Is.LessThan(8400));
+            Assert.That(npc.Survival.Stamina, Is.LessThan(10000));
+            Assert.That(npc.Needs.Energy, Is.GreaterThan(8400));
             foreach (ItemKind item in new[] { ItemKind.Food, ItemKind.RawMeat, ItemKind.Hide, ItemKind.Arrow })
             {
                 Assert.That(world.Materials.Error(world, item), Is.Zero, item.ToString());
@@ -397,8 +398,9 @@ namespace MyAiWorld.Tests.EditMode
 
         // One fixed-seed 14-day integration baseline complements focused mechanics
         // tests and the four-seed snapshot/resume determinism tests.
-        // Updated after bounded hunt waiting and urgent-survival handoff preserved all behavioral/conservation assertions.
-        [TestCase(20261020, "2275f8185d94410e")]
+        // Hunting v6: stamina, prepared supplies, sensory threats, generic loot and real returns.
+        // Updated only after all 14-day behavior, material/currency and real-kill assertions passed.
+        [TestCase(20261020, "2d1d15c4fce4a6d5")]
         [Category("LongRunning")]
         public void DefaultWorld_FourteenDays_ConservesResourcesAndCurrencyWithDistinctStrategies(int seed, string expectedHash)
         {

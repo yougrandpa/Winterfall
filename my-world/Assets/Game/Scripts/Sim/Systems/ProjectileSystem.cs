@@ -75,6 +75,7 @@ namespace MyAiWorld.Sim.Systems
                 int time = stop.Quantize();
                 arrow.X = stop.Interpolate(flight.FromX, flight.ToX);
                 arrow.Y = stop.Interpolate(flight.FromY, flight.ToY);
+                AnimalEncounterSystem.NearMiss(world, Cell(flight.FromX, flight.FromY), Cell(arrow.X, arrow.Y), arrow.Shooter);
                 arrow.LastAdvancedTick = world.Tick;
                 arrow.RemainingTicks--;
                 UpdateLastWalkable(world, arrow, flight.FromX, flight.FromY, flight.ToX, flight.ToY, stop);

@@ -181,8 +181,8 @@ namespace MyAiWorld.Sim.Systems
             if (step.Type == PlanStepType.Build) { return !f.Complete && HasInputs(f.Inventory, ProductionRecipe.ConstructionCost(f.Kind)); }
             if (step.Type == PlanStepType.Maintain) { return f.Complete && f.Inventory.Count(ItemKind.Wood) >= 1; }
             if (step.Type != PlanStepType.Craft) { return false; }
-            var recipe = ProductionRecipe.For(step.Item);
-            return recipe != null && f.Complete && f.Condition > 0 && f.Kind == recipe.Facility && HasInputs(f.Inventory, recipe.Inputs) && f.Inventory.TotalCount + recipe.Quantity - InputCount(recipe.Inputs) <= f.Inventory.Capacity;
+            var recipe = step.RecipeId == 0 ? ProductionRecipe.For(step.Item) : ProductionRecipe.ById(step.RecipeId);
+            return recipe != null && recipe.Output == step.Item && (f.PendingRecipeId == 0 || f.PendingRecipeId == recipe.Id) && f.Complete && f.Condition > 0 && f.Kind == recipe.Facility && HasInputs(f.Inventory, recipe.Inputs) && f.Inventory.TotalCount + recipe.Quantity - InputCount(recipe.Inputs) <= f.Inventory.Capacity;
         }
         internal static bool HasInputs(InventoryState inventory, int[] inputs)
         { for (int i = 0; i < inputs.Length; i += 2) { if (inventory.Count((ItemKind)inputs[i]) < inputs[i + 1]) { return false; } } return true; }
@@ -263,8 +263,9 @@ namespace MyAiWorld.Sim.Systems
             else if (step.Type == PlanStepType.Maintain) { Consume(world, f.Inventory, new[] { (int)ItemKind.Wood, 1 }); f.Condition = 100; }
             else
             {
-                var recipe = ProductionRecipe.For(step.Item); Consume(world, f.Inventory, recipe.Inputs);
+                var recipe = step.RecipeId == 0 ? ProductionRecipe.For(step.Item) : ProductionRecipe.ById(step.RecipeId); Consume(world, f.Inventory, recipe.Inputs);
                 f.Inventory.TryAdd(recipe.Output, recipe.Quantity); world.Materials.Produce(recipe.Output, recipe.Quantity);
+                f.PendingRecipeId = 0;
                 npc.Survival.Crafted++; if (step.Item == ItemKind.Water) { npc.Survival.WaterProduced += recipe.Quantity; }
             }
             return true;

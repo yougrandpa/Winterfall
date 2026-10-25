@@ -138,9 +138,11 @@ namespace MyAiWorld.Presentation.UI
                 text.Append("\n狩猎队 #").Append(task.Id).Append(" · ").Append(StageText(task.Stage));
                 foreach (var member in task.Members)
                 {
-                    text.Append("\n").Append(NpcName(member.NpcId)).Append(" · ").Append(RoleText(member.Role));
+                    text.Append("\n").Append(NpcName(member.NpcId)).Append(" · ").Append(RoleText(member.Role)).Append(" · 耐力 ").Append(member.Stamina / 100).Append("% · 精力 ").Append(member.Energy / 100).Append("%")
+                        .Append("\n  ").Append(ChineseText.Activity(member.Activity)).Append(" · 食 ").Append(member.Food).Append(" 水 ").Append(member.Water).Append(member.Coat ? " · 冬衣" : "");
                 }
 
+                if (task.Members.Count == 0 && task.PendingReturns > 0) { text.Append("\n求生接管后待返村：").Append(task.PendingReturns).Append(" 人"); }
                 if (!string.IsNullOrEmpty(task.Reason))
                 {
                     text.Append("\n").Append(task.Reason);
@@ -151,6 +153,20 @@ namespace MyAiWorld.Presentation.UI
                 text.Append("点击猎物可标记目标；点击村民可查看所属队伍。\n当前狩猎队：").Append(_session.ReadModel.Hunting.Tasks.Count);
             }
 
+            if (task == null)
+            {
+                HuntResultState result = null;
+                foreach (var previous in _session.ReadModel.Hunting.RecentResults)
+                {
+                    if (_selection.SelectedAnimal.HasValue && previous.TargetId == _selection.SelectedAnimal.Value ||
+                        _selected.HasValue && System.Linq.Enumerable.Contains(previous.Participants, _selected.Value)) { result = previous; }
+                }
+                if (result != null)
+                {
+                    text.Append("\n狩猎队 #").Append(result.Id).Append(result.Success ? " · 狩猎成功" : " · 狩猎结束").Append("\n").Append(result.Reason);
+                    for (int item = 0; item < result.Items.Count; item++) { if (result.Items[item] > 0) { text.Append("\n入库 ").Append(ChineseText.Item((ItemKind)item)).Append(' ').Append(result.Items[item]); } }
+                }
+            }
             _huntDescription.text = text.ToString();
             if (_huntCommandTick >= 0 && _session.LastTick > _huntCommandTick)
             {
@@ -223,7 +239,7 @@ namespace MyAiWorld.Presentation.UI
         }
 
         public static string StageText(HuntStage stage) => new[]{"集结准备", "接近围堵", "交战", "回收猎获", "返回村庄", "撤退回村"}[(int)stage];
-        public static string RoleText(HuntRole role) => new[]{"弓手", "持矛接应", "侧翼截击"}[(int)role];
+        public static string RoleText(HuntRole role) => new[]{"弓箭猎人", "长矛猎人", "侧翼弓手"}[(int)role];
         private static string EncounterText(EncounterPhase phase) => new[]{"平静", "警觉", "逃跑", "反击", "脱战恢复"}[(int)phase];
     }
 }

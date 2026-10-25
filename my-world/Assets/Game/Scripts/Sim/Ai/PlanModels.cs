@@ -12,7 +12,7 @@ namespace MyAiWorld.Sim.Ai
 
     public sealed class PlanStep
     {
-        public PlanStep(PlanStepType type, GridPos target, int resourceId = 0, ItemKind item = ItemKind.Food, int quantity = 1, int durationTicks = 1, int unitPrice = 0)
+        public PlanStep(PlanStepType type, GridPos target, int resourceId = 0, ItemKind item = ItemKind.Food, int quantity = 1, int durationTicks = 1, int unitPrice = 0, int recipeId = 0)
         {
             Type = type;
             Target = target;
@@ -21,6 +21,7 @@ namespace MyAiWorld.Sim.Ai
             Quantity = quantity;
             DurationTicks = durationTicks;
             UnitPrice = unitPrice;
+            RecipeId = recipeId;
         }
 
         public PlanStepType Type { get; }
@@ -30,6 +31,7 @@ namespace MyAiWorld.Sim.Ai
         public int Quantity { get; }
         public int DurationTicks { get; }
         public int UnitPrice { get; }
+        public int RecipeId { get; }
         public string Preconditions => Type == PlanStepType.Move ? "reachable target" :
             Type == PlanStepType.Eat ? "carry food" : Type == PlanStepType.Drink ? "carry water" :
             Type == PlanStepType.Hunt ? "perceived reserved prey; weapon and ammunition; energy; attack range; recovery route" :

@@ -113,6 +113,15 @@ namespace MyAiWorld.Sim.Systems
             }
         }
 
+        public static bool CanHuntTrip(WorldState world, NpcState npc, int outwardCost)
+        {
+            int exposure = EffectiveTemperature(world, npc, false);
+            int cooling = exposure >= 500 ? 0 : Math.Max(1, (500 - exposure + 599) / 600);
+            int duration = outwardCost * 3 + 45;
+            return npc.Survival.BodyTemperature - cooling * duration >= 3600 && npc.Survival.Wetness < 5000 &&
+                (!HuntingPreparation.CoatRequired(world) || npc.Survival.CoatDurability > 0);
+        }
+
         public static bool IsSafe(WorldState world, NpcState npc)
         {
             return npc.Survival.Life != LifeState.Dead && npc.Survival.BodyTemperature >= 3500 &&

@@ -207,6 +207,7 @@ namespace MyAiWorld.Sim.Ai
 
         private bool Recipe(WorldState world, NpcState npc, ProductionRecipe recipe, List<PlanStep> steps)
         {
+            recipe = ProductionRecipe.Select(world, npc, recipe.Output);
             var facility = world.Survival.Facility(recipe.Facility);
             if (facility == null || !facility.ReservedBy.IsNone || !CanReach(world, npc.Position, facility.WorkCell)) { return false; }
             int missing = 0, consumed = 0;
@@ -218,10 +219,10 @@ namespace MyAiWorld.Sim.Ai
             // Do not stage a batch that cannot fit either its inputs or its output.
             int stagedTotal = facility.Inventory.TotalCount + missing;
             return stagedTotal <= facility.Inventory.Capacity && stagedTotal - consumed + recipe.Quantity <= facility.Inventory.Capacity &&
-                StageOrWork(world, npc, facility, recipe.Inputs, PlanStepType.Craft, recipe.Output, steps);
+                StageOrWork(world, npc, facility, recipe.Inputs, PlanStepType.Craft, recipe.Output, steps, recipe.Id);
         }
 
-        private bool StageOrWork(WorldState world, NpcState npc, FacilityState facility, int[] inputs, PlanStepType work, ItemKind output, List<PlanStep> steps)
+        private bool StageOrWork(WorldState world, NpcState npc, FacilityState facility, int[] inputs, PlanStepType work, ItemKind output, List<PlanStep> steps, int recipeId = 0)
         {
             // Use carried ingredients first, even when an earlier ingredient is absent.
             // Each trip stages at most the missing part of one bounded recipe batch.
@@ -237,12 +238,14 @@ namespace MyAiWorld.Sim.Ai
                     if (!AcquireBatch(world, npc, item, desired, steps, out int amount))
                     { world.Resources.Release(npc.Id); steps.Clear(); continue; }
                     if (!ClaimFacility(world, npc, facility)) { world.Resources.Release(npc.Id); steps.Clear(); return false; }
+                    facility.PendingRecipeId = recipeId;
                     Move(steps, facility.WorkCell); steps.Add(new PlanStep(PlanStepType.Deliver, facility.WorkCell, facility.Id, item, amount, 2)); return true;
                 }
             }
             if (!ProductionSystem.HasInputs(facility.Inventory, inputs) || work == PlanStepType.Wait || !ClaimFacility(world, npc, facility)) { return false; }
             Move(steps, facility.WorkCell);
-            steps.Add(new PlanStep(work, facility.WorkCell, facility.Id, output, durationTicks: work == PlanStepType.Build ? SurvivalRules.ConstructionTicks - facility.Progress : work == PlanStepType.Craft ? ProductionRecipe.For(output).Ticks : 8));
+            facility.PendingRecipeId = recipeId;
+            steps.Add(new PlanStep(work, facility.WorkCell, facility.Id, output, durationTicks: work == PlanStepType.Build ? SurvivalRules.ConstructionTicks - facility.Progress : work == PlanStepType.Craft ? ProductionRecipe.ById(recipeId).Ticks : 8, recipeId: recipeId));
             return true;
         }
 

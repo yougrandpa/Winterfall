@@ -13,7 +13,34 @@ namespace MyAiWorld.Sim.Systems
 
         internal static bool NeedsRetreat(WorldState world, NpcState npc) =>
             npc.Needs.Health < HuntingRules.RetreatHealth || npc.Needs.Energy < HuntingRules.RetreatEnergy ||
-            npc.Needs.Food < 1500 || npc.Needs.Water < 1800 || ThermalSystem.ShouldSeekWarmth(world, npc);
+            npc.Needs.Food < 1500 || npc.Needs.Water < 1800 || ThermalRisk(world, npc);
+
+        internal static bool ThermalRisk(WorldState world, NpcState npc)
+        {
+            if (npc.Survival.BodyTemperature < 3600 || npc.Survival.Wetness >= 5000) { return true; }
+            if (npc.Survival.CoatDurability == 0) { return ThermalSystem.ShouldSeekWarmth(world, npc); }
+            PathResult path = Pathfinder.FindPath(world.Map, npc.Position, npc.Home);
+            return !path.Found || !ThermalSystem.CanHuntTrip(world, npc, path.Cost);
+        }
+
+        internal static string Reason(WorldState world, NpcState npc)
+        {
+            if (npc.Needs.Health < HuntingRules.RetreatHealth) { return npc.Name + "受伤，生命不足"; }
+            if (npc.Needs.Energy < HuntingRules.RetreatEnergy) { return npc.Name + "长期精力不足，需要睡眠"; }
+            if (npc.Needs.Food < 1500) { return npc.Name + "食物耗尽，无法继续追猎"; }
+            if (npc.Needs.Water < 1800) { return npc.Name + "饮水耗尽，无法继续追猎"; }
+            return npc.Name + "受寒风险，需要返村取暖";
+        }
+
+        internal static bool VisibleDanger(WorldState world, NpcState npc)
+        {
+            foreach (AnimalState animal in world.Ecology.Animals)
+            {
+                if (animal.Region == -1 && animal.Health > 0 && animal.Position.ManhattanDistance(npc.Position) <= 2 &&
+                    HuntingSystem.Perceived(world, npc, animal) && (animal.Encounter.Phase == EncounterPhase.Defending || animal.LastDamageSourceId == npc.Id)) { return true; }
+            }
+            return false;
+        }
 
         internal static bool CanCover(WorldState world, NpcState npc) =>
             npc.Survival.Life == LifeState.Active && npc.Needs.Health >= HuntingRules.JoinHealth &&
@@ -48,13 +75,16 @@ namespace MyAiWorld.Sim.Systems
                 {
                     return "队员倒地或离队";
                 }
-                if (NeedsRetreat(world, npc))
+                if (task.Stage != HuntStage.Gathering && !VisibleDanger(world, npc)) { HuntingPreparation.EatDrink(world, npc); }
+                if (task.Stage != HuntStage.Gathering && NeedsRetreat(world, npc) || npc.Needs.Health < HuntingRules.RetreatHealth || npc.Survival.IsCold)
                 {
-                    return "队员受伤、疲惫或需求告急";
+                    return Reason(world, npc);
                 }
                 if (!Pathfinder.FindPath(world.Map, npc.Position, npc.Home).Found) { return "队员退路不可达"; }
+                bool arrowInFlight = false;
+                foreach (ProjectileState arrow in world.Combat.Projectiles) { if (arrow.Shooter == npc.Id && arrow.Phase == ProjectilePhase.Flying) { arrowInFlight = true; break; } }
                 if ((task.Stage == HuntStage.Approaching || task.Stage == HuntStage.Engaging) &&
-                    !HuntingEquipment.Ready(npc, member))
+                    !HuntingEquipment.Ready(npc, member) && !(member.Role != HuntRole.Spear && npc.Survival.Durability(ItemKind.Bow) > 0 && arrowInFlight))
                 {
                     return "队伍武器损坏或箭矢耗尽，停止追猎";
                 }
@@ -101,7 +131,7 @@ namespace MyAiWorld.Sim.Systems
                         !Pathfinder.FindPath(world.Map, side, npc.Home).Found) { continue; }
                     CombatSystem.CancelUnreleased(world, npc.Id);
                     npc.Position = side;
-                    npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - 4);
+                    npc.Survival.Stamina = Math.Max(0, npc.Survival.Stamina - 180);
                     npc.Action.Label = "Hunt: dodge";
                     npc.Action.Target = side;
                     return true;

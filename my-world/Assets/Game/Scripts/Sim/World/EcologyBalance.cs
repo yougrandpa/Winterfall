@@ -63,7 +63,7 @@ namespace MyAiWorld.Sim.World
             }
             foreach (CarcassState carcass in ecology.Carcasses)
             {
-                total += (long)(carcass.MeatRemaining + carcass.HideRemaining) * 100;
+                total += carcass.Biomass;
             }
             return total;
         }
@@ -89,7 +89,9 @@ namespace MyAiWorld.Sim.World
                 case ItemKind.Food:
                 case ItemKind.Wood:
                 case ItemKind.RawMeat:
-                case ItemKind.Hide: return 100;
+                case ItemKind.Hide:
+                case ItemKind.Fur: return 100;
+                case ItemKind.Feather: return 25;
                 case ItemKind.Fiber: return 50;
                 case ItemKind.Herb: return 25;
                 default: return 0;

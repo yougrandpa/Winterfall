@@ -31,7 +31,7 @@ namespace MyAiWorld.Sim.Systems
             foreach (NpcState npc in world.Entities.Npcs)
             {
                 int distance = npc.Position.ManhattanDistance(animal.Position);
-                if (npc.Survival.Life != LifeState.Active || distance > sight || !npc.HasHuntingTool && distance > 2 || !HuntingSystem.Visible(world, animal.Position, npc.Position))
+                if (npc.Survival.Life != LifeState.Active || distance > sight || distance > (npc.Survival.HuntMotion == HuntMotion.Sneak ? 2 : animal.Species == AnimalSpecies.Deer || animal.Species == AnimalSpecies.Wolf ? 4 : 3) || !npc.HasHuntingTool && distance > 2 || !HuntingSystem.Visible(world, animal.Position, npc.Position))
                 {
                     continue;
                 }
@@ -103,12 +103,12 @@ namespace MyAiWorld.Sim.Systems
                 }
 
                 bool cornered = Exits(world, animal.Position) <= 1 || nearbyHunters >= 2;
-                bool engaged = animal.LastDamageSourceId == threat || world.Hunting.ForTarget(animal.Id) != null || distance <= 1;
+                bool engaged = animal.LastDamageSourceId == threat && world.Tick < state.ThreatUntilTick || distance <= 1;
                 if (!engaged && animal.Species == AnimalSpecies.Wolf)
                 {
                     foreach (AnimalState pack in world.Ecology.Animals)
                     {
-                        if (pack != animal && pack.GroupId == animal.GroupId && pack.Region == -1 && pack.Health > 0 && pack.Position.ManhattanDistance(animal.Position) <= 6 && (world.Hunting.ForTarget(pack.Id) != null || pack.LastDamageSourceId == threat))
+                        if (pack != animal && pack.GroupId == animal.GroupId && pack.Region == -1 && pack.Health > 0 && pack.Position.ManhattanDistance(animal.Position) <= 6 && (pack.Encounter.ThreatId == threat && world.Tick < pack.Encounter.ThreatUntilTick && (pack.Encounter.Phase == EncounterPhase.Defending || pack.LastDamageSourceId == threat)))
                         {
                             engaged = true;
                             break;
@@ -207,6 +207,43 @@ namespace MyAiWorld.Sim.Systems
             }
 
             return false;
+        }
+
+        internal static void NearMiss(WorldState world, GridPos from, GridPos to, EntityId source)
+        {
+            long dx = to.X - from.X, dy = to.Y - from.Y, length = dx * dx + dy * dy;
+            if (length == 0) { return; }
+            foreach (AnimalState animal in world.Ecology.Animals)
+            {
+                if (animal.Region != -1 || animal.Health <= 0) { continue; }
+                long x = animal.Position.X - from.X, y = animal.Position.Y - from.Y;
+                long dot = x * dx + y * dy, cross = x * dy - y * dx;
+                // An arrow still approaching is not a near miss. Do not give every
+                // animal a free warning one tick before the projectile can arrive.
+                if (dot < 0 || dot > length || cross * cross > length) { continue; }
+                GridPos heard = new GridPos(Math.Max(0, Math.Min(world.Map.Width - 1, from.X + (int)(dx * dot / length))), Math.Max(0, Math.Min(world.Map.Height - 1, from.Y + (int)(dy * dot / length))));
+                AnimalEncounterState state = animal.Encounter;
+                state.ThreatId = source; state.ThreatIsAnimal = false; state.LastThreatPosition = heard;
+                state.ThreatUntilTick = world.Tick + HuntingRules.LostTicks; state.AlertTick = Math.Max(0, world.Tick - 1);
+                state.Phase = EncounterPhase.Fleeing; animal.Fleeing = true;
+            }
+        }
+
+        internal static void Disturb(WorldState world, GridPos origin, EntityId source, int radius)
+        {
+            if (!world.Map.IsInside(origin)) { return; }
+            foreach (AnimalState animal in world.Ecology.Animals)
+            {
+                if (animal.Region != -1 || animal.Health <= 0 || animal.Position.ManhattanDistance(origin) > radius) { continue; }
+                AnimalEncounterState state = animal.Encounter;
+                state.ThreatId = source;
+                state.ThreatIsAnimal = false;
+                state.LastThreatPosition = origin;
+                state.ThreatUntilTick = world.Tick + HuntingRules.LostTicks;
+                state.AlertTick = Math.Max(0, world.Tick - 1);
+                state.Phase = EncounterPhase.Fleeing;
+                animal.Fleeing = true;
+            }
         }
 
         internal static void Hit(WorldState world, AnimalState animal, EntityId source, bool isAnimal, long projectileId = 0)

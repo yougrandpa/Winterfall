@@ -24,12 +24,12 @@ python3 tools/test.py --no-build
 
 | 层级 | 当前用例数 | 入口 | 使用时机 |
 | --- | ---: | --- | --- |
-| 快速代码测试 | 452 | `python3 tools/test.py` | 日常修改，或用 `--filter` 选择相关测试 |
+| 快速代码测试 | 486 | `python3 tools/test.py` | 日常修改，或用 `--filter` 选择相关测试 |
 | 长周期代码回归 | 13 | `python3 tools/test.py slow` | 修改长期生产、生态、确定性或存读档规则时 |
-| 全部可移植代码测试 | 465 | `python3 tools/test.py full` | 需要更广的模拟与 App 回归时；包含前两层 |
+| 全部可移植代码测试 | 499 | `python3 tools/test.py full` | 需要更广的模拟与 App 回归时；包含前两层 |
 | 编辑器配置集成 | 1 | 编辑器完整 EditMode 或按测试名选择 | 修改 ScriptableObject 配置适配时 |
-| 引擎与界面集成 | 66 | 按测试名运行 PlayMode；完整入口仍保留 | 修改渲染、输入、UI、场景或资源时 |
-| 引擎冒烟检查 | 4（上述 66 项的子集） | Verification → Run PlayMode Smoke Tests | 需要检查启动、动物选择、狩猎按钮和读档视图接线时 |
+| 引擎与界面集成 | 69 | 按测试名运行 PlayMode；完整入口仍保留 | 修改渲染、输入、UI、场景或资源时 |
+| 引擎冒烟检查 | 4（上述 69 项的子集） | Verification → Run PlayMode Smoke Tests | 需要检查启动、动物选择、狩猎按钮和读档视图接线时 |
 | 启动器缓存单测 | 6 | `python3 -m unittest discover -s tools/tests -v` | 修改启动器、缓存或编译调用时，无需 C# 编译器 |
 
 默认快速集明确排除标记为 `LongRunning` 的 13 项，不把它们记为“跳过”或“通过”。报告保留发现、选中和未选中的数量；实际选中的测试出现失败、跳过或不确定结果，命令均失败。未匹配任何测试返回退出码 2。
@@ -93,3 +93,14 @@ python3 tools/test.py --editor /path/to/Tuanjie.app
 停止追猎反馈后的稳定性集再增加 7 项，累计 21 项；新增自动撤退停止按钮及默认世界 1×／4×／8× 两项 PlayMode 用例。当前为 EditMode 466 项、PlayMode 66 项，共 532 项。默认生态快照用例保留真实猎获断言，将原先固定 800 tick 的观察扩展为最多两个游戏日，并使用隔离临时存档目录。完整编辑器复验及首轮失败修复证据见 [复核记录](Progress/Hunting-Completion-2026-10-25.md)。
 
 本次最终原工程完整 EditMode **466 项通过，31.390 秒**，完整 PlayMode **66 项通过，66.428 秒**，均零失败／跳过。包含长期守恒、存读档、实际 UI 射线点击、默认地图倍速操作及三分辨率检查；报告为两个 `*-CurrentProject.json`。这是按用户要求执行的本轮完整验收，日常入口继续优先独立代码测试。
+
+
+## 2026-10-25 野外狩猎完整流程
+
+新增 34 项可移植野外狩猎用例（含提交前审查补充的三项），当前快速集 486 项、长周期 13 项、全部可移植 499 项；另有一项编辑器配置测试与 69 项 PlayMode。新流程测试保留在引擎内，不进入独立代码入口。
+
+- **Run Hunting Field E2E Tests**：成功回收返村、真实追猎超时返村、未修改默认世界的自动组队完整流程；报告 `Hunting-Field-CurrentProject.json`。
+- **Run Hunting Presentation Tests**：现有攻击帧、屏幕选择、真实按钮射线、停止操作、1×／4×／8×、冲锋与受伤画面、三种分辨率；报告 `Hunting-Presentation-CurrentProject.json`。
+- **Run PlayMode Smoke Tests**：原四项引擎接线冒烟；报告 `PlayMode-EngineSmoke-CurrentProject.json`。
+
+日常仍先运行 `python3 tools/test.py`。修改生存、生态、产物或存档规则时运行 `python3 tools/test.py full`。具体本轮证据和首轮失败修复见 [野外狩猎验收记录](Progress/Hunting-Field-2026-10-25.md)。

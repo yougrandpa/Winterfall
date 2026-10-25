@@ -20,6 +20,9 @@ namespace MyAiWorld.Presentation.Rendering
         private readonly Dictionary<EntityId, AnimalView> _animalViews = new Dictionary<EntityId, AnimalView>();
         private readonly Dictionary<int, SpriteRenderer> _cropViews = new Dictionary<int, SpriteRenderer>();
         private readonly Dictionary<int, SpriteRenderer> _facilityViews = new Dictionary<int, SpriteRenderer>();
+        private readonly Dictionary<int, SpriteRenderer> _carcassViews = new Dictionary<int, SpriteRenderer>();
+        private readonly Dictionary<int, SpriteRenderer> _lootViews = new Dictionary<int, SpriteRenderer>();
+        public int CarcassViewCount => _carcassViews.Count;
         private readonly Dictionary<int, SpriteRenderer> _groundViews = new Dictionary<int, SpriteRenderer>();
         private Transform _resourceRoot;
         private PastoralArtConfig _art;
@@ -184,7 +187,7 @@ namespace MyAiWorld.Presentation.Rendering
                 if (child != null) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
             }
             foreach (Tile tile in _ownedTiles) { Destroy(tile); }
-            _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear();
+            _ownedTiles.Clear(); _views.Clear(); _viewList.Clear(); _animalViews.Clear(); _resourceViews.Clear(); _cropViews.Clear(); _fadingAnimals.Clear(); _facilityViews.Clear(); _groundViews.Clear(); _carcassViews.Clear(); _lootViews.Clear();
             _resourceTick = -1; _selected = null;
             if (_canopyFader != null) { _canopyFader.Clear(); }
             _campDressing = null;
@@ -697,6 +700,23 @@ namespace MyAiWorld.Presentation.Rendering
             foreach (var pair in _groundViews) { if (!remaining.Contains(pair.Key)) { Destroy(pair.Value.gameObject); removedGround.Add(pair.Key); } }
             foreach (int id in removedGround) { _groundViews.Remove(id); }
 
+            var bodies = new HashSet<int>();
+            foreach (var body in model.EcologyEconomy.Carcasses)
+            {
+                bodies.Add(body.Id.Value);
+                if (!_carcassViews.TryGetValue(body.Id.Value, out SpriteRenderer corpse))
+                { corpse = CreateResourceView("Carcass_" + body.Id.Value, body.Cell, _art.Get("carcass_" + (int)body.Species)); _carcassViews.Add(body.Id.Value, corpse); }
+                corpse.color = Color.Lerp(new Color(0.55f, 0.53f, 0.48f), Color.white, body.Freshness / 10000f);
+                int icon = -1;
+                for (int item = body.Harvest.Count - 1; item >= 0; item--) { if (body.Harvest[item] > 0) { icon = item; break; } }
+                if (!_lootViews.TryGetValue(body.Id.Value, out SpriteRenderer loot))
+                { loot = CreateResourceView("Loot_" + body.Id.Value, body.Cell, null); _lootViews.Add(body.Id.Value, loot); loot.transform.position += new Vector3(0.35f, 0.12f, 0); loot.transform.localScale = Vector3.one * 0.45f; }
+                loot.sprite = icon < 0 ? null : _art.Get("field_loot_" + icon);
+                loot.enabled = icon >= 0;
+            }
+            var removedBodies = new List<int>();
+            foreach (var pair in _carcassViews) { if (!bodies.Contains(pair.Key)) { Destroy(pair.Value.gameObject); Destroy(_lootViews[pair.Key].gameObject); removedBodies.Add(pair.Key); } }
+            foreach (int id in removedBodies) { _carcassViews.Remove(id); _lootViews.Remove(id); }
             var living = new HashSet<EntityId>();
             foreach (AnimalSnapshot animal in model.EcologyEconomy.Animals)
             {

@@ -21,7 +21,7 @@ namespace MyAiWorld.Sim.Systems
             foreach (var f in state.Facilities)
             {
                 w.Write(f.Id); w.Write((int)f.Kind); WorldSnapshot.WritePos(w, f.Position); WorldSnapshot.WritePos(w, f.WorkCell);
-                w.Write(f.Progress); w.Write(f.Condition); w.Write(f.ReservedBy.Value); w.Write(f.WellNodeId); WorldSnapshot.WriteInventory(w, f.Inventory);
+                w.Write(f.PendingRecipeId); w.Write(f.Progress); w.Write(f.Condition); w.Write(f.ReservedBy.Value); w.Write(f.WellNodeId); WorldSnapshot.WriteInventory(w, f.Inventory);
             }
             w.Write(state.Ground.Count);
             foreach (var g in state.Ground)
@@ -39,6 +39,7 @@ namespace MyAiWorld.Sim.Systems
             foreach (var npc in world.Entities.Npcs)
             {
                 var n = npc.Survival;
+                w.Write(n.Stamina); w.Write(n.RecoveringStamina); w.Write((int)n.HuntMotion); w.Write(n.NextHuntMoveTick); w.Write(n.LastStaminaTick);
                 w.Write((int)n.Life); w.Write(n.RescueDeadline); w.Write(n.Rescuer.Value); w.Write(n.DiseaseTicks); w.Write(n.WorkRetryTick);
                 w.Write(n.HuntDropId); w.Write(n.Rescues); w.Write(n.Crafted); w.Write(n.Built); w.Write(n.WaterProduced);
                 w.Write(n.ShelterId); w.Write(n.BodyTemperature); w.Write(n.Wetness); w.Write(n.ColdTicks); w.Write(n.CoatDurability);
@@ -55,6 +56,8 @@ namespace MyAiWorld.Sim.Systems
             for (int i = 0; i < count; i++)
             {
                 var f = new FacilityState(r.ReadInt32(), (FacilityKind)r.ReadInt32(), WorldSnapshot.ReadPos(r), WorldSnapshot.ReadPos(r));
+                f.PendingRecipeId = r.ReadInt32();
+                WorldSnapshot.Require(f.PendingRecipeId == 0 || ProductionRecipe.ById(f.PendingRecipeId) != null && ProductionRecipe.ById(f.PendingRecipeId).Facility == f.Kind);
                 f.Progress = r.ReadInt32(); f.Condition = r.ReadInt32(); f.ReservedBy = new EntityId(r.ReadInt32()); f.WellNodeId = r.ReadInt32();
                 WorldSnapshot.ReadInventory(r, f.Inventory);
                 WorldSnapshot.Require(f.Id > 0 && state.FindFacility(f.Id) == null && Enum.IsDefined(typeof(FacilityKind), f.Kind) &&
@@ -90,6 +93,8 @@ namespace MyAiWorld.Sim.Systems
             foreach (var npc in world.Entities.Npcs)
             {
                 var n = npc.Survival;
+                n.Stamina = r.ReadInt32(); n.RecoveringStamina = r.ReadBoolean(); n.HuntMotion = (HuntMotion)r.ReadInt32(); n.NextHuntMoveTick = r.ReadInt64(); n.LastStaminaTick = r.ReadInt64();
+                WorldSnapshot.Require(n.Stamina >= 0 && n.Stamina <= 10000 && Enum.IsDefined(typeof(HuntMotion), n.HuntMotion) && n.NextHuntMoveTick >= 0 && n.LastStaminaTick >= -1 && n.LastStaminaTick <= world.Tick);
                 n.Life = (LifeState)r.ReadInt32(); n.RescueDeadline = r.ReadInt64(); n.Rescuer = new EntityId(r.ReadInt32()); n.DiseaseTicks = r.ReadInt32(); n.WorkRetryTick = r.ReadInt64();
                 n.HuntDropId = r.ReadInt32(); n.Rescues = r.ReadInt32(); n.Crafted = r.ReadInt32(); n.Built = r.ReadInt32(); n.WaterProduced = r.ReadInt32();
                 n.ShelterId = r.ReadInt32(); n.BodyTemperature = r.ReadInt32(); n.Wetness = r.ReadInt32();

@@ -300,7 +300,7 @@ namespace MyAiWorld.Presentation.UI
             AddFactRow(content, "skill", "狩猎技能", "shield", "tool", "狩猎工具", "target");
             AddFactRow(content, "cell", "位置", "pin", "home", "住所", "home");
             AddFactRow(content, "trade", "买卖", "coin", "output", "产出", "leaf");
-            AddFactRow(content, "condition", "状况", "health", null, null, null);
+            AddFactRow(content, "condition", "状况", "health", "stamina", "短期耐力", "shield");
 
             HudLayout.Section(content, "需求趋势");
             _historyBody = HudLayout.Label(content, "NeedsHistory", "", 11, true);

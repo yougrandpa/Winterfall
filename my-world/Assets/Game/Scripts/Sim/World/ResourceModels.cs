@@ -7,7 +7,7 @@ namespace MyAiWorld.Sim.World
     public enum ItemKind
     {
         Food, Water, Seed, RawWater, Wood, Stone, Fiber, Herb, Medicine, WheatSeed, BeanSeed, Bow, Spear, Hoe, Bucket,
-        Arrow, RawMeat, Hide, WinterCoat, Count
+        Arrow, RawMeat, Hide, WinterCoat, Fur, Feather, Count
     }
     public enum CropType
     {
@@ -19,7 +19,7 @@ namespace MyAiWorld.Sim.World
     }
     public enum ReservationKind
     {
-        Node, FarmPlot, Stockpile, WorkCell
+        Node, FarmPlot, Stockpile, WorkCell, HuntSupply
     }
 
     public sealed class InventoryState
@@ -188,6 +188,22 @@ namespace MyAiWorld.Sim.World
         public IReadOnlyList<FarmPlotState> FarmPlots => _plotView;
         public IReadOnlyList<ResourceReservation> Reservations => _reservationView;
 
+        internal int TakeHuntSupply(EntityId owner, ItemKind item, int quantity)
+        {
+            int taken = 0;
+            for (int i = _reservations.Count - 1; i >= 0 && taken < quantity; i--)
+            {
+                ResourceReservation r = _reservations[i];
+                if (r.Owner != owner || r.Kind != ReservationKind.HuntSupply || r.Item != item) { continue; }
+                int amount = Math.Min(quantity - taken, r.Quantity);
+                if (!Stockpile.TryRemove(item, amount)) { break; }
+                _reservations.RemoveAt(i);
+                if (r.Quantity > amount) { _reservations.Insert(i, new ResourceReservation(owner, r.Kind, 0, item, r.Quantity - amount, StockpilePosition)); }
+                taken += amount;
+            }
+            return taken;
+        }
+
         internal void AddNode(ResourceNodeState node)
         {
             _nodes.Add(node);
@@ -205,7 +221,7 @@ namespace MyAiWorld.Sim.World
             for (int i = 0; i < _reservations.Count; i++)
             {
                 ResourceReservation reservation = _reservations[i];
-                if (reservation.Kind == ReservationKind.Stockpile && reservation.Item == item)
+                if ((reservation.Kind == ReservationKind.Stockpile || reservation.Kind == ReservationKind.HuntSupply) && reservation.Item == item)
                 {
                     available -= reservation.Quantity;
                 }
@@ -217,7 +233,7 @@ namespace MyAiWorld.Sim.World
         {
             for (int i = 0; i < _reservations.Count; i++)
             {
-                if (_reservations[i].Owner != owner && _reservations[i].Position == position)
+                if (_reservations[i].Kind != ReservationKind.HuntSupply && _reservations[i].Owner != owner && _reservations[i].Position == position)
                 {
                     return false;
                 }
@@ -231,19 +247,19 @@ namespace MyAiWorld.Sim.World
             {
                 return false;
             }
-            if (reservation.Kind == ReservationKind.Stockpile && reservation.Position != StockpilePosition)
+            if ((reservation.Kind == ReservationKind.Stockpile || reservation.Kind == ReservationKind.HuntSupply) && reservation.Position != StockpilePosition)
             {
                 return false;
             }
             for (int i = 0; i < _reservations.Count; i++)
             {
                 ResourceReservation existing = _reservations[i];
-                if (existing.Owner != reservation.Owner && existing.Position == reservation.Position)
+                if (reservation.Kind != ReservationKind.HuntSupply && existing.Kind != ReservationKind.HuntSupply && existing.Owner != reservation.Owner && existing.Position == reservation.Position)
                 {
                     return false;
                 }
             }
-            if (reservation.Kind == ReservationKind.Stockpile && AvailableStock(reservation.Item) < reservation.Quantity)
+            if ((reservation.Kind == ReservationKind.Stockpile || reservation.Kind == ReservationKind.HuntSupply) && AvailableStock(reservation.Item) < reservation.Quantity)
             {
                 return false;
             }

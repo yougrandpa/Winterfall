@@ -100,7 +100,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That(attack.Phase, Is.EqualTo(CombatAttackPhase.Recovery)); Assert.That(attack.ReleasedTick, Is.EqualTo(362));
             Assert.That(prey.Health, Is.EqualTo(health)); Assert.That(npc.Inventory.Count(ItemKind.Arrow), Is.EqualTo(arrows - 1));
             Assert.That(npc.Survival.Durability(ItemKind.Bow), Is.EqualTo(SurvivalRules.ToolDurability - 1));
-            Assert.That(npc.Needs.Energy, Is.EqualTo(energy - 100)); Assert.That(world.Combat.Count(ItemKind.Arrow), Is.EqualTo(1));
+            Assert.That(npc.Needs.Energy, Is.EqualTo(energy)); Assert.That(npc.Survival.Stamina, Is.EqualTo(9400)); Assert.That(world.Combat.Count(ItemKind.Arrow), Is.EqualTo(1));
             Assert.That(npc.RngState, Is.EqualTo(npcRng)); Assert.That(prey.RngState, Is.EqualTo(animalRng)); Conserved(world);
         }
 

@@ -109,7 +109,19 @@ namespace MyAiWorld.EditorTools
             Debug.Log("M4 verification player: " + report.summary.result + ", errors=" + report.summary.totalErrors + ", " + path);
         }
 
-        private static void Run(TestMode mode, string assembly, string category = null)
+        [MenuItem("Tools/My AI World/Verification/Run Hunting Field E2E Tests")]
+        public static void RunHuntingField()
+        {
+            Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode", "HuntingFieldE2E", "Hunting-Field");
+        }
+
+        [MenuItem("Tools/My AI World/Verification/Run Hunting Presentation Tests")]
+        public static void RunHuntingPresentation()
+        {
+            Run(TestMode.PlayMode, "MyAiWorld.Tests.PlayMode", null, "Hunting-Presentation", new[] { "MyAiWorld.Tests.PlayMode.HuntingPresentationTests" });
+        }
+
+        private static void Run(TestMode mode, string assembly, string category = null, string reportName = null, string[] testNames = null)
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode)
             {
@@ -117,12 +129,13 @@ namespace MyAiWorld.EditorTools
                 return;
             }
 
-            SessionState.SetString(PendingModeKey, mode + (category == null ? "" : "-" + category));
+            SessionState.SetString(PendingModeKey, reportName ?? mode + (category == null ? "" : "-" + category));
             Api.Execute(new ExecutionSettings(new Filter
             {
                 testMode = mode,
                 assemblyNames = new[] { assembly },
-                categoryNames = category == null ? null : new[] { category }
+                categoryNames = category == null ? null : new[] { category },
+                testNames = testNames
             }));
         }
 

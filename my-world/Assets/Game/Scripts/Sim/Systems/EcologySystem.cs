@@ -1039,13 +1039,16 @@ namespace MyAiWorld.Sim.Systems
                 int decay = checked((int)(elapsed * rate / 60));
                 carcass.Freshness = Math.Max(0, carcass.Freshness - decay);
                 carcass.DecayProgress += decay;
-                int units = Math.Min(carcass.MeatRemaining + carcass.HideRemaining, carcass.DecayProgress / 1000);
+                int units = Math.Min(carcass.HarvestCount, carcass.DecayProgress / 1000);
                 carcass.DecayProgress %= 1000;
-                int meat = Math.Min(carcass.MeatRemaining, units);
-                carcass.MeatRemaining -= meat;
-                carcass.HideRemaining -= units - meat;
-                world.Ecology.FindHabitat(carcass.HabitatId).Litter += units * 100;
-                if (carcass.MeatRemaining == 0 && carcass.HideRemaining == 0 && carcass.Inventory.TotalCount == 0 &&
+                for (int item = 0; item < (int)ItemKind.Count && units > 0; item++)
+                {
+                    int amount = Math.Min(carcass.Harvest[item], units);
+                    carcass.Harvest[item] -= amount;
+                    units -= amount;
+                    world.Ecology.FindHabitat(carcass.HabitatId).Litter += (long)amount * EcologyBalance.BiomassPerItem((ItemKind)item);
+                }
+                if (carcass.HarvestCount == 0 && carcass.Inventory.TotalCount == 0 &&
                     world.Tick - carcass.CreatedTick >= GameCalendar.TicksPerDay)
                 {
                     world.Ecology.MutableCarcasses.RemoveAt(i);

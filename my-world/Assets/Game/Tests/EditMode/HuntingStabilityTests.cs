@@ -186,7 +186,7 @@ namespace MyAiWorld.Tests.EditMode
             NpcState flanker = world.Entities.Npcs.Single(n => n.Id == member.NpcId);
             flanker.Position = deer.Position.Offset(5, 0);
             GridPos committed = member.WorkCell = deer.Position.Offset(3, 0);
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 5; i++)
             {
                 HuntingCoordinator.UpdateMember(world, flanker, new List<SimEvent>());
                 world.Tick++;

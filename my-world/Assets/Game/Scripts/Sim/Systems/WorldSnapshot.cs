@@ -12,7 +12,7 @@ namespace MyAiWorld.Sim.Systems
     // Explicit wire format. Never serialize engine objects, backing fields or CLR type names.
     public static partial class WorldSnapshot
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
 
         public static byte[] Capture(WorldState world, int version = CurrentVersion)
         {
@@ -113,7 +113,7 @@ namespace MyAiWorld.Sim.Systems
                 for (int i = 0; i < count; i++)
                 {
                     var reservation = new ResourceReservation(new EntityId(r.ReadInt32()), (ReservationKind)r.ReadInt32(), r.ReadInt32(), (ItemKind)r.ReadInt32(), r.ReadInt32(), ReadPos(r));
-                    Require(reservation.Kind >= ReservationKind.Node && reservation.Kind <= ReservationKind.WorkCell && reservation.Item >= ItemKind.Food && reservation.Item < ItemKind.Count && world.Resources.TryReserve(reservation));
+                    Require(reservation.Kind >= ReservationKind.Node && reservation.Kind <= ReservationKind.HuntSupply && reservation.Item >= ItemKind.Food && reservation.Item < ItemKind.Count && world.Resources.TryReserve(reservation));
                 }
                 for (int i = 0; i < nodeOwners.Count; i++) { Require(world.Resources.Nodes[i].ReservedBy == nodeOwners[i]); }
                 for (int i = 0; i < plotOwners.Count; i++) { Require(world.Resources.FarmPlots[i].ReservedBy == plotOwners[i]); }
@@ -194,7 +194,7 @@ namespace MyAiWorld.Sim.Systems
             foreach (PlanStep s in n.Plan.Steps)
             {
                 w.Write((int)s.Type); WritePos(w, s.Target); w.Write(s.ResourceId); w.Write((int)s.Item);
-                w.Write(s.Quantity); w.Write(s.DurationTicks); w.Write(s.UnitPrice);
+                w.Write(s.Quantity); w.Write(s.DurationTicks); w.Write(s.UnitPrice); w.Write(s.RecipeId);
             }
             w.Write(n.LastDecision.Goal); w.Write(n.LastDecision.ReasonCode); w.Write(n.LastDecision.ChosenScore);
             w.Write(n.LastDecision.Options.Count);
@@ -219,7 +219,7 @@ namespace MyAiWorld.Sim.Systems
             var steps = new List<PlanStep>();
             for (int i = 0; i < count; i++)
             {
-                steps.Add(new PlanStep((PlanStepType)r.ReadInt32(), ReadPos(r), r.ReadInt32(), (ItemKind)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt32()));
+                steps.Add(new PlanStep((PlanStepType)r.ReadInt32(), ReadPos(r), r.ReadInt32(), (ItemKind)r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt32(), r.ReadInt32()));
             }
             n.Plan.Start(goal, steps); n.Plan.StepIndex = index; n.Plan.StepStarted = started; n.Plan.FailedStepIndex = failed;
             n.Plan.FailureReason = reason; n.Plan.ReplanCount = replans;
@@ -239,7 +239,7 @@ namespace MyAiWorld.Sim.Systems
                 foreach (int v in new[] { n.Needs.Food, n.Needs.Water, n.Needs.Energy, n.Needs.Health, n.Needs.Safety }) { Require(v >= 0 && v <= 10000); }
                 Require(n.Action.PathIndex >= 0 && n.Action.PathIndex <= n.Action.Path.Count && n.Plan.StepIndex >= 0 && n.Plan.StepIndex <= n.Plan.Steps.Count);
                 Require(Enum.IsDefined(typeof(NpcActionType), n.Action.Type) && Enum.IsDefined(typeof(NpcGoalType), n.Plan.Goal));
-                foreach (PlanStep step in n.Plan.Steps) { Require(Enum.IsDefined(typeof(PlanStepType), step.Type)); }
+                foreach (PlanStep step in n.Plan.Steps) { Require(Enum.IsDefined(typeof(PlanStepType), step.Type) && (step.RecipeId == 0 || step.Type == PlanStepType.Craft && ProductionRecipe.ById(step.RecipeId)?.Output == step.Item)); }
             }
             foreach (AnimalState a in world.Ecology.Animals)
             {

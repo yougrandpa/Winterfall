@@ -27,6 +27,9 @@ namespace MyAiWorld.Sim.Systems
                 Position(writer, task.RallyCell);
                 writer.Write(task.PlayerRequested);
                 writer.Write(task.Reason);
+                writer.Write(task.Returnees.Count);
+                foreach (HuntReturnState person in task.Returnees) { writer.Write(person.NpcId.Value); writer.Write(person.Returned); writer.Write(person.Dead); writer.Write(person.ReturnedTick); Position(writer, person.ReturnedCell); }
+                foreach (int amount in task.Delivered) { writer.Write(amount); }
                 writer.Write(task.Members.Count);
                 foreach (HuntMemberState member in task.Members)
                 {
@@ -43,6 +46,14 @@ namespace MyAiWorld.Sim.Systems
                 writer.Write(pair.Value);
             }
 
+            writer.Write(world.Hunting.RecentResults.Count);
+            foreach (HuntResultState result in world.Hunting.RecentResults)
+            {
+                writer.Write(result.Id); writer.Write(result.TargetId.Value); writer.Write(result.Tick); writer.Write(result.Success); writer.Write(result.Reason);
+                foreach (int amount in result.Items) { writer.Write(amount); }
+                writer.Write(result.Participants.Count);
+                for (int i = 0; i < result.Participants.Count; i++) { writer.Write(result.Participants[i].Value); writer.Write(result.ReturnTicks[i]); Position(writer, result.ReturnCells[i]); }
+            }
             writer.Write(world.Ecology.Animals.Count);
             foreach (AnimalState animal in world.Ecology.Animals)
             {
@@ -72,6 +83,9 @@ namespace MyAiWorld.Sim.Systems
                 long started = reader.ReadInt64();
                 var task = new HuntTaskState(id, target, leader, started)
                 {Stage = stage, DeadlineTick = reader.ReadInt64(), LastSeenTick = reader.ReadInt64(), LastSeenPosition = Position(reader), PreviousSeenPosition = Position(reader), RallyCell = Position(reader), PlayerRequested = reader.ReadBoolean(), Reason = reader.ReadString()};
+                int returnees = Count(reader, HuntingRules.MaxMembers);
+                for (int n = 0; n < returnees; n++) { task.Returnees.Add(new HuntReturnState(new EntityId(reader.ReadInt32())) { Returned = reader.ReadBoolean(), Dead = reader.ReadBoolean(), ReturnedTick = reader.ReadInt64(), ReturnedCell = Position(reader) }); }
+                for (int item = 0; item < task.Delivered.Length; item++) { task.Delivered[item] = reader.ReadInt32(); Require(task.Delivered[item] >= 0); }
                 int members = Count(reader, HuntingRules.MaxMembers);
                 for (int n = 0; n < members; n++)
                 {
@@ -91,6 +105,18 @@ namespace MyAiWorld.Sim.Systems
                 world.Hunting.Cooldowns.Add(id, tick);
             }
 
+            count = Count(reader, 16);
+            for (int i = 0; i < count; i++)
+            {
+                int id = reader.ReadInt32(); EntityId target = new EntityId(reader.ReadInt32()); long tick = reader.ReadInt64(); bool success = reader.ReadBoolean(); string reason = reader.ReadString();
+                Require(id > 0 && id < world.Hunting.NextTaskId && tick >= 0 && tick <= world.Tick && reason.Length <= 512);
+                var items = new int[(int)ItemKind.Count];
+                for (int item = 0; item < items.Length; item++) { items[item] = reader.ReadInt32(); Require(items[item] >= 0); }
+                int participants = Count(reader, HuntingRules.MaxMembers);
+                var ids = new List<EntityId>(); var returnTicks = new List<long>(); var returnCells = new List<GridPos>();
+                for (int n = 0; n < participants; n++) { EntityId person = new EntityId(reader.ReadInt32()); Require(world.Entities.TryGetNpc(person, out _)); ids.Add(person); returnTicks.Add(reader.ReadInt64()); returnCells.Add(Position(reader)); }
+                world.Hunting.MutableResults.Add(new HuntResultState(id, target, tick, success, reason, items, ids, returnTicks, returnCells));
+            }
             count = Count(reader, world.Ecology.Animals.Count);
             Require(count == world.Ecology.Animals.Count);
             for (int i = 0; i < count; i++)
@@ -120,7 +146,10 @@ namespace MyAiWorld.Sim.Systems
             {
                 Require(task.Id > previous && task.Id < world.Hunting.NextTaskId && targets.Add(task.TargetId.Value));
                 previous = task.Id;
-                Require((world.Ecology.Find(task.TargetId.Value) != null || world.Ecology.FindCarcass(task.TargetId.Value) != null || task.Stage == HuntStage.Returning || task.Stage == HuntStage.Retreating) && task.Members.Count > 0 && task.Members.Count <= HuntingRules.MaxMembers && task.Member(task.LeaderId) != null && Enum.IsDefined(typeof(HuntStage), task.Stage) && task.StartedTick >= 0 && task.StartedTick <= world.Tick && task.DeadlineTick >= task.StartedTick && (task.LastSeenTick == -1 || task.LastSeenTick >= task.StartedTick && task.LastSeenTick <= world.Tick) && world.Map.IsWalkable(task.LastSeenPosition) && world.Map.IsWalkable(task.PreviousSeenPosition) && world.Map.IsWalkable(task.RallyCell) && task.Reason.Length <= 256);
+                Require((world.Ecology.Find(task.TargetId.Value) != null || world.Ecology.FindCarcass(task.TargetId.Value) != null || task.Stage == HuntStage.Returning || task.Stage == HuntStage.Retreating) && task.Members.Count <= HuntingRules.MaxMembers && (task.Member(task.LeaderId) != null || task.Members.Count == 0 && (task.Stage == HuntStage.Retreating || task.Stage == HuntStage.Returning)) && Enum.IsDefined(typeof(HuntStage), task.Stage) && task.StartedTick >= 0 && task.StartedTick <= world.Tick && task.DeadlineTick >= task.StartedTick && (task.LastSeenTick == -1 || task.LastSeenTick >= task.StartedTick && task.LastSeenTick <= world.Tick) && world.Map.IsWalkable(task.LastSeenPosition) && world.Map.IsWalkable(task.PreviousSeenPosition) && world.Map.IsWalkable(task.RallyCell) && task.Reason.Length <= 256);
+                Require(task.Returnees.Count > 0 && task.Returnees.Count <= HuntingRules.MaxMembers);
+                var returnIds = new HashSet<int>();
+                foreach (HuntReturnState person in task.Returnees) { Require(returnIds.Add(person.NpcId.Value) && world.Entities.TryGetNpc(person.NpcId, out _) && (!person.Returned || person.ReturnedTick >= task.StartedTick && person.ReturnedTick <= world.Tick && world.Map.IsWalkable(person.ReturnedCell))); }
                 int previousMember = 0;
                 foreach (HuntMemberState member in task.Members)
                 {

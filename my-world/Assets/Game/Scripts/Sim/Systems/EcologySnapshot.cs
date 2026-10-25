@@ -9,7 +9,7 @@ namespace MyAiWorld.Sim.World
 {
     public sealed partial class EcologyState
     {
-        private const int EcologySnapshotVersion = 1;
+        private const int EcologySnapshotVersion = 2;
 
         public byte[] Capture()
         {
@@ -104,6 +104,8 @@ namespace MyAiWorld.Sim.World
                 writer.Write(carcass.HabitatId);
                 writer.Write(carcass.MeatRemaining);
                 writer.Write(carcass.HideRemaining);
+                writer.Write(carcass.Remaining(ItemKind.Fur));
+                writer.Write(carcass.Remaining(ItemKind.Feather));
                 writer.Write(carcass.ReservedBy.Value);
                 writer.Write(carcass.Natural);
                 writer.Write(carcass.SourceId.Value);
@@ -234,6 +236,8 @@ namespace MyAiWorld.Sim.World
                 int habitat = reader.ReadInt32();
                 int meat = reader.ReadInt32();
                 int hide = reader.ReadInt32();
+                int fur = reader.ReadInt32();
+                int feather = reader.ReadInt32();
                 EntityId owner = new EntityId(reader.ReadInt32());
                 bool natural = reader.ReadBoolean();
                 EntityId source = new EntityId(reader.ReadInt32());
@@ -256,6 +260,9 @@ namespace MyAiWorld.Sim.World
                     DecayProgress = decay,
                     LastUpdateTick = updated
                 };
+                carcass.Harvest[(int)ItemKind.Fur] = fur;
+                carcass.Harvest[(int)ItemKind.Feather] = feather;
+                RequireEcology(fur >= 0 && fur <= animal.Definition.HideYield && feather >= 0 && feather <= (species == AnimalSpecies.Raven ? 2 : 0));
                 RequireEcology(id.Value > previousId && natural == carcass.Natural && meat >= 0 && meat <= animal.Definition.FoodYield &&
                     hide >= 0 && hide <= animal.Definition.HideYield && freshness >= 0 && freshness <= 10000 &&
                     decay >= 0 && decay < 1000 && cause > AnimalDeathCause.None && cause <= AnimalDeathCause.Injury);

@@ -13,6 +13,8 @@ namespace MyAiWorld.Sim.Systems
 
         internal static bool Move(WorldState world, NpcState npc, GridPos destination, int arrivalRange = 0)
         {
+            HuntingLocomotion.Refresh(world, npc);
+            if (world.Tick < npc.Survival.NextHuntMoveTick) { return true; }
             string label = npc.Action.Label;
             long blockedUntil = npc.Action.Type == NpcActionType.Idle && npc.Action.Target == destination ?
                 npc.Action.EndTick : world.Tick + HuntingRules.PathWaitTicks;
@@ -23,12 +25,19 @@ namespace MyAiWorld.Sim.Systems
             }
 
             var occupied = new HashSet<GridPos>();
+            var movingPartners = new HashSet<GridPos>();
+            HuntTaskState team = world.Hunting.ForNpc(npc.Id);
             foreach (NpcState other in world.Entities.Npcs)
             {
-                if (other.Id != npc.Id && other.Survival.Life != LifeState.Dead) { occupied.Add(other.Position); }
+                if (other.Id != npc.Id && other.Survival.Life != LifeState.Dead)
+                {
+                    occupied.Add(other.Position);
+                    if (team != null && team.Member(other.Id) != null && other.Action.Type == NpcActionType.Move) { movingPartners.Add(other.Position); }
+                }
             }
             bool CanEnter(GridPos cell) => !occupied.Contains(cell) && !HuntingSafety.ChargeLane(world, npc, cell);
 
+            bool CanPlanThrough(GridPos cell) => (!occupied.Contains(cell) || movingPartners.Contains(cell)) && !HuntingSafety.ChargeLane(world, npc, cell);
             // Keep a complete detour, rather than stepping aside and walking back to the blocked route.
             NpcActionState action = npc.Action;
             GridPos next = action.PeekNextStep();
@@ -47,7 +56,7 @@ namespace MyAiWorld.Sim.Systems
                     if (Math.Abs(x) + Math.Abs(y) > arrivalRange || !world.Map.IsWalkable(cell)) { continue; }
                     goals.Add(cell);
                     if (!CanEnter(cell)) { continue; }
-                    PathResult path = Pathfinder.FindPath(world.Map, npc.Position, cell, 512, CanEnter);
+                    PathResult path = Pathfinder.FindPath(world.Map, npc.Position, cell, 512, CanPlanThrough);
                     int index = cell.Y * world.Map.Width + cell.X;
                     if (path.Found && (best == null || path.Cost < best.Cost || path.Cost == best.Cost && index < bestIndex))
                     {
@@ -74,9 +83,15 @@ namespace MyAiWorld.Sim.Systems
                 next = action.PeekNextStep();
             }
 
+            if (occupied.Contains(next))
+            {
+                npc.Action.SetTimed(NpcActionType.Idle, "Hunt: wait for path", destination, blockedUntil);
+                return world.Tick < blockedUntil;
+            }
             npc.Position = next;
             action.AdvanceStep();
-            npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - 4);
+            npc.Survival.Stamina = Math.Max(0, npc.Survival.Stamina - (npc.Survival.HuntMotion == HuntMotion.Pursuit ? 180 : 20));
+            npc.Survival.NextHuntMoveTick = world.Tick + (npc.Survival.HuntMotion == HuntMotion.Recover ? 3 : npc.Survival.HuntMotion == HuntMotion.Sneak ? 2 : 1);
             return true;
         }
     }

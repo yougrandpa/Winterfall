@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MyAiWorld.Sim.Core;
 
@@ -12,6 +13,8 @@ namespace MyAiWorld.Sim.World
         Returning,
         Retreating
     }
+
+    public enum HuntMotion { Walk, Sneak, Pursuit, Recover }
 
     public enum HuntRole
     {
@@ -33,7 +36,9 @@ namespace MyAiWorld.Sim.World
     {
         public const int MaxMembers = 3;
         public const int RecruitDistance = 12;
-        public const int GatherTicks = 30;
+        public const int GatherTicks = 90;
+        public const int DepartureNeed = 6000;
+        public const int ArrowsPerArcher = 4;
         public const int PursuitTicks = 120;
         public const int LostTicks = 12;
         public const int RetryTicks = 60;
@@ -134,6 +139,31 @@ namespace MyAiWorld.Sim.World
         = GridPos.Invalid;
     }
 
+    public sealed class HuntReturnState
+    {
+        internal HuntReturnState(EntityId id) { NpcId = id; }
+        public EntityId NpcId { get; }
+        public long ReturnedTick { get; internal set; } = -1;
+        public GridPos ReturnedCell { get; internal set; } = GridPos.Invalid;
+        public bool Returned { get; internal set; }
+        public bool Dead { get; internal set; }
+    }
+
+    public sealed class HuntResultState
+    {
+        internal HuntResultState(int id, EntityId target, long tick, bool success, string reason, int[] items, List<EntityId> participants, List<long> returnTicks, List<GridPos> returnCells)
+        { Id = id; TargetId = target; Tick = tick; Success = success; Reason = reason; Items = Array.AsReadOnly((int[])items.Clone()); Participants = participants.AsReadOnly(); ReturnTicks = returnTicks.AsReadOnly(); ReturnCells = returnCells.AsReadOnly(); }
+        public int Id { get; }
+        public EntityId TargetId { get; }
+        public long Tick { get; }
+        public bool Success { get; }
+        public string Reason { get; }
+        public IReadOnlyList<int> Items { get; }
+        public IReadOnlyList<EntityId> Participants { get; }
+        public IReadOnlyList<long> ReturnTicks { get; }
+        public IReadOnlyList<GridPos> ReturnCells { get; }
+    }
+
     public sealed class HuntTaskState
     {
         internal HuntTaskState(int id, EntityId target, EntityId leader, long tick)
@@ -145,6 +175,10 @@ namespace MyAiWorld.Sim.World
             DeadlineTick = tick + HuntingRules.GatherTicks;
         }
 
+        internal readonly List<HuntReturnState> Returnees = new List<HuntReturnState>();
+        internal readonly int[] Delivered = new int[(int)ItemKind.Count];
+        public IReadOnlyList<HuntReturnState> Returns => Returnees.AsReadOnly();
+        public IReadOnlyList<int> DeliveredItems => Array.AsReadOnly(Delivered);
         internal readonly List<HuntMemberState> MutableMembers = new List<HuntMemberState>();
         public int Id
         {
@@ -223,6 +257,8 @@ namespace MyAiWorld.Sim.World
 
     public sealed class HuntingState
     {
+        internal readonly List<HuntResultState> MutableResults = new List<HuntResultState>();
+        public IReadOnlyList<HuntResultState> RecentResults => MutableResults.AsReadOnly();
         internal readonly List<HuntTaskState> MutableTasks = new List<HuntTaskState>();
         internal readonly SortedDictionary<int, long> Cooldowns = new SortedDictionary<int, long>();
         public int NextTaskId
@@ -236,6 +272,7 @@ namespace MyAiWorld.Sim.World
         public HuntTaskState Find(int id) => MutableTasks.Find(t => t.Id == id);
         public HuntTaskState ForTarget(EntityId id) => MutableTasks.Find(t => t.TargetId == id);
         public HuntTaskState ForNpc(EntityId id) => MutableTasks.Find(t => t.Member(id) != null);
+        public HuntTaskState ForReturn(EntityId id) => MutableTasks.Find(t => t.Returnees.Exists(r => r.NpcId == id && !r.Returned && !r.Dead));
         public long RetryAt(EntityId id) => Cooldowns.TryGetValue(id.Value, out long tick) ? tick : 0;
     }
 }

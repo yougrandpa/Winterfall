@@ -80,7 +80,7 @@ namespace MyAiWorld.App.Observability
 
     public static class SaveStore
     {
-        public const int CurrentVersion = 5;
+        public const int CurrentVersion = 6;
         private const int MaxBytes = 96 * 1024 * 1024;
         private sealed class Envelope
         {

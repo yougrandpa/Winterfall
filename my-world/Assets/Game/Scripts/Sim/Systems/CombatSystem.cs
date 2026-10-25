@@ -316,7 +316,7 @@ namespace MyAiWorld.Sim.Systems
             TryRegionalActors(world, attack.Attacker, attack.Target, attack.Region, attack.HabitatId,
                 out AnimalState _, out AnimalState _);
 
-        private static bool Ready(NpcState npc) => npc.Survival.Life == LifeState.Active && npc.Needs.Energy >= 1800 && npc.Needs.Health >= 3000;
+        private static bool Ready(NpcState npc) => npc.Survival.Life == LifeState.Active && npc.Needs.Energy >= 1800 && npc.Needs.Health >= 3000 && !npc.Survival.RecoveringStamina && npc.Survival.Stamina >= 800;
         internal static bool InMeleeRange(GridPos from, GridPos to)
         {
             long dx = to.X - from.X, dy = to.Y - from.Y;
@@ -345,7 +345,7 @@ namespace MyAiWorld.Sim.Systems
 
         private static void SpendWeapon(WorldState world, NpcState npc, ItemKind weapon)
         {
-            npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - (weapon == ItemKind.Bow ? 100 : 140));
+            npc.Survival.Stamina = Math.Max(0, npc.Survival.Stamina - (weapon == ItemKind.Bow ? 600 : 800));
             ProductionSystem.Wear(world, npc, weapon);
         }
         private static int MeleeDamage(WorldState world, CombatAttackState attack)
@@ -367,9 +367,10 @@ namespace MyAiWorld.Sim.Systems
             int scale = CombatState.UnitsPerCell;
             long dx = (long)(seen.X - from.X) * scale, dy = (long)(seen.Y - from.Y) * scale;
             int flight = Math.Max(1, (int)((IntegerSqrt(dx * dx + dy * dy) + CombatState.ArrowSpeed - 1) / CombatState.ArrowSpeed));
+            int trackingSkill = world.Hunting.ForNpc(npc.Id) == null ? npc.HuntingSkill : 100 + npc.HuntingSkill;
             int limit = HuntingRules.MaxPredictionCells * scale;
-            leadX = Math.Max(-limit, Math.Min(limit, (seen.X - previous.X) * scale * flight * npc.HuntingSkill / 200));
-            leadY = Math.Max(-limit, Math.Min(limit, (seen.Y - previous.Y) * scale * flight * npc.HuntingSkill / 200));
+            leadX = Math.Max(-limit, Math.Min(limit, (seen.X - previous.X) * scale * flight * trackingSkill / 200));
+            leadY = Math.Max(-limit, Math.Min(limit, (seen.Y - previous.Y) * scale * flight * trackingSkill / 200));
             GridPos predicted = seen.Offset((int)Math.Round((double)leadX / scale), (int)Math.Round((double)leadY / scale));
             if (!HuntingSystem.Visible(world, from, predicted)) { leadX = leadY = 0; }
             return seen;
@@ -393,6 +394,7 @@ namespace MyAiWorld.Sim.Systems
             int error = 35 + (100 - npc.HuntingSkill) * 4 + (int)distance / 12 + motion +
                 (10000 - npc.Needs.Energy) / 20 + (10000 - npc.Needs.Health) / 20 + cold +
                 (10000 - environment.Daylight) / 30 + environment.Wind * 3 + weather;
+            if (npc.Survival.HuntMotion == HuntMotion.Sneak && shooterStart == from) { error = Math.Max(35, error / 2); }
             error = Math.Min(4096, error);
             var rng = new DeterministicRng(state.RngState);
             dx += rng.NextInt(-error, error + 1);
@@ -404,6 +406,7 @@ namespace MyAiWorld.Sim.Systems
             if (length == 0) { dx = scale; length = scale; }
             npc.Inventory.TryRemove(ItemKind.Arrow, 1);
             SpendWeapon(world, npc, ItemKind.Bow);
+            AnimalEncounterSystem.Disturb(world, from, npc.Id, 2);
             var arrow = new ProjectileState(state.NextProjectileId++, npc.Id)
             {
                 AttackId = attack.Id, Phase = ProjectilePhase.Flying, X = x, Y = y,

@@ -129,12 +129,17 @@ namespace MyAiWorld.Presentation.Rendering
                 ApplyAlpha(1f);
             }
             else { CombatStage = -1; }
-            FrameIndex = CombatStage < 0 ? Mathf.FloorToInt((clock + Id.Value * 0.137f) * (_action == 1 ? 8f : 3f)) % 4 :
+            FrameIndex = CombatStage < 0 ? Mathf.FloorToInt((clock + Id.Value * 0.137f) * (_action == 1 ? snapshot.HuntMotion == HuntMotion.Sneak || snapshot.HuntMotion == HuntMotion.Recover ? 3f : 8f : 3f)) % 4 :
                 attack != null && !(clock < _combatUntil && _eventStage == 4) ? CombatPose.Frame(attack, tick, alpha) :
                 Mathf.Clamp(Mathf.FloorToInt((clock - _combatFrom) * 16f), 0, 3);
             SpriteKey = CombatStage >= 0 ? "npc_attack_" + _role + "_" + _look + "_" + FacingDirection + "_" + CombatStage + "_" + FrameIndex :
                 "npc_" + _role + "_" + _look + "_" + FacingDirection + "_" + _action + "_" + FrameIndex;
             // A missing generated key stays visible to diagnostics (null), not a fake fallback attack.
+            if (CombatStage < 0 && snapshot.Life == LifeState.Active && (snapshot.UsesSpear || snapshot.HuntMotion == HuntMotion.Sneak || snapshot.HuntMotion == HuntMotion.Recover))
+            {
+                bool crouching = snapshot.HuntMotion == HuntMotion.Sneak;
+                SpriteKey = "field_hunter_" + _look + "_" + FacingDirection + "_" + (snapshot.UsesSpear ? 1 : 0) + "_" + (crouching ? 2 : _motion.Moving ? 1 : 0) + "_" + FrameIndex;
+            }
             _renderer.sprite = _art.Get(SpriteKey);
             Color tint = clock < _flashUntil ? new Color(1f, 0.6f, 0.5f) : Color.white;
             tint.a = Mathf.Clamp01((clock - _bornAt) / 0.25f);

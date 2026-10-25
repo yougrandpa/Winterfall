@@ -62,7 +62,7 @@ namespace MyAiWorld.Presentation.UI
         public static string Action(NpcActionType action) => Actions[(int)action];
         public static string Step(PlanStepType step) => Steps[(int)step];
         public static string Goal(NpcGoalType goal) => Goals[(int)goal];
-        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "萝卜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "小麦种子", "豆种", "弓", "矛", "锄头", "水桶", "箭矢", "生肉", "兽皮", "冬衣" }[(int)item];
+        public static string Item(ItemKind item) => new[] { "食物", "饮用水", "萝卜种子", "生水", "木材", "石料", "纤维", "草药", "药品", "小麦种子", "豆种", "弓", "矛", "锄头", "水桶", "箭矢", "生肉", "兽皮", "冬衣", "毛皮", "羽毛" }[(int)item];
         public static string Crop(CropType crop) => new[] { "休耕", "萝卜", "小麦", "豆类" }[(int)crop];
         public static string Facility(FacilityKind kind) => new[] { "工作台", "净水炉", "蓄水池", "水井", "灌溉设施" }[(int)kind];
         public static string Life(LifeState life) => new[] { "健康活动", "倒地待援", "卧床恢复", "已逝世" }[(int)life];
@@ -89,6 +89,15 @@ namespace MyAiWorld.Presentation.UI
             if (label == "Hunt: complete") { return "狩猎结束"; }
             if (label == "Hunt: shelter") { return "寻找安全退路"; }
             if (label == "Hunt: track") { return "追踪猎物"; }
+            if (label == "Hunt: prepare supplies") { return "领取狩猎补给"; }
+            if (label == "Hunt: put on coat") { return "穿戴冬衣"; }
+            if (label == "Hunt: rest before departure") { return "出发前休息取暖"; }
+            if (label == "Hunt: supplies ready") { return "补给准备就绪"; }
+            if (label == "Hunt: sneak") { return "潜伏接近"; }
+            if (label == "Hunt: recover stamina") { return "缓行恢复耐力"; }
+            if (label == "Hunt: eat rations") { return "食用随身干粮"; }
+            if (label == "Hunt: drink supplies") { return "饮用随身饮水"; }
+            if (label == "Hunt: return after survival") { return "求生处理后返村"; }
             if (label == "Hunt: attack") { return "瞄准与攻击"; }
             if (label == "Hunt: retrieve") { return "取回猎获"; }
             if (label == "Rescue") { return "救治与转运"; }

@@ -265,6 +265,69 @@ namespace MyAiWorld.EditorTools
             EditorUtility.SetDirty(config); AssetDatabase.SaveAssets(); _target = null;
         }
 
+        [MenuItem("Tools/My AI World/Art/Generate Hunting Field Art")]
+        public static void GenerateHuntingFieldArt()
+        {
+            Targets.Clear();
+            var atlas = new AtlasTarget("HuntingFieldAtlas.png", 2048, 1024, 32, FilterMode.Point);
+            Targets.Add(atlas); Use(atlas);
+            for (int look = 0; look < 4; look++)
+            for (int direction = 0; direction < 4; direction++)
+            for (int weapon = 0; weapon < 2; weapon++)
+            for (int motion = 0; motion < 3; motion++)
+            for (int frame = 0; frame < 4; frame++)
+            {
+                Begin("field_hunter_" + look + "_" + direction + "_" + weapon + "_" + motion + "_" + frame);
+                Person(2, look, direction, motion == 0 ? 0 : 1, frame, true);
+                if (motion == 2)
+                {
+                    var pixels = new Color32[64 * 64];
+                    for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 64; x++) { pixels[y * 64 + x] = Get(x, y); }
+                    R(0, 0, 64, 64, C(0, 0, 0, 0));
+                    for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 64; x++) { if (pixels[y * 64 + x].a > 0) { P(x, y <= 12 ? y : 12 + (y - 12) * 3 / 4, pixels[y * 64 + x]); } }
+                }
+                int handY = motion == 2 ? 21 : 27 + (motion == 1 ? frame % 2 : 0);
+                if (weapon == 1)
+                {
+                    if (direction == 1) { DrawSpear(25, handY - 4, 52, handY + 12); }
+                    else if (direction == 3) { DrawSpear(39, handY - 4, 12, handY + 12); }
+                    else { DrawSpear(43, 9, 43, 51); }
+                }
+                else { DrawCombatBow(direction == 3 ? 20 : 44, handY, direction, 0); }
+            }
+            foreach (int item in new[] { 16, 17, 19, 20 })
+            {
+                Begin("field_loot_" + item);
+                Shadow(11);
+                if (item == 16)
+                {
+                    E(32, 23, 16, 10, Outline); E(32, 24, 14, 8, C(156, 66, 57));
+                    E(34, 26, 9, 4, C(206, 124, 103)); L(24, 20, 39, 28, Cream);
+                }
+                else if (item == 20)
+                {
+                    L(23, 12, 41, 43, Cream); L(24, 12, 42, 43, Cream);
+                    for (int i = 0; i < 10; i++)
+                    { int x = 28 + i, y = 23 + i * 2; L(x, y, x - 8, y + 2, i % 2 == 0 ? C(84, 107, 124) : C(119, 144, 154)); L(x, y, x + 6, y - 7, C(47, 65, 81)); }
+                }
+                else
+                {
+                    E(32, 23, 14, 12, Outline); E(32, 24, 12, 10, item == 19 ? C(178, 167, 144) : C(139, 94, 62));
+                    for (int i = 0; i < 5; i++) { L(23 + i * 4, 17, 22 + i * 4, 31, item == 19 ? Cream : C(177, 127, 80)); }
+                    E(20, 13, 4, 3, Outline); E(44, 13, 4, 3, Outline);
+                }
+            }
+            Save(atlas);
+            var config = AssetDatabase.LoadAssetAtPath<PastoralArtConfig>(Root + "PastoralArt.asset");
+            config.sprites = config.sprites.Where(e => !e.key.StartsWith("field_", StringComparison.Ordinal))
+                .Concat(AssetDatabase.LoadAllAssetsAtPath(Root + atlas.FileName).OfType<Sprite>()
+                .Select(sprite => new PastoralArtConfig.Entry { key = sprite.name, sprite = sprite }))
+                .OrderBy(e => e.key, StringComparer.Ordinal).ToArray();
+            EditorUtility.SetDirty(config); AssetDatabase.SaveAssets(); _target = null;
+        }
+
         private static void DrawHuntingAtlas()
         {
             var target = new AtlasTarget("HuntingAtlas.png", 1024, 1024, 16, FilterMode.Point);

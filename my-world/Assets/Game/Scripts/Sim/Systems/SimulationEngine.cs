@@ -212,6 +212,7 @@ namespace MyAiWorld.Sim.Systems
         private void UpdateNpc(WorldState world, NpcState npc, List<SimEvent> events)
         {
             if (npc.Survival.Life == LifeState.Dead) { return; }
+            HuntingLocomotion.Refresh(world, npc);
             ThermalSystem.UpdateNpc(world, npc);
             if (npc.Needs.Health <= 0 && npc.Survival.Life != LifeState.Downed) { HealthSystem.Update(world, npc, events); return; }
             if (npc.Survival.Life != LifeState.Downed) { UpdateNeeds(world, npc, events); }
@@ -426,7 +427,7 @@ namespace MyAiWorld.Sim.Systems
                 }
                 npc.Action.Label = "Hunt: track";
                 npc.Position = path.Path[0];
-                npc.Needs.Fatigue = Math.Max(0, npc.Needs.Fatigue - 4);
+                npc.Survival.Stamina = Math.Max(0, npc.Survival.Stamina - 180);
                 return;
             }
             npc.Action.Label = "Hunt: attack";

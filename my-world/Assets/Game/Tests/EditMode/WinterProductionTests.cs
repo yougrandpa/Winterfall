@@ -131,7 +131,7 @@ namespace MyAiWorld.Tests.EditMode
             Assert.That((int)ItemKind.Bow, Is.EqualTo(11));
             Assert.That((int)ItemKind.Bucket, Is.EqualTo(14));
             Assert.That((int)ItemKind.Arrow, Is.EqualTo(15));
-            Assert.That((int)ItemKind.Count, Is.EqualTo(19));
+            Assert.That((int)ItemKind.Count, Is.EqualTo(21));
             Assert.That(SurvivalRules.IsTool(ItemKind.WinterCoat), Is.False);
             var equip = new PlanStep(PlanStepType.Equip, npc.Position, item: ItemKind.WinterCoat);
             Assert.That(ProductionSystem.Apply(world, npc, equip), Is.True);

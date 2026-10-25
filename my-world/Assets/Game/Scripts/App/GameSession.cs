@@ -57,7 +57,7 @@ namespace MyAiWorld.App
         public int WorldRevision { get; private set; }
         public string SaveStatus { get; private set; } = "尚未存档";
         public bool LastSaveSucceeded { get; private set; }
-        public string SaveDirectory { get; set; } = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "saves-hunting-v5");
+        public string SaveDirectory { get; set; } = Path.Combine(RuntimeHost.DataPath, "MyAiWorld", "saves-hunting-v6");
         public string ManualSavePath => Path.Combine(SaveDirectory, "manual.json");
         public string AutoSavePath => Path.Combine(SaveDirectory, "auto.json");
         public string ReplayPath => Replay != null ? Replay.FilePath : null;

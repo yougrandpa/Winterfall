@@ -81,7 +81,7 @@ namespace MyAiWorld.Presentation.UI
                 _needValues[i].text = values[i] / 100 + "%";
                 _needValues[i].color = critical ? HudTheme.Danger : HudTheme.Ink;
 
-                _summaryValues[i].text = new[] { "食", "水", "力", "健", "安" }[i] + " " + values[i] / 100;
+                _summaryValues[i].text = new[] { "食", "水", "精", "健", "安" }[i] + " " + values[i] / 100;
                 _summaryValues[i].color = critical ? HudTheme.Danger : HudTheme.Muted;
                 _summaryFills[i].color = critical ? HudTheme.Danger : HudTheme.Needs[i];
 
@@ -94,6 +94,7 @@ namespace MyAiWorld.Presentation.UI
             SetFact("bag", details.BagTotal + " / " + details.BagCapacity);
             SetFact("coins", details.Coins.ToString(), HudTheme.Gold);
             SetFact("skill", details.HuntingSkill.ToString());
+            SetFact("stamina", details.Stamina / 100 + "%" + (details.HuntMotion == HuntMotion.Recover ? " · 恢复" : ""));
             string tool = "无";
             if (details.Tools[0] > 0) { tool = "弓 " + details.Tools[0] + "/" + SurvivalRules.ToolDurability; }
             else if (details.Tools[1] > 0) { tool = "矛 " + details.Tools[1] + "/" + SurvivalRules.ToolDurability; }
@@ -119,6 +120,7 @@ namespace MyAiWorld.Presentation.UI
             builder.Append("背包 ").Append(_facts["bag"].text).Append('\n')
                 .Append("钱包 ").Append(_facts["coins"].text).Append('\n')
                 .Append("狩猎技能 ").Append(_facts["skill"].text).Append('\n')
+                .Append("短期耐力 ").Append(_facts["stamina"].text).Append('\n')
                 .Append("狩猎工具 ").Append(_facts["tool"].text).Append('\n')
                 .Append("位置 ").Append(_facts["cell"].text).Append('\n')
                 .Append("住所 ").Append(_facts["home"].text).Append('\n')
@@ -326,8 +328,10 @@ namespace MyAiWorld.Presentation.UI
             {
                 if (carcass.Items[i] > 0) { items.Append(ChineseText.Item((ItemKind)i)).Append(' ').Append(carcass.Items[i]).Append("  "); }
             }
+            var harvest = new StringBuilder();
+            for (int i = 0; i < carcass.Harvest.Count; i++) { if (carcass.Harvest[i] > 0) { harvest.Append(ChineseText.Item((ItemKind)i)).Append(' ').Append(carcass.Harvest[i]).Append("  "); } }
             return "死因 " + ChineseText.AnimalDeath(carcass.DeathCause) + " · 来源 " + AnimalId(carcass.SourceId) +
-                "\n生肉 " + carcass.MeatRemaining + " · 兽皮 " + carcass.HideRemaining + " · 新鲜度 " + carcass.Freshness / 100 + "%" +
+                "\n" + harvest + " · 新鲜度 " + carcass.Freshness / 100 + "%" +
                 "\n" + carcass.Cell + " · 栖地 #" + carcass.HabitatId + (items.Length > 0 ? "\n嵌入物资 " + items : "");
         }
 

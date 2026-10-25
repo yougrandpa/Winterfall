@@ -98,8 +98,12 @@ namespace MyAiWorld.Sim.World
         public AnimalSpecies Species { get; }
         public int Region { get; }
         public int HabitatId { get; }
-        public int MeatRemaining { get; internal set; }
-        public int HideRemaining { get; internal set; }
+        internal readonly int[] Harvest = new int[(int)ItemKind.Count];
+        public int MeatRemaining { get => Harvest[(int)ItemKind.RawMeat]; internal set => Harvest[(int)ItemKind.RawMeat] = value; }
+        public int HideRemaining { get => Harvest[(int)ItemKind.Hide]; internal set => Harvest[(int)ItemKind.Hide] = value; }
+        public int Remaining(ItemKind item) => Harvest[(int)item];
+        public int HarvestCount { get { int count = 0; foreach (int amount in Harvest) { count += amount; } return count; } }
+        public long Biomass { get { long mass = 0; for (int i = 0; i < Harvest.Length; i++) { mass += (long)Harvest[i] * EcologyBalance.BiomassPerItem((ItemKind)i); } return mass; } }
         public EntityId ReservedBy { get; internal set; }
         public bool Natural { get; }
         public EntityId SourceId { get; }
@@ -429,11 +433,15 @@ namespace MyAiWorld.Sim.World
                     int ageScaledHide = animal.Definition.HideYield * animal.BodyMass / animal.Definition.AdultMass;
                     int meat = Math.Min(ageScaledMeat, biomass / 100);
                     int hide = Math.Min(ageScaledHide, (biomass - meat * 100) / 100);
-                    patch.Litter += biomass - (meat + hide) * 100;
+                    ItemKind covering = animal.Species == AnimalSpecies.Rabbit || animal.Species == AnimalSpecies.Fox || animal.Species == AnimalSpecies.Wolf ? ItemKind.Fur : ItemKind.Hide;
+                    int feathers = animal.Species == AnimalSpecies.Raven ? Math.Min(2 * animal.BodyMass / animal.Definition.AdultMass, Math.Max(0, (biomass - meat * 100) / 25)) : 0;
+                    patch.Litter += biomass - (meat + hide) * 100 - feathers * 25;
                     int returnedWater = Math.Min(animal.Hydration, patch.WaterCapacity - patch.Water);
                     patch.Water += returnedWater;
                     Balance.Runoff += animal.Hydration - returnedWater;
                     var carcass = new CarcassState(animal, world.Tick, meat, hide);
+                    if (covering == ItemKind.Fur) { carcass.Harvest[(int)ItemKind.Fur] = hide; carcass.HideRemaining = 0; }
+                    carcass.Harvest[(int)ItemKind.Feather] = feathers;
                     MutableCarcasses.Add(carcass);
                     MutableCarcasses.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
                     if (animal.DeathCause == AnimalDeathCause.Hunt)
@@ -539,31 +547,18 @@ namespace MyAiWorld.Sim.World
                 return false;
             }
             int room = npc.Inventory.Capacity - npc.Inventory.TotalCount;
-            int meat = Math.Min(room, carcass.MeatRemaining);
-            int hide = Math.Min(room - meat, carcass.HideRemaining);
             bool changed = false;
-            if (meat > 0)
+            for (int i = 0; i < (int)ItemKind.Count; i++)
             {
-                if (!npc.Inventory.TryAdd(ItemKind.RawMeat, meat))
-                {
-                    throw new InvalidOperationException("Carcass harvest precondition changed.");
-                }
-                carcass.MeatRemaining -= meat;
-                world.Materials.Produce(ItemKind.RawMeat, meat);
-                Balance.CarcassConversions[(int)ItemKind.RawMeat] += meat;
-                Balance.MaterialBiomassProduced += meat * 100;
-                changed = true;
-            }
-            if (hide > 0)
-            {
-                if (!npc.Inventory.TryAdd(ItemKind.Hide, hide))
-                {
-                    throw new InvalidOperationException("Carcass harvest precondition changed.");
-                }
-                carcass.HideRemaining -= hide;
-                world.Materials.Produce(ItemKind.Hide, hide);
-                Balance.CarcassConversions[(int)ItemKind.Hide] += hide;
-                Balance.MaterialBiomassProduced += hide * 100;
+                ItemKind item = (ItemKind)i;
+                int amount = Math.Min(room, carcass.Harvest[i]);
+                if (amount == 0) { continue; }
+                if (!npc.Inventory.TryAdd(item, amount)) { throw new InvalidOperationException("Carcass harvest precondition changed."); }
+                carcass.Harvest[i] -= amount;
+                room -= amount;
+                world.Materials.Produce(item, amount);
+                Balance.CarcassConversions[i] += amount;
+                Balance.MaterialBiomassProduced += (long)amount * EcologyBalance.BiomassPerItem(item);
                 changed = true;
             }
             for (int item = 0; item < (int)ItemKind.Count; item++)
@@ -579,7 +574,7 @@ namespace MyAiWorld.Sim.World
             if (changed)
             {
                 events.Add(new SimEvent(SimEventKind.ResourceGathered, world.Tick, npc.Id,
-                    "Harvest carcass #" + carcass.Id.Value + ": raw meat " + meat + ", hide " + hide + "."));
+                    "Harvest carcass #" + carcass.Id.Value + "; remaining " + carcass.HarvestCount + "."));
             }
             return changed;
         }

@@ -240,111 +240,56 @@ namespace MyAiWorld.Tests.PlayMode
         public IEnumerator CooperativeBoarHunt_CapturesTelegraphAttackAndRetreat()
         {
             SceneManager.LoadScene("Bootstrap");
-            yield return null;
-            yield return null;
+            yield return null; yield return null;
             var game = Object.FindObjectOfType<GameBootstrap>();
             game.Runner.Pause();
+            HuntingFieldE2ETests.LoadScenario(game, HuntingFieldE2ETests.Scenario(false, out EntityId target));
+            yield return null; yield return null;
             var world = game.Session.World;
-            GridPos origin = GridPos.Invalid;
-            int bestDistance = int.MaxValue;
-            GridPos preferred = new GridPos(world.Map.Width / 4, world.Map.Height / 4);
-            for (int y = 3; y < world.Map.Height - 5; y++)
-                for (int x = 3; x < world.Map.Width - 9; x++)
-                {
-                    bool clear = true;
-                    for (int dy = 0; dy < 3; dy++)
-                        for (int dx = 0; dx < 8; dx++)
-                        {
-                            var cell = new GridPos(x + dx, y + dy);
-                            clear &= world.Map.IsWalkable(cell) && world.Map.GetTile(cell) != TileType.Forest;
-                        }
-
-                    var candidate = new GridPos(x, y);
-                    if (clear && candidate.ManhattanDistance(preferred) < bestDistance)
-                    {
-                        origin = candidate;
-                        bestDistance = candidate.ManhattanDistance(preferred);
-                    }
-                }
-
-            Assert.That(origin.IsValid, Is.True, "The fixed seed needs an open review lane.");
-            var boar = world.Ecology.Animals.First(a => a.Region == -1 && a.Species == AnimalSpecies.Boar);
-            Set(boar, "Position", origin.Offset(5, 0));
-            Set(boar, "HabitatId", world.Ecology.HabitatAt(boar.Position).Id);
-            var ids = new List<EntityId>();
-            world.Tick += 12 * 60 - world.Date.MinuteOfDay; // Controlled noon lighting, before any review commands.
-            for (int i = 0; i < 3; i++)
-            {
-                var npc = world.Entities.Npcs[i];
-                ids.Add(npc.Id);
-                npc.Plan.GetType().GetMethod("Fail", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(npc.Plan, new object[]{"Controlled review"});
-                npc.Position = origin.Offset(i + 1, 1);
-                npc.Action.SetIdle("Controlled review", world.Tick);
-                foreach (string need in new[]{"Health", "Hunger", "Thirst", "Fatigue"})
-                {
-                    Set(npc.Needs, need, 10000);
-                }
-
-                Set(npc.Survival, "BodyTemperature", 3700);
-                Set(npc.Survival, "Wetness", 0);
-                npc.Survival.GetType().GetMethod("SetTool", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(npc.Survival, new object[]{i == 1 ? ItemKind.Spear : ItemKind.Bow, 120});
-                npc.Inventory.TryAdd(ItemKind.Arrow, 4);
-            }
-
-            Set(world.Environment, "Temperature", 2500);
-            Set(world.Environment, "Wind", 0);
-            Set(world.Environment, "Weather", WeatherKind.Clear);
-            Set(world.Environment, "NextWeatherTick", world.Tick + 1000);
-            world.Materials.GetType().GetMethod("Initialize", BindingFlags.NonPublic | BindingFlags.Instance).Invoke(world.Materials, new object[]{world});
-            game.Session.EnqueueCommand(new RequestHuntCommand(boar.Id, ids));
-            game.Runner.StepOnce();
-            Assert.That(world.Hunting.ForTarget(boar.Id), Is.Not.Null);
-            yield return null;
-            foreach (EntityId id in ids)
-            {
-                game.Presenter.FindNpcView(id).SetCell(world.Entities.Npcs.First(n => n.Id == id).Position, true, world.Tick);
-            }
-
-            var animalView = game.Presenter.FindAnimalView(boar.Id);
-            var motion = typeof(AnimalView).GetField("_motion", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(animalView);
-            motion.GetType().GetMethod("SetCell").Invoke(motion, new object[]{boar.Position, true, world.Tick});
-            game.Selection.SelectAnimal(boar.Id);
+            var ids = world.Entities.Npcs.Select(n => n.Id).ToArray();
+            game.Selection.SelectAnimal(target);
             var camera = game.PlayerCamera.GetComponent<MyAiWorld.Presentation.CameraControl.GodCameraController>();
             camera.SetPixelScale(3);
-            camera.Focus(game.Presenter.CellCenter(origin.Offset(4, 1)));
-            game.Runner.SetSpeed(1);
-            bool windup = false, attack = false;
+            camera.Focus(game.Presenter.CellCenter(world.Resources.StockpilePosition.Offset(4, 0)));
+            // Initial encounter setup: an already defensive boar tests the charge telegraph.
+            // The complete natural hunt cases are covered separately by HuntingFieldE2ETests.
+            var initialBoar = world.Ecology.Find(target.Value);
+            Set(initialBoar, "Position", world.Resources.StockpilePosition.Offset(4, 0));
+            Set(initialBoar, "HabitatId", world.Ecology.HabitatAt(initialBoar.Position).Id);
+            Assert.That(CombatSystem.RequestCharge(world, initialBoar, world.Entities.Npcs[1], new List<SimEvent>()), Is.True);
+            game.Session.EnqueueCommand(new RequestHuntCommand(target, ids));
+            game.Runner.StepOnce();
+            yield return null;
             string folder = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Docs", "Progress", "Hunting"));
             Directory.CreateDirectory(folder);
-            for (int i = 0; i < 60 && (!windup || !attack); i++)
+            bool windup = game.Session.ReadModel.Combat.GetAttack(target)?.Phase == CombatAttackPhase.Preparing;
+            Assert.That(windup, Is.True);
+            SurvivalPresentationTests.Capture(game, Path.Combine(folder, "boar-windup.png"), 1920, 1080);
+            game.Runner.SetSpeed(8);
+            float readyBy = Time.realtimeSinceStartup + 12;
+            while (world.Hunting.ForTarget(target)?.Stage == HuntStage.Gathering && Time.realtimeSinceStartup < readyBy) { yield return null; }
+            Assert.That(world.Hunting.ForTarget(target)?.Stage, Is.EqualTo(HuntStage.Approaching));
+            game.Runner.SetSpeed(1);
+            bool attack = false;
+            for (int i = 0; i < 160 && (!windup || !attack); i++)
             {
-                yield return new WaitForSecondsRealtime(0.1f);
-                AttackSnapshot animalAttack = game.Session.ReadModel.Combat.GetAttack(boar.Id);
+                yield return new WaitForSecondsRealtime(0.05f);
+                AttackSnapshot animalAttack = game.Session.ReadModel.Combat.GetAttack(target);
                 if (!windup && animalAttack != null && animalAttack.Kind == CombatAttackKind.Charge && animalAttack.Phase == CombatAttackPhase.Preparing)
-                {
-                    SurvivalPresentationTests.Capture(game, Path.Combine(folder, "boar-windup.png"), 1920, 1080);
-                    windup = true;
-                }
-
+                { SurvivalPresentationTests.Capture(game, Path.Combine(folder, "boar-windup.png"), 1920, 1080); windup = true; }
                 if (!attack && ids.Any(id => game.Session.ReadModel.Combat.GetAttack(id)?.Phase == CombatAttackPhase.Recovery))
-                {
-                    SurvivalPresentationTests.Capture(game, Path.Combine(folder, "team-attack.png"), 1920, 1080);
-                    attack = true;
-                }
+                { SurvivalPresentationTests.Capture(game, Path.Combine(folder, "team-attack.png"), 1920, 1080); attack = true; }
             }
-
             Assert.That(windup, Is.True, "The boar must visibly telegraph its charge.");
             Assert.That(attack, Is.True, "A prepared team must actually attack.");
-            Assert.That(world.Hunting.ForTarget(boar.Id)?.Stage, Is.Not.EqualTo(HuntStage.Retreating), "The team must still be hunting before the controlled injury.");
+            Assert.That(world.Hunting.ForTarget(target), Is.Not.Null);
+            Assert.That(world.Hunting.ForTarget(target).Stage, Is.Not.EqualTo(HuntStage.Retreating));
+            // This is an injury visualization fixture, separate from the no-override E2E cases.
             Set(world.Entities.Npcs[0].Needs, "Health", 3900);
-            for (int i = 0; i < 8; i++)
-            {
-                yield return new WaitForSecondsRealtime(0.1f);
-            }
-
+            yield return new WaitForSecondsRealtime(0.6f);
             game.Runner.Pause();
-            Assert.That(world.Hunting.ForTarget(boar.Id)?.Stage, Is.EqualTo(HuntStage.Retreating));
-            Assert.That(world.Hunting.ForTarget(boar.Id)?.Reason, Does.Contain("受伤"));
+            Assert.That(world.Hunting.ForTarget(target)?.Stage, Is.EqualTo(HuntStage.Retreating));
+            Assert.That(world.Hunting.ForTarget(target)?.Reason, Does.Contain("受伤"));
             SurvivalPresentationTests.Capture(game, Path.Combine(folder, "team-retreat.png"), 1920, 1080);
         }
 

@@ -87,6 +87,9 @@ namespace MyAiWorld.App.Query
             HabitatId = carcass.HabitatId;
             MeatRemaining = carcass.MeatRemaining;
             HideRemaining = carcass.HideRemaining;
+            var harvest = new int[(int)ItemKind.Count];
+            for (int item = 0; item < harvest.Length; item++) { harvest[item] = carcass.Remaining((ItemKind)item); }
+            Harvest = Array.AsReadOnly(harvest);
             Freshness = carcass.Freshness;
             SourceId = carcass.SourceId;
             DeathCause = carcass.DeathCause;
@@ -105,6 +108,7 @@ namespace MyAiWorld.App.Query
         public int HabitatId { get; }
         public int MeatRemaining { get; }
         public int HideRemaining { get; }
+        public IReadOnlyList<int> Harvest { get; }
         public int Freshness { get; }
         public EntityId SourceId { get; }
         public AnimalDeathCause DeathCause { get; }

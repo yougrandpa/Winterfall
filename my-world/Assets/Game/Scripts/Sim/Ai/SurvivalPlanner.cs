@@ -329,7 +329,7 @@ namespace MyAiWorld.Sim.Ai
             foreach (CarcassState carcass in world.Ecology.Carcasses)
             {
                 if (carcass.Region != -1 || !carcass.ReservedBy.IsNone || world.Hunting.ForTarget(carcass.Id) != null ||
-                    carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount == 0 ||
+                    carcass.HarvestCount + carcass.Inventory.TotalCount == 0 ||
                     npc.Inventory.TotalCount == npc.Inventory.Capacity || !HuntingSystem.Perceived(world, npc, carcass.Position) ||
                     !CanReach(world, npc.Position, carcass.Position)) { continue; }
                 carcass.ReservedBy = npc.Id;

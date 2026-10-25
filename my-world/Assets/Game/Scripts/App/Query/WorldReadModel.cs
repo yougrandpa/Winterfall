@@ -19,8 +19,9 @@ namespace MyAiWorld.App.Query
 
         public NpcSnapshot(EntityId id, string name, string role, GridPos cell, string actionLabel,
             NpcActionType actionType, int health, LifeState life, int bodyTemperature, int wetness,
-            int coldTicks, int shelterId, int coatDurability, int arrows, AttackSnapshot attack = null, GridPos? home = null)
+            int coldTicks, int shelterId, int coatDurability, int arrows, AttackSnapshot attack = null, GridPos? home = null, int stamina = 10000, HuntMotion huntMotion = HuntMotion.Walk, bool usesSpear = false)
         {
+            Stamina = stamina; HuntMotion = huntMotion; UsesSpear = usesSpear;
             Home = home ?? cell;
             Id = id;
             Name = name;
@@ -33,6 +34,9 @@ namespace MyAiWorld.App.Query
             ShelterId = shelterId; CoatDurability = coatDurability; Arrows = arrows; Attack = attack;
         }
 
+        public int Stamina { get; }
+        public HuntMotion HuntMotion { get; }
+        public bool UsesSpear { get; }
         public int BodyTemperature { get; }
         public int Wetness { get; }
         public int ColdTicks { get; }
@@ -92,6 +96,7 @@ namespace MyAiWorld.App.Query
     {
         internal NpcDetails(NpcState npc, long tick, IReadOnlyList<NeedsSample> history, AttackSnapshot attack = null)
         {
+            Stamina = npc.Survival.Stamina; HuntMotion = npc.Survival.HuntMotion; UsesSpear = npc.Survival.Durability(ItemKind.Spear) > 0 && (npc.Survival.Durability(ItemKind.Bow) == 0);
             BodyTemperature = npc.Survival.BodyTemperature; Wetness = npc.Survival.Wetness;
             ColdTicks = npc.Survival.ColdTicks; ShelterId = npc.Survival.ShelterId;
             CoatDurability = npc.Survival.CoatDurability; Arrows = npc.Inventory.Count(ItemKind.Arrow); Attack = attack;
@@ -178,6 +183,9 @@ namespace MyAiWorld.App.Query
             PlanConditions = step != null ? step.Preconditions + "\nEffect: " + step.Effects : "";
         }
 
+        public int Stamina { get; }
+        public HuntMotion HuntMotion { get; }
+        public bool UsesSpear { get; }
         public int BodyTemperature { get; }
         public int Wetness { get; }
         public int ColdTicks { get; }
@@ -479,7 +487,8 @@ namespace MyAiWorld.App.Query
                 _npcs.Add(new NpcSnapshot(npc.Id, npc.Name, npc.Role, npc.Position, label, npc.Action.Type,
                     npc.Needs.Health, npc.Survival.Life, npc.Survival.BodyTemperature, npc.Survival.Wetness,
                     npc.Survival.ColdTicks, npc.Survival.ShelterId, npc.Survival.CoatDurability,
-                    npc.Inventory.Count(ItemKind.Arrow), attack, npc.Home));
+                    npc.Inventory.Count(ItemKind.Arrow), attack, npc.Home, npc.Survival.Stamina, npc.Survival.HuntMotion,
+                    world.Hunting.ForNpc(npc.Id)?.Member(npc.Id)?.Role == HuntRole.Spear || npc.Survival.Durability(ItemKind.Spear) > 0 && npc.Survival.Durability(ItemKind.Bow) == 0));
                 List<NeedsSample> history;
                 if (!_history.TryGetValue(npc.Id, out history))
                 {

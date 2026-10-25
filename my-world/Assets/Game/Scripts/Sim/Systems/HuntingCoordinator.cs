@@ -16,7 +16,7 @@ namespace MyAiWorld.Sim.Systems
             (weapon == ItemKind.Bow || weapon == ItemKind.Spear) && HuntingEquipment.CanPrepare(world, npc, weapon);
         public static bool Eligible(WorldState world, NpcState npc)
         {
-            return npc.Survival.Life == LifeState.Active && npc.Needs.Health >= HuntingRules.JoinHealth && npc.Needs.Energy >= HuntingRules.JoinEnergy && npc.Needs.Food >= 3000 && npc.Needs.Water >= 3000 && !ThermalSystem.ShouldSeekWarmth(world, npc) && !npc.Survival.IsCold && (HuntingEquipment.CanPrepare(world, npc, ItemKind.Bow) || HuntingEquipment.CanPrepare(world, npc, ItemKind.Spear)) && npc.Inventory.TotalCount < npc.Inventory.Capacity && world.Hunting.ForNpc(npc.Id) == null && world.Tick >= world.Hunting.RetryAt(npc.Id) && (!npc.Plan.IsActive || npc.Plan.Goal != NpcGoalType.Rescue && npc.Plan.Goal != NpcGoalType.WarmUp && npc.Plan.Goal != NpcGoalType.Eat && npc.Plan.Goal != NpcGoalType.Drink && npc.Plan.Goal != NpcGoalType.Sleep);
+            return npc.Survival.Life == LifeState.Active && npc.Needs.Health >= HuntingRules.JoinHealth && npc.Needs.Energy >= HuntingRules.JoinEnergy && npc.Needs.Food >= 3000 && npc.Needs.Water >= 3000 && npc.Survival.BodyTemperature >= 3600 && npc.Survival.Wetness < 5000 && (HuntingEquipment.CanPrepare(world, npc, ItemKind.Bow) || HuntingEquipment.CanPrepare(world, npc, ItemKind.Spear)) && npc.Inventory.TotalCount < npc.Inventory.Capacity && world.Hunting.ForNpc(npc.Id) == null && world.Hunting.ForReturn(npc.Id) == null && world.Tick >= world.Hunting.RetryAt(npc.Id) && (!npc.Plan.IsActive || npc.Plan.Goal != NpcGoalType.Rescue && npc.Plan.Goal != NpcGoalType.WarmUp && npc.Plan.Goal != NpcGoalType.Eat && npc.Plan.Goal != NpcGoalType.Drink && npc.Plan.Goal != NpcGoalType.Sleep);
         }
 
         public static bool TryRequest(WorldState world, EntityId targetId, IReadOnlyList<EntityId> requested, bool player, List<SimEvent> events, out string reason, EntityId preferredLeader = default(EntityId))
@@ -130,6 +130,7 @@ namespace MyAiWorld.Sim.Systems
                 return false;
             }
 
+            if (!HuntingPreparation.Budget(world, selected, roles, out List<ResourceReservation> supplies, out reason)) { return false; }
             if (world.Hunting.NextTaskId == int.MaxValue)
             {
                 reason = "狩猎任务编号已耗尽";
@@ -137,7 +138,7 @@ namespace MyAiWorld.Sim.Systems
             }
 
             var task = new HuntTaskState(world.Hunting.NextTaskId++, target.Id, leader.Id, world.Tick)
-            {PlayerRequested = player, RallyCell = leader.Position, LastSeenPosition = target.Position, PreviousSeenPosition = target.Position,
+            {PlayerRequested = player, RallyCell = world.Resources.StockpilePosition, LastSeenPosition = target.Position, PreviousSeenPosition = target.Position,
                 LastSeenTick = selected.Exists(n => HuntingSystem.Perceived(world, n, target)) ? world.Tick : -1};
             selected.Sort((a, b) => a.Id.Value.CompareTo(b.Id.Value));
             foreach (NpcState npc in selected)
@@ -148,6 +149,7 @@ namespace MyAiWorld.Sim.Systems
                 CombatSystem.CancelUnreleased(world, npc.Id);
                 HuntRole role = roles[npc.Id.Value];
                 task.MutableMembers.Add(new HuntMemberState(npc.Id, role));
+                task.Returnees.Add(new HuntReturnState(npc.Id));
                 npc.Plan.Start(NpcGoalType.Hunt, new List<PlanStep>{new PlanStep(PlanStepType.Hunt, target.Position, target.Id.Value, durationTicks: HuntingRules.PursuitTicks)});
                 npc.Action.SetTimed(NpcActionType.Work, "Hunt: gather", task.RallyCell, task.DeadlineTick);
                 npc.Plan.StepStarted = true;
@@ -167,6 +169,10 @@ namespace MyAiWorld.Sim.Systems
                 }
             }
 
+            foreach (ResourceReservation supply in supplies)
+            {
+                if (!world.Resources.TryReserve(supply)) { throw new InvalidOperationException("Validated hunting supply changed inside a tick."); }
+            }
             target.ReservedBy = leader.Id;
             world.Hunting.MutableTasks.Add(task);
             events.Add(new SimEvent(SimEventKind.PlanStarted, world.Tick, leader.Id, "狩猎队 #" + task.Id + " 集结，猎物 #" + target.Id.Value));
@@ -226,6 +232,12 @@ namespace MyAiWorld.Sim.Systems
         {
             foreach (HuntTaskState task in world.Hunting.MutableTasks.ToArray())
             {
+                foreach (HuntReturnState traveler in task.Returnees)
+                {
+                    if (!world.Entities.TryGetNpc(traveler.NpcId, out NpcState person)) { continue; }
+                    traveler.Dead = person.Survival.Life == LifeState.Dead;
+                    if (task.Member(person.Id) == null && AtVillage(world, person) && !traveler.Returned) { traveler.Returned = true; traveler.ReturnedTick = world.Tick; traveler.ReturnedCell = person.Position; }
+                }
                 if (!task.PlayerRequested && task.StartedTick + 1 == world.Tick)
                 {
                     events.Add(new SimEvent(SimEventKind.PlanStarted, world.Tick, task.LeaderId, "狩猎队 #" + task.Id + " 自主集结"));
@@ -242,7 +254,7 @@ namespace MyAiWorld.Sim.Systems
 
                 if (task.Members.Count == 0)
                 {
-                    Finish(world, task);
+                    if (task.Returnees.TrueForAll(r => r.Returned || r.Dead)) { Finish(world, task); }
                     continue;
                 }
 
@@ -325,13 +337,26 @@ namespace MyAiWorld.Sim.Systems
             HuntTaskState task = world.Hunting.ForNpc(npc.Id);
             if (task == null)
             {
-                return false;
+                HuntTaskState returning = world.Hunting.ForReturn(npc.Id);
+                if (returning == null || HuntingSafety.NeedsRetreat(world, npc) || npc.Plan.IsActive &&
+                    (npc.Plan.Goal == NpcGoalType.Rescue || npc.Plan.Goal == NpcGoalType.WarmUp || npc.Plan.Goal == NpcGoalType.Eat || npc.Plan.Goal == NpcGoalType.Drink || npc.Plan.Goal == NpcGoalType.Sleep)) { return false; }
+                world.Resources.Release(npc.Id);
+                ProductionSystem.Release(world, npc);
+                CombatSystem.CancelUnreleased(world, npc.Id);
+                npc.Plan.Complete();
+                npc.Survival.HuntMotion = HuntMotion.Walk;
+                npc.Action.Label = "Hunt: return after survival";
+                HuntingNavigation.Move(world, npc, npc.Home);
+                return true;
             }
 
             HuntMemberState member = task.Member(npc.Id);
-            if (HuntingSafety.NeedsRetreat(world, npc))
+            HuntingLocomotion.Refresh(world, npc);
+            if (task.Stage != HuntStage.Gathering && !HuntingSafety.VisibleDanger(world, npc)) { HuntingPreparation.EatDrink(world, npc); }
+            if (task.Stage != HuntStage.Gathering && HuntingSafety.NeedsRetreat(world, npc) || npc.Needs.Health < HuntingRules.RetreatHealth || npc.Needs.Energy < HuntingRules.RetreatEnergy || npc.Survival.IsCold ||
+                task.Stage == HuntStage.Gathering && npc.Position.ManhattanDistance(task.RallyCell) > 3 && (npc.Needs.Food < 1500 || npc.Needs.Water < 1800 || npc.Survival.BodyTemperature < 3600))
             {
-                Retreat(world, task, "队员受伤、疲惫或需求告急", events);
+                Retreat(world, task, HuntingSafety.Reason(world, npc), events);
             }
 
             AnimalState prey = world.Ecology.Find(task.TargetId.Value);
@@ -339,7 +364,7 @@ namespace MyAiWorld.Sim.Systems
             if (task.Stage == HuntStage.Retreating || task.Stage == HuntStage.Returning)
             {
                 if (npc.Needs.Food < 1500 || npc.Needs.Water < 1800 || npc.Needs.Energy < HuntingRules.RetreatEnergy ||
-                    ThermalSystem.ShouldSeekWarmth(world, npc))
+                    HuntingSafety.ThermalRisk(world, npc))
                 {
                     // Urgent survival must not wait for arrival at a home blocked by other actors.
                     Detach(world, npc.Id);
@@ -374,23 +399,27 @@ namespace MyAiWorld.Sim.Systems
                 }
 
                 GridPos destination = task.Stage == HuntStage.Returning ? world.Resources.StockpilePosition : npc.Home;
+                if (!npc.Survival.RecoveringStamina) { npc.Survival.HuntMotion = HuntMotion.Walk; }
                 npc.Action.Label = task.Stage == HuntStage.Returning ? "Hunt: return" : "Hunt: retreat";
                 if (npc.Position == destination || task.Stage == HuntStage.Returning && npc.Position.ManhattanDistance(destination) <= 1)
                 {
                     if (task.Stage == HuntStage.Returning)
                     {
-                        foreach (ItemKind item in new[]{ItemKind.RawMeat, ItemKind.Hide})
+                        foreach (ItemKind item in new[]{ItemKind.RawMeat, ItemKind.Hide, ItemKind.Fur, ItemKind.Feather})
                         {
                             int amount = Math.Min(npc.Inventory.Count(item), world.Resources.Stockpile.Capacity - world.Resources.Stockpile.TotalCount);
                             if (amount > 0)
                             {
                                 npc.Inventory.TryRemove(item, amount);
                                 world.Resources.Stockpile.TryAdd(item, amount);
+                                task.Delivered[(int)item] += amount;
                             }
                         }
                     }
 
                     bool returned = task.Stage == HuntStage.Returning;
+                    if (returned && npc.Inventory.Count(ItemKind.RawMeat) + npc.Inventory.Count(ItemKind.Hide) + npc.Inventory.Count(ItemKind.Fur) + npc.Inventory.Count(ItemKind.Feather) > 0)
+                    { task.Reason = "仓库已满，未入库猎获保留在队员背包"; }
                     Detach(world, npc.Id);
                     if (returned)
                     {
@@ -415,10 +444,9 @@ namespace MyAiWorld.Sim.Systems
             if (task.Stage == HuntStage.Gathering)
             {
                 npc.Action.Label = "Hunt: gather";
-                if (!HuntingEquipment.Prepare(world, npc, member, task, out bool unavailable))
+                if (!HuntingPreparation.Prepare(world, npc, member, out bool unavailable))
                 {
-                    if (unavailable || npc.Position.ManhattanDistance(world.Resources.StockpilePosition) > 1 &&
-                        !HuntingNavigation.Move(world, npc, world.Resources.StockpilePosition, 1))
+                    if (unavailable)
                     {
                         Retreat(world, task, "装备补给不足或不可达，交回生产流程", events);
                     }
@@ -435,11 +463,20 @@ namespace MyAiWorld.Sim.Systems
                 foreach (HuntMemberState other in task.Members)
                 {
                     world.Entities.TryGetNpc(other.NpcId, out NpcState partner);
-                    ready &= partner.Position.ManhattanDistance(task.RallyCell) <= 2 && HuntingEquipment.Ready(partner, other);
+                    ready &= partner.Position.ManhattanDistance(task.RallyCell) <= 2 && HuntingPreparation.Ready(world, partner, other);
                 }
 
-                if (ready)
+                if (ready && prey != null)
                 {
+                    foreach (HuntMemberState other in task.Members)
+                    {
+                        world.Entities.TryGetNpc(other.NpcId, out NpcState traveler);
+                        PathResult route = Pathfinder.FindPath(world.Map, traveler.Position, task.LastSeenPosition);
+                        if (!route.Found || !ThermalSystem.CanHuntTrip(world, traveler, route.Cost))
+                        { Retreat(world, task, "天气或保暖不足以保障往返", events); return true; }
+                    }
+                    foreach (HuntMemberState prepared in task.Members) { world.Resources.Release(prepared.NpcId); }
+                    foreach (HuntReturnState traveler in task.Returnees) { traveler.Returned = false; traveler.ReturnedTick = -1; traveler.ReturnedCell = GridPos.Invalid; }
                     task.Stage = HuntStage.Approaching;
                     task.DeadlineTick = world.Tick + HuntingRules.PursuitTicks;
                     bool seenNow = false;
@@ -468,7 +505,7 @@ namespace MyAiWorld.Sim.Systems
                     return true;
                 }
 
-                if (carcass.MeatRemaining + carcass.HideRemaining + carcass.Inventory.TotalCount == 0 || !task.MutableMembers.Exists(m => world.Entities.TryGetNpc(m.NpcId, out NpcState p) && p.Inventory.TotalCount < p.Inventory.Capacity))
+                if (carcass.HarvestCount + carcass.Inventory.TotalCount == 0 || !task.MutableMembers.Exists(m => world.Entities.TryGetNpc(m.NpcId, out NpcState p) && p.Inventory.TotalCount < p.Inventory.Capacity))
                 {
                     task.Stage = HuntStage.Returning;
                     carcass.ReservedBy = EntityId.None;
@@ -527,9 +564,39 @@ namespace MyAiWorld.Sim.Systems
             }
 
             bool perceived = HuntingSystem.Perceived(world, npc, prey);
+            if (!npc.Survival.RecoveringStamina)
+            {
+                npc.Survival.HuntMotion = perceived && (prey.Fleeing || prey.Encounter.Phase == EncounterPhase.Defending) ? HuntMotion.Pursuit :
+                    npc.Position.ManhattanDistance(task.LastSeenPosition) <= 8 ? HuntMotion.Sneak : HuntMotion.Walk;
+            }
+            if (!perceived && task.LastSeenTick != world.Tick)
+            {
+                // Visit the last observation itself: stopping at bow range can leave
+                // an unseen animal behind forest forever. Search only known terrain.
+                GridPos destination = task.LastSeenPosition;
+                if (npc.Position == destination || member.WorkCell.IsValid && member.WorkCell.ManhattanDistance(destination) <= 2)
+                {
+                    if (!member.WorkCell.IsValid || npc.Position == member.WorkCell || member.WorkCell.ManhattanDistance(destination) > 2)
+                    {
+                        int offset = (int)((world.Tick - task.StartedTick) / 3 + npc.Id.Value) % 4;
+                        for (int i = 0; i < 4; i++)
+                        {
+                            int direction = (offset + i) % 4;
+                            GridPos candidate = destination.Offset(direction == 1 ? 2 : direction == 3 ? -2 : 0, direction == 0 ? 2 : direction == 2 ? -2 : 0);
+                            if (world.Map.IsWalkable(candidate) && Pathfinder.FindPath(world.Map, npc.Position, candidate, 256).Found)
+                            { member.WorkCell = candidate; break; }
+                        }
+                    }
+                    if (member.WorkCell.IsValid) { destination = member.WorkCell; }
+                }
+                else { member.WorkCell = destination; }
+                npc.Action.Label = npc.Survival.RecoveringStamina ? "Hunt: recover stamina" : "Hunt: track";
+                if (!HuntingNavigation.Move(world, npc, destination)) { Retreat(world, task, "最后目击位置不可达", events); }
+                return true;
+            }
             bool intercepting = member.Role == HuntRole.Flanker && npc.Position.ManhattanDistance(prey.Position) > 1 &&
                 (!member.WorkCell.IsValid || npc.Position != member.WorkCell);
-            if (!intercepting && perceived && HuntingSystem.CanStrike(world, npc, prey) && (member.Role != HuntRole.Spear || npc.Position.ManhattanDistance(prey.Position) <= 1))
+            if (!npc.Survival.RecoveringStamina && !intercepting && perceived && HuntingSystem.CanStrike(world, npc, prey) && (member.Role != HuntRole.Spear || npc.Position.ManhattanDistance(prey.Position) <= 1))
             {
                 task.Stage = HuntStage.Engaging;
                 npc.Action.Label = "Hunt: attack";
@@ -538,7 +605,7 @@ namespace MyAiWorld.Sim.Systems
             }
 
             member.WorkCell = ChooseSlot(world, npc, member, task);
-            npc.Action.Label = member.Role == HuntRole.Flanker ? "Hunt: flank" : "Hunt: track";
+            npc.Action.Label = npc.Survival.RecoveringStamina ? "Hunt: recover stamina" : npc.Survival.HuntMotion == HuntMotion.Sneak ? "Hunt: sneak" : member.Role == HuntRole.Flanker ? "Hunt: flank" : "Hunt: track";
             if (!member.WorkCell.IsValid)
             {
                 if (!Pathfinder.FindPath(world.Map, npc.Position, task.LastSeenPosition).Found)
@@ -666,6 +733,7 @@ namespace MyAiWorld.Sim.Systems
             task.DeadlineTick = world.Tick + HuntingRules.CoverTicks;
             foreach (HuntMemberState member in task.Members)
             {
+                world.Resources.Release(member.NpcId);
                 CombatSystem.CancelUnreleased(world, member.NpcId);
             }
 
@@ -692,8 +760,15 @@ namespace MyAiWorld.Sim.Systems
                 return;
             }
 
+            world.Resources.Release(id);
             CombatSystem.CancelUnreleased(world, id);
             task.MutableMembers.RemoveAll(m => m.NpcId == id);
+            if (world.Entities.TryGetNpc(id, out NpcState traveler))
+            {
+                HuntReturnState arrival = task.Returnees.Find(r => r.NpcId == id);
+                if (arrival != null) { arrival.Returned = AtVillage(world, traveler); if (arrival.Returned) { arrival.ReturnedTick = world.Tick; arrival.ReturnedCell = traveler.Position; } arrival.Dead = traveler.Survival.Life == LifeState.Dead; }
+                traveler.Survival.HuntMotion = HuntMotion.Walk;
+            }
             world.Hunting.Cooldowns[id.Value] = world.Tick + HuntingRules.RetryTicks;
             if (world.Entities.TryGetNpc(id, out NpcState npc))
             {
@@ -703,7 +778,8 @@ namespace MyAiWorld.Sim.Systems
             world.Ecology.Release(id);
             if (task.Members.Count == 0)
             {
-                Finish(world, task);
+                if (task.Stage != HuntStage.Returning) { task.Stage = HuntStage.Retreating; }
+                if (task.Returnees.TrueForAll(r => r.Returned || r.Dead)) { Finish(world, task); }
                 return;
             }
 
@@ -718,10 +794,25 @@ namespace MyAiWorld.Sim.Systems
             }
         }
 
+        private static bool AtVillage(WorldState world, NpcState npc) => npc.Survival.Life != LifeState.Dead &&
+            (npc.Position == npc.Home || npc.Position.ManhattanDistance(world.Resources.StockpilePosition) <= 2);
+
         private static void Finish(WorldState world, HuntTaskState task)
         {
+            // Detach may finish the last member while Update is still visiting its task copy.
+            if (!world.Hunting.MutableTasks.Remove(task)) { return; }
+            foreach (HuntMemberState member in task.Members) { world.Resources.Release(member.NpcId); }
             world.Ecology.Release(task.LeaderId);
-            world.Hunting.MutableTasks.Remove(task);
+            int delivered = 0;
+            foreach (int amount in task.Delivered) { delivered += amount; }
+            bool success = task.Stage == HuntStage.Returning && delivered > 0 && !task.Returnees.Exists(r => r.Dead);
+            string result = success ? (string.IsNullOrEmpty(task.Reason) ? "猎获已入库，全队返村" : "部分猎获已入库，全队返村 · " + task.Reason) : string.IsNullOrEmpty(task.Reason) ? "未带回猎获，队伍已返村" : task.Reason + " · 返村结束";
+            var participants = new List<EntityId>();
+            foreach (HuntReturnState person in task.Returnees) { participants.Add(person.NpcId); }
+            var returnTicks = new List<long>(); var returnCells = new List<GridPos>();
+            foreach (HuntReturnState person in task.Returnees) { returnTicks.Add(person.ReturnedTick); returnCells.Add(person.ReturnedCell); }
+            world.Hunting.MutableResults.Add(new HuntResultState(task.Id, task.TargetId, world.Tick, success, result, task.Delivered, participants, returnTicks, returnCells));
+            if (world.Hunting.MutableResults.Count > 16) { world.Hunting.MutableResults.RemoveAt(0); }
         }
     }
 }

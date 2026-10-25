@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MyAiWorld.Sim.Core;
+using MyAiWorld.Sim.Systems;
 
 namespace MyAiWorld.Sim.World
 {
@@ -34,6 +35,11 @@ namespace MyAiWorld.Sim.World
     public sealed class SurvivalNpcState
     {
         internal readonly int[] Tools = new int[4];
+        public int Stamina { get; internal set; } = 10000;
+        public bool RecoveringStamina { get; internal set; }
+        public HuntMotion HuntMotion { get; internal set; }
+        public long NextHuntMoveTick { get; internal set; }
+        public long LastStaminaTick { get; internal set; } = -1;
         public LifeState Life { get; internal set; }
         public NpcDeathCause DeathCause { get; internal set; }
         public long RescueDeadline { get; internal set; }
@@ -92,6 +98,7 @@ namespace MyAiWorld.Sim.World
         public GridPos Position { get; }
         public GridPos WorkCell { get; }
         public InventoryState Inventory { get; } = new InventoryState(120);
+        public int PendingRecipeId { get; internal set; }
         public int Progress { get; internal set; }
         public bool Complete => Progress >= SurvivalRules.ConstructionTicks;
         public int Condition { get; internal set; } = 100;
@@ -164,7 +171,8 @@ namespace MyAiWorld.Sim.World
     public sealed class ProductionRecipe
     {
         public ProductionRecipe(ItemKind output, int quantity, FacilityKind facility, int ticks, params int[] inputs)
-        { Output = output; Quantity = quantity; Facility = facility; Ticks = ticks; Inputs = inputs; }
+        { Id = (int)output + 1; Output = output; Quantity = quantity; Facility = facility; Ticks = ticks; Inputs = inputs; }
+        public int Id { get; private set; }
         public ItemKind Output { get; }
         public int Quantity { get; }
         public FacilityKind Facility { get; }
@@ -180,9 +188,31 @@ namespace MyAiWorld.Sim.World
             new ProductionRecipe(ItemKind.Bucket, 1, FacilityKind.Workbench, 10, (int)ItemKind.Wood, 2, (int)ItemKind.Fiber, 1),
             new ProductionRecipe(ItemKind.Arrow, 6, FacilityKind.Workbench, 8, (int)ItemKind.Wood, 1, (int)ItemKind.Stone, 1, (int)ItemKind.Fiber, 1),
             new ProductionRecipe(ItemKind.Food, 3, FacilityKind.Purifier, 10, (int)ItemKind.RawMeat, 3, (int)ItemKind.Wood, 1),
-            new ProductionRecipe(ItemKind.WinterCoat, 1, FacilityKind.Workbench, 16, (int)ItemKind.Hide, 2, (int)ItemKind.Fiber, 2)
+            new ProductionRecipe(ItemKind.WinterCoat, 1, FacilityKind.Workbench, 16, (int)ItemKind.Hide, 2, (int)ItemKind.Fiber, 2),
+            new ProductionRecipe(ItemKind.WinterCoat, 1, FacilityKind.Workbench, 16, (int)ItemKind.Fur, 2, (int)ItemKind.Fiber, 2) { Id = 101 },
+            new ProductionRecipe(ItemKind.Arrow, 6, FacilityKind.Workbench, 8, (int)ItemKind.Wood, 1, (int)ItemKind.Stone, 1, (int)ItemKind.Feather, 1) { Id = 102 }
         };
         public static ProductionRecipe For(ItemKind item) => Array.Find(All, recipe => recipe.Output == item);
+        public static ProductionRecipe ById(int id) => Array.Find(All, recipe => recipe.Id == id);
+        internal static ProductionRecipe Select(WorldState world, MyAiWorld.Sim.Agents.NpcState npc, ItemKind output)
+        {
+            FacilityState facility = world.Survival.Facility(For(output).Facility);
+            if (facility == null) { return For(output); }
+            bool Available(ProductionRecipe recipe)
+            {
+                for (int i = 0; i < recipe.Inputs.Length; i += 2)
+                {
+                    ItemKind item = (ItemKind)recipe.Inputs[i];
+                    if (facility.Inventory.Count(item) + npc.Inventory.Count(item) + world.Resources.AvailableStock(item) < recipe.Inputs[i + 1]) { return false; }
+                }
+                return true;
+            }
+            ProductionRecipe pending = ById(facility.PendingRecipeId);
+            // A staged batch keeps its ingredients even while another input is temporarily unavailable.
+            if (pending != null && pending.Output == output) { return pending; }
+            foreach (ProductionRecipe recipe in All) { if (recipe.Output == output && Available(recipe)) { return recipe; } }
+            return For(output);
+        }
         public static int[] ConstructionCost(FacilityKind kind) => kind == FacilityKind.Workbench ?
             new[] { (int)ItemKind.Wood, 4, (int)ItemKind.Stone, 2 } :
             kind == FacilityKind.Purifier ? new[] { (int)ItemKind.Stone, 4, (int)ItemKind.Wood, 2 } :

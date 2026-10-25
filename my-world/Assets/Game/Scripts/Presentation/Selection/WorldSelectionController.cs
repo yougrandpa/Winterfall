@@ -41,7 +41,13 @@ namespace MyAiWorld.Presentation.Selection
                 return;
             }
 
-            Vector3 screen = Input.mousePosition;
+            SelectAtScreenPosition(Input.mousePosition);
+        }
+
+        public void SelectAtScreenPosition(Vector2 position)
+        {
+            if (_camera == null || _presenter == null) { return; }
+            Vector3 screen = position;
             Vector3 world = _camera.ScreenToWorldPoint(new Vector3(screen.x, screen.y, -_camera.transform.position.z));
             NpcView view = _presenter.PickNpc(new Vector2(world.x, world.y));
             if (view != null) { Select(view.Id); return; }

@@ -75,7 +75,7 @@ namespace MyAiWorld.Tests.EditMode
         }
 
         [Test]
-        public void LimitedArrows_AreSharedBeforeGatheringCompletes()
+        public void LimitedArrows_RejectsUnderpreparedTeamWithoutTakingSupply()
         {
             WorldState world = Arena(2);
             foreach (NpcState npc in world.Entities.Npcs)
@@ -83,14 +83,12 @@ namespace MyAiWorld.Tests.EditMode
                 npc.Survival.SetTool(ItemKind.Spear, 0);
                 npc.Survival.SetTool(ItemKind.Bow, 120);
                 npc.Inventory.TryRemove(ItemKind.Arrow, 4);
-                npc.Position = world.Resources.StockpilePosition;
             }
             world.Resources.Stockpile.TryAdd(ItemKind.Arrow, 2);
-            HuntTaskState task = Request(world, Prey(world));
-            Gather(world, task);
-            Assert.That(task.Stage, Is.EqualTo(HuntStage.Approaching));
-            Assert.That(world.Entities.Npcs.All(n => n.Inventory.Count(ItemKind.Arrow) == 1), Is.True);
-            Assert.That(task.Members.Any(m => m.Role == HuntRole.Flanker), Is.True, "A deer team needs an intercepting member.");
+            AnimalState deer = Prey(world);
+            ulong before = StateHasher.Compute(world);
+            Assert.That(HuntingCoordinator.TryRequest(world, deer.Id, null, true, new List<SimEvent>(), out _), Is.False);
+            Assert.That(StateHasher.Compute(world), Is.EqualTo(before));
             Conserved(world);
         }
 
@@ -109,7 +107,7 @@ namespace MyAiWorld.Tests.EditMode
             }
             world.Resources.Stockpile.TryAdd(ItemKind.Bow, 1);
             world.Resources.Stockpile.TryAdd(ItemKind.Spear, 1);
-            world.Resources.Stockpile.TryAdd(ItemKind.Arrow, 2);
+            world.Resources.Stockpile.TryAdd(ItemKind.Arrow, 4);
             HuntTaskState task = Request(world, Prey(world, AnimalSpecies.Boar));
             Gather(world, task);
             Assert.That(task.Stage, Is.EqualTo(HuntStage.Approaching));
